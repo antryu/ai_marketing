@@ -27,29 +27,23 @@ export async function POST(request: Request) {
       data: { session },
     } = await supabase.auth.getSession()
 
-    // DEVELOPMENT ONLY: Skip authentication checks
-    // TODO: Remove this in production!
-    const userId = session?.user?.id || "00000000-0000-0000-0000-000000000000" // Mock user ID for development
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-    // if (!session) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    // }
+    // Ensure profile exists (create if not)
+    const profileResult = await (supabase as any)
+      .from("profiles")
+      .select("id")
+      .eq("id", session.user.id)
+      .single()
 
-    // Ensure profile exists (create if not) - only if we have a real session
-    if (session) {
-      const profileResult = await (supabase as any)
-        .from("profiles")
-        .select("id")
-        .eq("id", session.user.id)
-        .single()
-
-      if (!profileResult.data) {
-        await (supabase as any).from("profiles").insert({
-          id: session.user.id,
-          email: session.user.email!,
-          full_name: session.user.user_metadata?.full_name || session.user.email,
-        })
-      }
+    if (!profileResult.data) {
+      await (supabase as any).from("profiles").insert({
+        id: session.user.id,
+        email: session.user.email!,
+        full_name: session.user.user_metadata?.full_name || session.user.email,
+      })
     }
 
     const body = await request.json()
@@ -59,7 +53,7 @@ export async function POST(request: Request) {
     const brandResult = await (supabase as any)
       .from("brands")
       .insert({
-        user_id: userId,
+        user_id: session.user.id,
         name,
         description,
         product_type,
@@ -106,19 +100,15 @@ export async function GET(request: Request) {
       data: { session },
     } = await supabase.auth.getSession()
 
-    // DEVELOPMENT ONLY: Skip authentication checks
-    // TODO: Remove this in production!
-    const userId = session?.user?.id || "00000000-0000-0000-0000-000000000000" // Mock user ID for development
-
-    // if (!session) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    // }
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     // Get user's brands
     const brandsResult = await (supabase as any)
       .from("brands")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
 
     if (brandsResult.error) throw brandsResult.error
