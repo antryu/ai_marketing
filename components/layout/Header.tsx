@@ -1,12 +1,13 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { LogOut, User, Zap } from "lucide-react"
 import { toast } from "sonner"
 
 export function Header() {
   const router = useRouter()
+  const pathname = usePathname()
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -15,6 +16,15 @@ export function Header() {
     router.push("/login")
     router.refresh()
   }
+
+  // Hide "새 콘텐츠 생성" button on certain pages
+  const hideContentButton = pathname === "/dashboard" ||
+                           pathname === "/brand" ||
+                           pathname === "/personas" ||
+                           pathname === "/writer-personas" ||
+                           pathname === "/settings" ||
+                           pathname === "/content/create" ||
+                           pathname === "/content/bulk"
 
   return (
     <header className="h-20 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border-b border-zinc-800 flex items-center justify-between px-12 relative">
@@ -27,13 +37,15 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-5">
-        {/* Enhanced CTA Button with Energy */}
-        <button
-          onClick={() => router.push("/content/create")}
-          className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide text-sm hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5"
-        >
-          새 콘텐츠 생성
-        </button>
+        {/* Enhanced CTA Button with Energy - Only show on relevant pages */}
+        {!hideContentButton && (
+          <button
+            onClick={() => router.push("/content/create")}
+            className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide text-sm hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5"
+          >
+            새 콘텐츠 생성
+          </button>
+        )}
 
         <div className="relative group">
           <button className="w-11 h-11 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 hover:border-amber-400/50 rounded-full flex items-center justify-center font-light text-white text-base transition-all duration-300 hover:shadow-lg hover:shadow-amber-400/20 hover:scale-105">

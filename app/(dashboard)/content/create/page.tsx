@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,16 +11,18 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Send, Eye, Zap, Video, FileText } from "lucide-react"
+import { Sparkles, Zap, Video, FileText } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
+import ReactMarkdown from "react-markdown"
 
 export default function ContentCreatePage() {
+  const router = useRouter()
   const [brands, setBrands] = useState<any[]>([])
   const [writerPersonas, setWriterPersonas] = useState<any[]>([])
   const [selectedBrand, setSelectedBrand] = useState("")
   const [selectedWriterPersona, setSelectedWriterPersona] = useState("")
   const [topic, setTopic] = useState("")
-  const [platform, setPlatform] = useState("thread")
+  const [platform, setPlatform] = useState("all")
   const [tone, setTone] = useState("professional")
   const [length, setLength] = useState("medium")
   const [contentType, setContentType] = useState<"text" | "video">("text")
@@ -30,6 +33,7 @@ export default function ContentCreatePage() {
   const [compareMode, setCompareMode] = useState(false)
   const [comparison, setComparison] = useState<any>(null)
   const [ollamaModel, setOllamaModel] = useState("qwen2.5:7b")
+  const [usedAiModel, setUsedAiModel] = useState("")
 
   useEffect(() => {
     loadBrands()
@@ -116,6 +120,9 @@ export default function ContentCreatePage() {
           toast.success(`AI 비교 완료! (${(data.comparison.generationTime / 1000).toFixed(1)}초)`)
         } else {
           setGeneratedContent(data.generated)
+          // 사용된 AI 모델 저장
+          const modelUsed = compareMode ? ollamaModel : "Claude (Haiku)"
+          setUsedAiModel(modelUsed)
           toast.success("AI 콘텐츠가 생성되었습니다!")
         }
       } else {
@@ -288,12 +295,12 @@ export default function ContentCreatePage() {
                     관리
                   </a>
                 </div>
-                <Select value={selectedWriterPersona} onValueChange={setSelectedWriterPersona}>
+                <Select value={selectedWriterPersona || "default"} onValueChange={(value) => setSelectedWriterPersona(value === "default" ? "" : value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="작성자 스타일 선택 (선택사항)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">기본 스타일</SelectItem>
+                    <SelectItem value="default">기본 스타일</SelectItem>
                     {writerPersonas.map((persona) => (
                       <SelectItem key={persona.id} value={persona.id}>
                         {persona.name} {persona.is_default && "⭐"}
@@ -324,33 +331,62 @@ export default function ContentCreatePage() {
               {contentType === "text" && (
                 <div className="flex items-center justify-between">
                   <Label>AI 모델 비교</Label>
-                  <button
-                    onClick={() => setCompareMode(!compareMode)}
-                    className={`
-                      px-3 py-1 text-xs rounded border transition-all
-                      ${compareMode
-                        ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                        : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                      }
-                    `}
-                  >
-                    {compareMode ? "ON" : "OFF"}
-                  </button>
+                  <div className="flex gap-1 bg-zinc-900/50 border border-zinc-700 rounded p-0.5">
+                    <button
+                      onClick={() => setCompareMode(false)}
+                      className={`
+                        px-3 py-1 text-xs rounded transition-all
+                        ${!compareMode
+                          ? "bg-zinc-800 border border-zinc-600 text-white"
+                          : "text-zinc-400 hover:text-zinc-300"
+                        }
+                      `}
+                    >
+                      OFF
+                    </button>
+                    <button
+                      onClick={() => setCompareMode(true)}
+                      className={`
+                        px-3 py-1 text-xs rounded transition-all
+                        ${compareMode
+                          ? "bg-amber-500/20 border border-amber-500 text-amber-400"
+                          : "text-zinc-400 hover:text-zinc-300"
+                        }
+                      `}
+                    >
+                      ON
+                    </button>
+                  </div>
                 </div>
               )}
-              {(compareMode || contentType === "video") && (
+              {compareMode && contentType === "text" && (
                 <>
-                  <Label>{contentType === "video" ? "AI 모델" : "Ollama 모델"}</Label>
+                  <Label>Ollama 모델 (Claude와 비교)</Label>
+                  <Select value={ollamaModel} onValueChange={setOllamaModel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (추천)</SelectItem>
+                      <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-zinc-500">
+                    💡 Claude (Haiku)와 선택한 Ollama 모델을 비교합니다
+                  </p>
+                </>
+              )}
+              {contentType === "video" && (
+                <>
+                  <Label>AI 모델</Label>
                   <Select value={ollamaModel} onValueChange={setOllamaModel}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="claude">🟣 Claude (Anthropic)</SelectItem>
-                      <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (추천)</SelectItem>
-                      <SelectItem value="phi3:3.8b">⚡ Phi3 3.8B (빠름)</SelectItem>
-                      <SelectItem value="llama3.2:3b">🦙 Llama 3.2 3B (최신)</SelectItem>
-                      <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
+                      <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B</SelectItem>
+                      <SelectItem value="gemma2:2b">💎 Gemma2 2B</SelectItem>
                     </SelectContent>
                   </Select>
                 </>
@@ -365,10 +401,11 @@ export default function ContentCreatePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="thread">Thread (150-500자)</SelectItem>
-                  <SelectItem value="linkedin">LinkedIn (1200-1500자)</SelectItem>
-                  <SelectItem value="instagram">Instagram (캡션)</SelectItem>
-                  <SelectItem value="twitter">Twitter/X</SelectItem>
+                  <SelectItem value="all">✨ 모든 플랫폼 (Thread, LinkedIn, Twitter, Instagram)</SelectItem>
+                  <SelectItem value="thread">Thread만 (150-500자)</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn만 (1200-1500자)</SelectItem>
+                  <SelectItem value="instagram">Instagram만 (캡션)</SelectItem>
+                  <SelectItem value="twitter">Twitter/X만</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -436,7 +473,7 @@ export default function ContentCreatePage() {
                   {compareMode && comparison ? "Claude vs Ollama" : "생성된 콘텐츠"}
                 </p>
               </div>
-              <Eye className="w-5 h-5 text-amber-400" />
+              <Sparkles className="w-5 h-5 text-amber-400" />
             </div>
             <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
@@ -479,8 +516,8 @@ export default function ContentCreatePage() {
                 </div>
 
                 {/* Stats */}
-                <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded text-xs text-zinc-400">
-                  <div className="flex justify-between items-center">
+                <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
+                  <div className="flex justify-between items-center text-xs text-zinc-400">
                     <span>생성 시간: {(comparison.generationTime / 1000).toFixed(2)}초</span>
                     <button
                       onClick={() => {
@@ -492,32 +529,46 @@ export default function ContentCreatePage() {
                       닫기
                     </button>
                   </div>
+                  <div className="pt-3 border-t border-zinc-700">
+                    <p className="text-xs text-zinc-400 mb-3">
+                      💡 Tip: 비교 결과를 확인했습니다. 실제 콘텐츠를 생성하려면 비교 모드를 끄고 다시 생성하세요.
+                    </p>
+                    <Button
+                      onClick={() => router.push('/content')}
+                      className="w-full bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      콘텐츠 목록으로 이동
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : generatedContent ? (
               <div className="space-y-6">
-                <Textarea
-                  value={generatedContent}
-                  onChange={(e) => setGeneratedContent(e.target.value)}
-                  rows={12}
-                  className="resize-none"
-                />
-
-                <div className="flex gap-4">
-                  <Button variant="outline" className="flex-1">
-                    <Eye className="w-4 h-4 mr-2" />
-                    수정하기
-                  </Button>
-                  <Button onClick={handlePublish} className="flex-1 group">
-                    <Send className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
-                    발행하기
-                  </Button>
+                <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 overflow-hidden">
+                  <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
+                    <ReactMarkdown>{generatedContent}</ReactMarkdown>
+                  </div>
                 </div>
 
-                <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded">
-                  <p className="text-xs text-zinc-400 font-normal">
-                    💡 Tip: 생성된 콘텐츠를 수정한 후 발행할 수 있습니다
-                  </p>
+                <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-zinc-400 font-normal">
+                      💡 Tip: 마크다운 형식으로 렌더링된 콘텐츠입니다
+                    </p>
+                    {usedAiModel && (
+                      <p className="text-xs text-amber-400 font-medium">
+                        🤖 {usedAiModel}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => router.push('/content')}
+                    className="w-full bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    콘텐츠 목록으로 이동
+                  </Button>
                 </div>
               </div>
             ) : (

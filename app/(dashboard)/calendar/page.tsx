@@ -113,10 +113,6 @@ export default function CalendarPage() {
               </p>
             </div>
           </div>
-          <Button onClick={() => router.push("/content/create")} className="group">
-            <Plus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-            새 콘텐츠 예약
-          </Button>
         </div>
 
         {/* Calendar */}

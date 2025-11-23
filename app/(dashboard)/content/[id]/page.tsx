@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PlatformPreview } from "@/components/content/PlatformPreview"
 import { ArrowLeft, Edit, Trash2, Send, Calendar } from "lucide-react"
 import { toast } from "sonner"
+import ReactMarkdown from "react-markdown"
 
 export default function ContentDetailPage() {
   const params = useParams()
@@ -42,6 +43,15 @@ export default function ContentDetailPage() {
       toast.error("콘텐츠를 불러오는데 실패했습니다")
       router.push("/content")
     } else {
+      console.log("=== 콘텐츠 데이터 ===")
+      console.log("Platform variations:", data.platform_variations)
+      if (data.platform_variations) {
+        Object.keys(data.platform_variations).forEach(platform => {
+          console.log(`\n${platform.toUpperCase()}:`)
+          console.log(`길이: ${data.platform_variations[platform].text?.length || 0}자`)
+          console.log(`내용 미리보기: ${data.platform_variations[platform].text?.substring(0, 100)}...`)
+        })
+      }
       setContent(data)
     }
 
@@ -132,14 +142,6 @@ export default function ContentDetailPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => router.push(`/content/${content.id}/edit`)}
-              className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              수정
-            </Button>
-            <Button
-              variant="outline"
               onClick={handlePublish}
               className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 border-none text-white"
             >
@@ -164,8 +166,10 @@ export default function ContentDetailPage() {
               <CardDescription>AI가 생성한 기본 콘텐츠</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6">
-                <p className="text-white whitespace-pre-wrap leading-relaxed">{content.body}</p>
+              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 overflow-hidden">
+                <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
+                  <ReactMarkdown>{content.body}</ReactMarkdown>
+                </div>
               </div>
 
               {content.ai_model && (

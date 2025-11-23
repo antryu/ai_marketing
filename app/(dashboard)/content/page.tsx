@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { FileText, Plus, Calendar, Eye, Trash2, Edit, Zap } from "lucide-react"
+import { FileText, Calendar, Eye, Trash2, Zap } from "lucide-react"
 import { toast } from "sonner"
 
 export default function ContentPage() {
@@ -116,13 +116,6 @@ export default function ContentPage() {
               생성된 콘텐츠를 관리하세요
             </p>
           </div>
-          <Button
-            onClick={() => router.push("/content/create")}
-            className="group"
-          >
-            <Plus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-            새 콘텐츠 생성
-          </Button>
         </div>
 
         {/* Content List */}
@@ -194,18 +187,14 @@ export default function ContentPage() {
                     <button
                       onClick={() => router.push(`/content/${content.id}`)}
                       className="w-9 h-9 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-amber-400/50 flex items-center justify-center transition-all duration-300"
+                      title="상세 보기"
                     >
                       <Eye className="w-4 h-4 text-zinc-400 hover:text-amber-400" />
                     </button>
                     <button
-                      onClick={() => router.push(`/content/${content.id}/edit`)}
-                      className="w-9 h-9 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-amber-400/50 flex items-center justify-center transition-all duration-300"
-                    >
-                      <Edit className="w-4 h-4 text-zinc-400 hover:text-amber-400" />
-                    </button>
-                    <button
                       onClick={() => handleDelete(content.id)}
                       className="w-9 h-9 bg-zinc-800 hover:bg-red-900/30 border border-zinc-700 hover:border-red-700 flex items-center justify-center transition-all duration-300"
+                      title="삭제"
                     >
                       <Trash2 className="w-4 h-4 text-zinc-400 hover:text-red-400" />
                     </button>

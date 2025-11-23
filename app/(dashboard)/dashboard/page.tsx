@@ -4,40 +4,44 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { FileText, TrendingUp, Users, Zap, Flag } from "lucide-react"
+import { Building2, Target, User, Sparkles, FileText, TrendingUp, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
+import Link from "next/link"
+import { useBrand } from "@/contexts/BrandContext"
 
 export default function DashboardPage() {
+  const { selectedBrandId } = useBrand()
   const [brands, setBrands] = useState<any[]>([])
   const [personas, setPersonas] = useState<any[]>([])
+  const [writerPersonas, setWriterPersonas] = useState<any[]>([])
+  const [contents, setContents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
+      if (!selectedBrandId) {
+        setLoading(false)
+        return
+      }
+
       const supabase = createClient()
 
-      const { data: brandsData } = await supabase
-        .from("brands")
-        .select("*")
-        .order("created_at", { ascending: false })
+      const [brandsRes, personasRes, writerPersonasRes, contentsRes] = await Promise.all([
+        supabase.from("brands").select("*").eq("id", selectedBrandId),
+        supabase.from("personas").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }),
+        supabase.from("writer_personas").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }),
+        supabase.from("contents").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }).limit(5),
+      ])
 
-      if (brandsData) {
-        setBrands(brandsData)
-      }
-
-      const { data: personasData } = await supabase
-        .from("personas")
-        .select("*")
-        .order("created_at", { ascending: false })
-
-      if (personasData) {
-        setPersonas(personasData)
-      }
+      if (brandsRes.data) setBrands(brandsRes.data)
+      if (personasRes.data) setPersonas(personasRes.data)
+      if (writerPersonasRes.data) setWriterPersonas(writerPersonasRes.data)
+      if (contentsRes.data) setContents(contentsRes.data)
 
       setLoading(false)
     }
 
     loadData()
-  }, [])
+  }, [selectedBrandId])
 
   if (loading) {
     return (
@@ -50,99 +54,206 @@ export default function DashboardPage() {
     )
   }
 
-  const stats = [
-    { name: "총 콘텐츠", value: "0", icon: FileText, change: "+0%" },
-    { name: "발행 포스트", value: "0", icon: TrendingUp, change: "+0%" },
-    { name: "총 조회수", value: "0", icon: Users, change: "+0%" },
-    { name: "참여율", value: "0%", icon: Zap, change: "+0%" },
+  const hasBrand = brands.length > 0
+  const hasPersonas = personas.length > 0
+  const hasWriterPersonas = writerPersonas.length > 0
+  const hasContent = contents.length > 0
+
+  const setupSteps = [
+    {
+      title: "브랜드 설정",
+      description: "제품, 서비스, 브랜드 정보 입력",
+      icon: Building2,
+      href: "/brand",
+      completed: hasBrand,
+      count: brands.length,
+    },
+    {
+      title: "타겟 고객",
+      description: "목표 고객층 정의",
+      icon: Target,
+      href: "/personas",
+      completed: hasPersonas,
+      count: personas.length,
+    },
+    {
+      title: "브랜드 보이스",
+      description: "브랜드 톤앤매너 설정",
+      icon: User,
+      href: "/writer-personas",
+      completed: hasWriterPersonas,
+      count: writerPersonas.length,
+    },
+    {
+      title: "콘텐츠 생성",
+      description: "AI 콘텐츠 자동 생성",
+      icon: Sparkles,
+      href: "/content/create",
+      completed: hasContent,
+      count: contents.length,
+    },
   ]
+
+  const completedSteps = setupSteps.filter(step => step.completed).length
+  const progress = (completedSteps / setupSteps.length) * 100
 
   return (
     <div className="p-12 text-white">
       <div className="max-w-7xl mx-auto space-y-16">
+        {/* Header */}
         <div className="relative">
           <div className="absolute -left-12 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-amber-400/50 to-transparent"></div>
-          <h1 className="text-4xl font-light tracking-wide mb-3">개요</h1>
+          <h1 className="text-4xl font-light tracking-wide mb-3">대시보드</h1>
           <p className="text-zinc-300 font-normal text-base tracking-wide">
-            주요 지표 및 최근 활동
+            AI 마케팅 자동화 현황
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
-            <div key={stat.name} className="relative group cursor-pointer">
-              {/* Energy accent line with animation */}
-              <div className="absolute -top-2 -left-2 w-1 h-16 bg-gradient-to-b from-amber-400 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-
-              {/* Card with smooth hover effects */}
-              <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 group-hover:border-amber-400/50 transition-all duration-300 p-8 group-hover:shadow-lg group-hover:shadow-amber-400/10 group-hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-6">
-                  <stat.icon className="w-7 h-7 text-zinc-400 group-hover:text-amber-400 transition-all duration-300 group-hover:scale-110" />
-                  <span className="text-xs text-zinc-400 font-normal tracking-wider group-hover:text-amber-400 transition-colors duration-300">{stat.change}</span>
-                </div>
-                <div className="text-4xl font-light mb-3 tracking-wide group-hover:text-white transition-colors duration-300">{stat.value}</div>
-                <div className="text-xs text-zinc-300 tracking-widest font-medium uppercase group-hover:text-zinc-200 transition-colors duration-300">{stat.name}</div>
-              </div>
+        {/* Setup Progress */}
+        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-light tracking-wide mb-2">시작 가이드</h2>
+              <p className="text-zinc-400 text-sm">
+                {completedSteps}/{setupSteps.length} 단계 완료
+              </p>
             </div>
-          ))}
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-2">
-          {/* Recent Content Card with hover effects */}
-          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-10 hover:shadow-lg hover:shadow-amber-400/5">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-700 group-hover:border-zinc-600 transition-colors duration-300">
-              <FileText className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
-              <div>
-                <h2 className="text-xl font-light tracking-wide group-hover:text-white transition-colors duration-300">최근 콘텐츠</h2>
-                <p className="text-zinc-300 text-xs font-normal tracking-wider">최신 생성 콘텐츠</p>
-              </div>
-            </div>
-            <div className="text-center py-16 border border-dashed border-zinc-700">
-              <p className="text-zinc-300 font-normal mb-6 tracking-wide">아직 생성된 콘텐츠가 없습니다</p>
-              <a
-                href="/content/create"
-                className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5"
-              >
-                첫 콘텐츠 생성 →
-              </a>
+            <div className="text-right">
+              <div className="text-3xl font-light text-amber-400">{Math.round(progress)}%</div>
             </div>
           </div>
 
-          {/* Target Persona Card with hover effects */}
-          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-10 hover:shadow-lg hover:shadow-amber-400/5">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-700 group-hover:border-zinc-600 transition-colors duration-300">
-              <Users className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
+          {/* Progress Bar */}
+          <div className="mb-8 h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          {/* Setup Steps Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {setupSteps.map((step, index) => (
+              <Link key={step.title} href={step.href}>
+                <div className="group relative bg-zinc-900/50 border border-zinc-700 hover:border-amber-400/50 p-6 transition-all duration-300 hover:shadow-lg hover:shadow-amber-400/10 cursor-pointer h-full">
+                  {/* Step Number */}
+                  <div className="absolute -top-3 -left-3 w-8 h-8 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center text-xs font-medium">
+                    {index + 1}
+                  </div>
+
+                  {/* Status Icon */}
+                  <div className="absolute -top-3 -right-3">
+                    {step.completed ? (
+                      <CheckCircle2 className="w-6 h-6 text-amber-400" />
+                    ) : (
+                      <AlertCircle className="w-6 h-6 text-zinc-600" />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col h-full">
+                    <step.icon className="w-10 h-10 text-amber-400 mb-4 group-hover:scale-110 transition-transform duration-300" />
+
+                    <h3 className="text-lg font-medium text-white mb-2 group-hover:text-amber-400 transition-colors">
+                      {step.title}
+                    </h3>
+
+                    <p className="text-sm text-zinc-400 mb-4 flex-1">
+                      {step.description}
+                    </p>
+
+                    {step.completed && (
+                      <div className="text-xs text-amber-400 font-medium">
+                        {step.count}개 등록됨
+                      </div>
+                    )}
+
+                    {!step.completed && (
+                      <div className="flex items-center gap-2 text-xs text-zinc-500 group-hover:text-amber-400 transition-colors">
+                        시작하기 <ArrowRight className="w-3 h-3" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="grid gap-8 md:grid-cols-2">
+          {/* Recent Content */}
+          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-10">
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-700">
+              <FileText className="w-6 h-6 text-amber-400" />
               <div>
-                <h2 className="text-xl font-light tracking-wide group-hover:text-white transition-colors duration-300">타겟 페르소나</h2>
+                <h2 className="text-xl font-light tracking-wide">최근 콘텐츠</h2>
+                <p className="text-zinc-300 text-xs font-normal tracking-wider">최신 생성 콘텐츠</p>
+              </div>
+            </div>
+
+            {hasContent ? (
+              <div className="space-y-4">
+                {contents.slice(0, 3).map((content) => (
+                  <Link key={content.id} href={`/content/${content.id}`}>
+                    <div className="border-l-2 border-amber-400 hover:border-amber-300 pl-6 py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
+                      <div className="font-normal text-base tracking-wide">
+                        {content.title || "제목 없음"}
+                      </div>
+                      <div className="text-zinc-400 text-sm mt-1">
+                        {content.created_at && new Date(content.created_at).toLocaleDateString("ko-KR")}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16 border border-dashed border-zinc-700">
+                <p className="text-zinc-300 font-normal mb-6 tracking-wide">아직 생성된 콘텐츠가 없습니다</p>
+                <Link
+                  href="/content/create"
+                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
+                >
+                  첫 콘텐츠 생성 →
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Target Personas */}
+          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-10">
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-700">
+              <Target className="w-6 h-6 text-amber-400" />
+              <div>
+                <h2 className="text-xl font-light tracking-wide">타겟 고객</h2>
                 <p className="text-zinc-300 text-xs font-normal tracking-wider">목표 고객층</p>
               </div>
             </div>
-            {personas.length > 0 ? (
+
+            {hasPersonas ? (
               <div className="space-y-4">
-                {personas.map((persona) => (
-                  <div key={persona.id} className="group/item border-l-2 border-amber-400 hover:border-amber-300 pl-6 py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
+                {personas.slice(0, 3).map((persona) => (
+                  <div key={persona.id} className="border-l-2 border-amber-400 hover:border-amber-300 pl-6 py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
                     <div className="flex items-center gap-2">
-                      <div className="font-normal text-lg tracking-wide group-hover/item:text-white transition-colors duration-300">{persona.name}</div>
+                      <div className="font-normal text-base tracking-wide">{persona.name}</div>
                       {persona.is_primary && (
                         <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">주요</span>
                       )}
                     </div>
-                    <div className="text-zinc-400 text-sm mt-2 font-normal group-hover/item:text-zinc-300 transition-colors duration-300">{persona.description}</div>
                     {persona.age_range && (
-                      <div className="text-zinc-500 text-xs mt-1">{persona.age_range} · {persona.job_title?.join(", ")}</div>
+                      <div className="text-zinc-400 text-sm mt-1">{persona.age_range}</div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-16 border border-dashed border-zinc-700">
-                <p className="text-zinc-300 font-normal mb-6 tracking-wide">아직 페르소나가 없습니다</p>
-                <a
-                  href="/onboarding"
-                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5"
+                <p className="text-zinc-300 font-normal mb-6 tracking-wide">아직 타겟 고객이 없습니다</p>
+                <Link
+                  href="/personas"
+                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
                 >
-                  페르소나 생성하기 →
-                </a>
+                  타겟 고객 설정하기 →
+                </Link>
               </div>
             )}
           </div>

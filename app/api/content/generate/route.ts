@@ -89,17 +89,20 @@ export async function POST(request: Request) {
       },
       linkedin: {
         maxLength: 1500,
-        style: "데이터 중심, ROI 중심",
+        style: "전문적, 데이터 중심, ROI 중심",
         format: "긴 form"
       },
       instagram: {
         maxLength: 300,
         style: "비주얼 중심, 감성적",
         format: "캡션"
+      },
+      twitter: {
+        maxLength: 280,
+        style: "간결하고 임팩트 있는",
+        format: "짧은 form"
       }
     }
-
-    const settings = platformSettings[platform as keyof typeof platformSettings] || platformSettings.thread
 
     // Build writer persona context
     let writerContext = ""
@@ -130,8 +133,36 @@ ${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona
     // Type assertion for brand
     const typedBrand = brand as any
 
-    // Call AI API
-    const prompt = `당신은 ${typedBrand.name}의 전문 마케팅 콘텐츠 작성자입니다.
+    // Determine which platforms to generate content for
+    const platformsToGenerate = platform === 'all'
+      ? ['thread', 'linkedin', 'twitter', 'instagram']
+      : [platform]
+
+    const platformVariations: Record<string, { text: string; tone: string; length: string }> = {}
+
+    // Ollama 모델 사용 여부 확인
+    const ollamaModels = ['qwen2.5:7b', 'phi3:3.8b', 'llama3.2:3b', 'gemma2:2b']
+    const useOllama = aiModel && ollamaModels.includes(aiModel)
+
+    // Generate content for each platform
+    console.log(`\n=== 플랫폼 생성 시작 ===`)
+    console.log(`총 ${platformsToGenerate.length}개 플랫폼 생성 예정:`, platformsToGenerate)
+
+    for (const platformKey of platformsToGenerate) {
+      console.log(`\n--- ${platformKey} 콘텐츠 생성 중 ---`)
+      const settings = platformSettings[platformKey as keyof typeof platformSettings]
+      console.log(`설정: 최대 ${settings.maxLength}자, 스타일: ${settings.style}`)
+
+      const prompt = `당신은 한국어만 사용하는 전문 마케팅 콘텐츠 작성자입니다.
+절대 영어, 중국어, 일본어를 사용하지 마세요. 오직 한국어로만 답변하세요.
+
+You are a professional Korean marketing content writer.
+CRITICAL INSTRUCTION: You MUST write EXCLUSIVELY in Korean language (한글).
+NEVER use English, Chinese, Japanese, or any other language.
+If you write in English, Chinese, or any language other than Korean, you will FAIL this task.
+
+당신은 ${typedBrand.name}의 전문 마케팅 콘텐츠 작성자입니다.
+중요: 반드시 한국어로만 작성하세요. 영어, 중국어, 일본어 또는 다른 언어를 절대 사용하지 마세요.
 
 제품 정보:
 - 이름: ${typedBrand.name}
@@ -140,7 +171,7 @@ ${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona
 - 브랜드 톤: ${typedBrand.brand_voice?.tone || "전문적인"}
 - 브랜드 스타일: ${typedBrand.brand_voice?.style || "친근한"}
 
-플랫폼: ${platform}
+플랫폼: ${platformKey}
 스타일: ${settings.style}
 최대 길이: ${settings.maxLength}자
 형식: ${settings.format}
@@ -150,47 +181,86 @@ ${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n
 ${writerContext}
 
 다음 지침을 따라 콘텐츠를 생성하세요:
-1. 플랫폼에 최적화된 형식으로 작성
-2. 브랜드 보이스와 톤 유지
-3. 타겟 페르소나의 관심사와 페인 포인트 반영
-4. 작성자 페르소나의 스타일과 특성 반영
-5. 실제 가치 제공에 집중
-6. CTA(Call-to-Action) 자연스럽게 포함
+1. **반드시 한국어로 작성** - 모든 콘텐츠는 한국어로 작성해야 합니다
+2. ${platformKey} 플랫폼에 최적화된 형식으로 작성
+3. 브랜드 보이스와 톤 유지
+4. 타겟 페르소나의 관심사와 페인 포인트 반영
+5. 작성자 페르소나의 스타일과 특성 반영
+6. 실제 가치 제공에 집중
+7. CTA(Call-to-Action) 자연스럽게 포함
+8. ${settings.maxLength}자 이내로 작성
 
 토픽: ${topic}
 
-위 토픽으로 ${platform}에 발행할 콘텐츠를 작성해주세요.`
+위 토픽으로 ${platformKey}에 발행할 콘텐츠를 작성해주세요. 플랫폼에 맞게 간결하고 임팩트 있게 작성하세요.
 
-    let generatedContent: string
+출력 요구사항 / OUTPUT REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. 언어: 100% 한국어만 사용 (Korean language ONLY)
+2. 영어 금지 (NO English words)
+3. 중국어/일본어 금지 (NO Chinese/Japanese)
+4. 코드 블록 사용 금지 (NO \`\`\`markdown blocks)
+5. 마크다운 형식 사용 가능 (Use markdown: #, **, - for lists)
+6. 바로 한국어 콘텐츠 작성 시작 (Start writing Korean content immediately)
 
-    // Ollama 모델 사용 여부 확인
-    const ollamaModels = ['qwen2.5:7b', 'phi3:3.8b', 'llama3.2:3b', 'gemma2:2b']
-    const useOllama = aiModel && ollamaModels.includes(aiModel)
+⚠️ 경고: 영어나 다른 언어를 사용하면 실패합니다!
+WARNING: Using English or other languages will FAIL this task!
 
-    if (useOllama) {
-      // Ollama로 생성
-      generatedContent = await generateWithOllama(prompt, aiModel)
-    } else {
-      // Claude로 생성
-      const response = await anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 1000,
-        temperature: 0.7,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
-      })
+지금 바로 한국어로만 콘텐츠를 작성하세요!
+Start writing in Korean NOW!`
 
-      const responseContent = response.content[0]
-      if (responseContent.type !== 'text') {
-        throw new Error('Unexpected response type from Claude')
+      let generatedContent: string
+
+      if (useOllama) {
+        // Ollama로 생성
+        generatedContent = await generateWithOllama(prompt, aiModel)
+      } else {
+        // Claude로 생성
+        const response = await anthropic.messages.create({
+          model: "claude-3-haiku-20240307",
+          max_tokens: 1000,
+          temperature: 0.7,
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+
+        const responseContent = response.content[0]
+        if (responseContent.type !== 'text') {
+          throw new Error('Unexpected response type from Claude')
+        }
+
+        generatedContent = responseContent.text
       }
 
-      generatedContent = responseContent.text
+      // 마크다운 코드 블록 제거
+      generatedContent = generatedContent
+        .replace(/```markdown\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim()
+
+      platformVariations[platformKey] = {
+        text: generatedContent,
+        tone,
+        length
+      }
+
+      console.log(`✅ ${platformKey} 생성 완료:`)
+      console.log(`   - 길이: ${generatedContent.length}자`)
+      console.log(`   - 미리보기: ${generatedContent.substring(0, 100)}...`)
     }
+
+    console.log(`\n=== 모든 플랫폼 생성 완료 ===`)
+    console.log(`생성된 플랫폼 수: ${Object.keys(platformVariations).length}`)
+    console.log(`플랫폼 키:`, Object.keys(platformVariations))
+
+    // Use the appropriate platform's content as the body
+    const generatedContent = platform === 'all'
+      ? platformVariations['thread'].text  // Use thread version as main body when generating all
+      : platformVariations[platform].text
 
     // Save to database
     const contentResult = await (supabase as any)
@@ -202,13 +272,7 @@ ${writerContext}
         body: generatedContent,
         content_type: "text",
         ai_model: aiModel || "claude-3-haiku-20240307",
-        platform_variations: {
-          [platform]: {
-            text: generatedContent,
-            tone,
-            length
-          }
-        },
+        platform_variations: platformVariations,
         status: "draft"
       })
       .select()
