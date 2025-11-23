@@ -98,7 +98,7 @@ export async function POST(request: Request) {
           user_id: user.id,
           name: "기본 브랜드",
           description: "자동 생성된 브랜드",
-        })
+        } as any)
         .select("id")
         .single()
 
@@ -154,7 +154,7 @@ IMPORTANT: 답변은 반드시 한국어로만 작성하세요. 영어나 중국
             platform_variations: platformVariations,
             ai_model: selectedModel,
             status: "draft",
-          })
+          } as any)
           .select()
           .single()
 
