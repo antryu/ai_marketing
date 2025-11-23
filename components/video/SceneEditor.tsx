@@ -471,12 +471,13 @@ function BackgroundEditor({
             <Label className="text-xs text-zinc-400">색상 1</Label>
             <Input
               type="color"
-              value={background.value.colors[0] || '#667eea'}
+              value={(background.value as any).colors[0] || '#667eea'}
               onChange={(e) => {
-                const newColors = [...background.value.colors]
+                const gradientValue = background.value as any
+                const newColors = [...gradientValue.colors]
                 newColors[0] = e.target.value
                 onUpdate({
-                  value: { ...background.value, colors: newColors }
+                  value: { ...gradientValue, colors: newColors }
                 })
               }}
               className="bg-zinc-800 border-zinc-700"
@@ -486,12 +487,13 @@ function BackgroundEditor({
             <Label className="text-xs text-zinc-400">색상 2</Label>
             <Input
               type="color"
-              value={background.value.colors[1] || '#764ba2'}
+              value={(background.value as any).colors[1] || '#764ba2'}
               onChange={(e) => {
-                const newColors = [...background.value.colors]
+                const gradientValue = background.value as any
+                const newColors = [...gradientValue.colors]
                 newColors[1] = e.target.value
                 onUpdate({
-                  value: { ...background.value, colors: newColors }
+                  value: { ...gradientValue, colors: newColors }
                 })
               }}
               className="bg-zinc-800 border-zinc-700"
