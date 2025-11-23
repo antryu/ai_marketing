@@ -154,10 +154,12 @@ export default function WriterPersonaPage() {
 
     if (editingId) {
       // Update existing
-      const { error } = await supabase
+      const result = await (supabase as any)
         .from('writer_personas')
         .update(personaData)
         .eq('id', editingId)
+
+      const { error } = result
 
       if (error) {
         toast.error('페르소나 수정에 실패했습니다')
@@ -172,9 +174,11 @@ export default function WriterPersonaPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { error } = await supabase
+      const insertResult = await (supabase as any)
         .from('writer_personas')
         .insert({ ...personaData, user_id: user.id })
+
+      const { error } = insertResult
 
       if (error) {
         toast.error('페르소나 생성에 실패했습니다')
@@ -190,10 +194,12 @@ export default function WriterPersonaPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
 
-    const { error } = await supabase
+    const deleteResult = await (supabase as any)
       .from('writer_personas')
       .delete()
       .eq('id', id)
+
+    const { error } = deleteResult
 
     if (error) {
       toast.error('삭제에 실패했습니다')
@@ -205,16 +211,18 @@ export default function WriterPersonaPage() {
 
   const handleSetDefault = async (id: string) => {
     // Unset all defaults
-    await supabase
+    await (supabase as any)
       .from('writer_personas')
       .update({ is_default: false })
       .neq('id', '00000000-0000-0000-0000-000000000000')
 
     // Set new default
-    const { error } = await supabase
+    const setDefaultResult = await (supabase as any)
       .from('writer_personas')
       .update({ is_default: true })
       .eq('id', id)
+
+    const { error } = setDefaultResult
 
     if (error) {
       toast.error('기본 페르소나 설정에 실패했습니다')
