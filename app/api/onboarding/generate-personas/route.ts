@@ -7,8 +7,7 @@ export async function POST(request: Request) {
   try {
     const { brandId } = await request.json()
 
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient({ cookies })
 
     // Get authenticated user
     const {
