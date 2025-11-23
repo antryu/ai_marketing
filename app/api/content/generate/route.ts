@@ -45,11 +45,13 @@ export async function POST(request: Request) {
     }
 
     // Get brand information
-    const { data: brand } = await supabase
+    const brandResult = await (supabase as any)
       .from("brands")
       .select("*, personas(*)")
       .eq("id", brandId)
       .single()
+
+    const brand = brandResult.data
 
     if (!brand) {
       return NextResponse.json(
@@ -61,21 +63,21 @@ export async function POST(request: Request) {
     // Get writer persona if specified
     let writerPersona = null
     if (writerPersonaId) {
-      const { data } = await supabase
+      const result = await (supabase as any)
         .from("writer_personas")
         .select("*")
         .eq("id", writerPersonaId)
         .single()
-      writerPersona = data
+      writerPersona = result.data
     } else {
       // Get default writer persona
-      const { data } = await supabase
+      const result = await (supabase as any)
         .from("writer_personas")
         .select("*")
-        .eq("user_id" as any, user.id as any)
-        .eq("is_default" as any, true as any)
+        .eq("user_id", user.id)
+        .eq("is_default", true)
         .single()
-      writerPersona = data
+      writerPersona = result.data
     }
 
     // Platform-specific content generation
@@ -191,7 +193,7 @@ ${writerContext}
     }
 
     // Save to database
-    const { data: content, error } = await supabase
+    const contentResult = await (supabase as any)
       .from("contents")
       .insert({
         brand_id: brandId,
@@ -208,20 +210,22 @@ ${writerContext}
           }
         },
         status: "draft"
-      } as any)
+      })
       .select()
       .single()
 
-    if (error) {
-      throw error
+    if (contentResult.error) {
+      throw contentResult.error
     }
+
+    const content = contentResult.data
 
     // Update writer persona usage count
     if (writerPersona) {
       const persona = writerPersona as any
-      await supabase
+      await (supabase as any)
         .from("writer_personas")
-        .update({ usage_count: (persona.usage_count || 0) + 1 } as any)
+        .update({ usage_count: (persona.usage_count || 0) + 1 })
         .eq("id", persona.id)
     }
 
