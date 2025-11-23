@@ -72,19 +72,22 @@ export async function POST(request: Request) {
       )
     }
 
+    // 템플릿 타입 변환
+    const typedTemplate = template as any
+
     // 템플릿 기반 페르소나 생성
     const personaData = {
       user_id: user.id,
-      name: customizations?.name || `${template.name} 스타일`,
-      description: customizations?.description || template.description,
-      writing_style: template.writing_style,
-      tone: template.tone,
-      preferred_structure: template.preferred_structure,
-      expertise_areas: template.expertise_areas,
-      unique_perspective: customizations?.unique_perspective || template.unique_perspective,
-      language_preferences: template.language_preferences,
-      signature_phrases: template.signature_phrases,
-      catchphrase: customizations?.catchphrase || template.catchphrase,
+      name: customizations?.name || `${typedTemplate.name} 스타일`,
+      description: customizations?.description || typedTemplate.description,
+      writing_style: typedTemplate.writing_style,
+      tone: typedTemplate.tone,
+      preferred_structure: typedTemplate.preferred_structure,
+      expertise_areas: typedTemplate.expertise_areas,
+      unique_perspective: customizations?.unique_perspective || typedTemplate.unique_perspective,
+      language_preferences: typedTemplate.language_preferences,
+      signature_phrases: typedTemplate.signature_phrases,
+      catchphrase: customizations?.catchphrase || typedTemplate.catchphrase,
       is_default: false,
       usage_count: 0
     }
@@ -104,7 +107,6 @@ export async function POST(request: Request) {
     }
 
     // 템플릿 인기도 증가
-    const typedTemplate = template as any
     await supabase
       .from('persona_templates')
       .update({ popularity_score: (typedTemplate.popularity_score || 0) + 1 } as any)
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       persona,
-      message: `${template.name} 스타일의 페르소나가 생성되었습니다`
+      message: `${typedTemplate.name} 스타일의 페르소나가 생성되었습니다`
     })
 
   } catch (error) {
