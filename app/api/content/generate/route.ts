@@ -218,10 +218,11 @@ ${writerContext}
 
     // Update writer persona usage count
     if (writerPersona) {
+      const persona = writerPersona as any
       await supabase
         .from("writer_personas")
-        .update({ usage_count: (writerPersona.usage_count || 0) + 1 })
-        .eq("id", writerPersona.id)
+        .update({ usage_count: (persona.usage_count || 0) + 1 } as any)
+        .eq("id", persona.id)
     }
 
     return NextResponse.json({
