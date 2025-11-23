@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Settings as SettingsIcon, Link as LinkIcon, Users, Building2, Zap, CheckCircle2, XCircle } from "lucide-react"
+import { Settings as SettingsIcon, Link as LinkIcon, Users, Building2, Zap, CheckCircle2, XCircle, PenTool } from "lucide-react"
 import { toast } from "sonner"
 
 const platforms = [
   {
     id: "thread",
-    name: "Thread",
+    name: "Threads",
     description: "Meta의 텍스트 기반 소셜 플랫폼",
-    icon: "🧵",
+    iconType: "svg",
     color: "purple",
     features: ["한국 시장 1순위", "짧은 form 콘텐츠", "Instagram 연동"]
   },
@@ -19,7 +19,7 @@ const platforms = [
     id: "linkedin",
     name: "LinkedIn",
     description: "전문가 네트워킹 플랫폼",
-    icon: "💼",
+    iconType: "svg",
     color: "blue",
     features: ["미국 시장 1순위", "B2B 마케팅", "긴 form 콘텐츠"]
   },
@@ -27,15 +27,15 @@ const platforms = [
     id: "instagram",
     name: "Instagram",
     description: "비주얼 중심 소셜 미디어",
-    icon: "📷",
+    iconType: "svg",
     color: "pink",
     features: ["이미지/영상 콘텐츠", "Reels", "Stories"]
   },
   {
     id: "twitter",
-    name: "Twitter/X",
+    name: "X (Twitter)",
     description: "실시간 대화 플랫폼",
-    icon: "🐦",
+    iconType: "svg",
     color: "sky",
     features: ["실시간 트렌드", "짧은 메시지", "스레드"]
   },
@@ -43,11 +43,44 @@ const platforms = [
     id: "youtube",
     name: "YouTube",
     description: "영상 공유 플랫폼",
-    icon: "📺",
+    iconType: "svg",
     color: "red",
     features: ["Shorts", "긴 영상", "커뮤니티"]
   }
 ]
+
+// Platform icons as SVG components
+const PlatformIcon = ({ platformId, className = "w-10 h-10" }: { platformId: string, className?: string }) => {
+  const icons: Record<string, JSX.Element> = {
+    thread: (
+      <svg viewBox="0 0 192 192" className={className} fill="currentColor">
+        <path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.34c-14.986 0-27.449 6.396-35.12 18.036l13.779 9.452c5.73-8.695 14.144-10.41 21.339-10.41h.227c10.227.086 16.755 5.204 19.37 15.19-4.128-.926-8.505-1.468-13.123-1.6-21.054-.61-34.913 10.51-34.913 28.04 0 8.36 3.061 15.403 8.856 20.353 5.452 4.676 12.96 7.046 21.736 6.858 10.966-.233 19.15-4.278 24.303-12.039 2.99 6.76 8.816 11.24 17.194 13.295l4.474-14.715c-5.87-1.475-8.386-4.03-8.873-9.03Zm-29.53 11.233c-3.678 5.889-9.297 8.698-17.151 8.698-6.818 0-12.012-4.316-12.012-9.944 0-5.83 5.194-10.146 13.062-10.146 2.445 0 4.79.22 7.005.65 0 .084 0 .167.008.25.027 5.387.945 9.214 9.088 10.492Z"/>
+      </svg>
+    ),
+    linkedin: (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+    ),
+    instagram: (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+      </svg>
+    ),
+    twitter: (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    ),
+    youtube: (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      </svg>
+    )
+  }
+
+  return icons[platformId] || null
+}
 
 export default function SettingsPage() {
   const [connections, setConnections] = useState<any[]>([])
@@ -125,16 +158,27 @@ export default function SettingsPage() {
     <div className="p-12">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center">
-            <SettingsIcon className="w-6 h-6 text-amber-400" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center">
+              <SettingsIcon className="w-6 h-6 text-amber-400" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-light tracking-wide text-white">설정</h1>
+              <p className="text-zinc-300 font-normal text-base tracking-wide">
+                제품 및 플랫폼 연결 관리
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-4xl font-light tracking-wide text-white">설정</h1>
-            <p className="text-zinc-300 font-normal text-base tracking-wide">
-              제품 및 플랫폼 연결 관리
-            </p>
-          </div>
+
+          {/* 플랫폼 연동 바로가기 버튼 */}
+          <Button
+            onClick={() => window.location.href = '/settings/platforms'}
+            className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white"
+          >
+            <LinkIcon className="w-4 h-4 mr-2" />
+            플랫폼 연동 관리
+          </Button>
         </div>
 
         {/* Brand Info Section */}
@@ -193,7 +237,15 @@ export default function SettingsPage() {
 
                   <div className="flex items-start gap-4">
                     {/* Icon */}
-                    <div className="text-4xl">{platform.icon}</div>
+                    <div className={`
+                      p-3 rounded-lg transition-all duration-300
+                      ${connected
+                        ? 'bg-amber-500/10 text-amber-400'
+                        : 'bg-zinc-800 text-zinc-400 group-hover:text-zinc-300'
+                      }
+                    `}>
+                      <PlatformIcon platformId={platform.id} className="w-8 h-8" />
+                    </div>
 
                     {/* Info */}
                     <div className="flex-1">
@@ -250,6 +302,47 @@ export default function SettingsPage() {
               💡 <strong className="text-zinc-300">Tip:</strong> 플랫폼을 연결하면 콘텐츠를 자동으로 발행할 수 있습니다.
               각 플랫폼의 OAuth 인증이 필요합니다.
             </p>
+          </div>
+        </div>
+
+        {/* Writer Persona Section */}
+        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <PenTool className="w-6 h-6 text-amber-400" />
+              <h2 className="text-2xl font-light text-white tracking-wide">작성자 페르소나</h2>
+            </div>
+            <a href="/settings/writer-persona">
+              <Button className="bg-amber-600 hover:bg-amber-700">
+                관리하기
+              </Button>
+            </a>
+          </div>
+          <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
+
+          <div className="space-y-4">
+            <p className="text-zinc-300 font-normal">
+              콘텐츠 작성 시 나만의 글쓰기 스타일과 전문성을 반영하세요.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-zinc-800/50 border border-zinc-700">
+                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">글쓰기 스타일</p>
+                <p className="text-white font-normal">전문적, 캐주얼, 기술적 등</p>
+              </div>
+              <div className="p-4 bg-zinc-800/50 border border-zinc-700">
+                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">언어 습관</p>
+                <p className="text-white font-normal">이모지, 문장 길이, 용어 사용</p>
+              </div>
+              <div className="p-4 bg-zinc-800/50 border border-zinc-700">
+                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">전문 분야</p>
+                <p className="text-white font-normal">기술, 마케팅, 창업 등</p>
+              </div>
+            </div>
+            <div className="p-4 bg-amber-900/10 border border-amber-400/30">
+              <p className="text-sm text-amber-200 font-normal">
+                💡 <strong className="text-amber-100">Tip:</strong> 작성자 페르소나를 설정하면 AI가 당신의 스타일로 콘텐츠를 생성합니다.
+              </p>
+            </div>
           </div>
         </div>
 

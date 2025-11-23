@@ -154,9 +154,14 @@ export default function ContentPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-normal text-white group-hover:text-amber-400 transition-colors duration-300">
-                          {content.topic}
+                          {content.topic || content.title}
                         </h3>
                         {getStatusBadge(content.status)}
+                        {content.ai_model && (
+                          <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                            {content.ai_model}
+                          </span>
+                        )}
                       </div>
 
                       <p className="text-zinc-400 text-sm font-normal mb-3 line-clamp-2">
