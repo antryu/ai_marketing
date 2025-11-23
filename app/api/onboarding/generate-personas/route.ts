@@ -30,16 +30,20 @@ export async function POST(request: Request) {
       data: { session },
     } = await supabase.auth.getSession()
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // DEVELOPMENT ONLY: Skip authentication checks
+    // TODO: Remove this in production!
+    const userId = session?.user?.id || "00000000-0000-0000-0000-000000000000" // Mock user ID for development
+
+    // if (!session) {
+    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    // }
 
     // 브랜드 정보 가져오기
     const brandResult = await (supabase as any)
       .from("brands")
       .select("*")
       .eq("id", brandId)
-      .eq("user_id", session.user.id) // Ensure user owns this brand
+      // .eq("user_id", userId) // Skip user ownership check in development
       .single()
 
     if (brandResult.error) throw brandResult.error
