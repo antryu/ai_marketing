@@ -164,7 +164,7 @@ ${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n
             }
           },
           status: "draft"
-        })
+        } as any)
         .select()
         .single()
 
@@ -190,7 +190,7 @@ ${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n
             }
           },
           status: "draft"
-        })
+        } as any)
         .select()
         .single()
 
