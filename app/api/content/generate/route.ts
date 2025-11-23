@@ -102,37 +102,41 @@ export async function POST(request: Request) {
     // Build writer persona context
     let writerContext = ""
     if (writerPersona) {
+      const persona = writerPersona as any
       writerContext = `
 
 작성자 페르소나 (당신의 특성):
-- 이름: ${writerPersona.name}
-- 글쓰기 스타일: ${writerPersona.writing_style}
-- 톤: ${writerPersona.tone}
-- 전문 분야: ${writerPersona.expertise_areas?.join(", ") || "일반"}
-${writerPersona.unique_perspective ? `- 관점/시각: ${writerPersona.unique_perspective}` : ""}
-${writerPersona.catchphrase ? `- 캐치프레이즈: "${writerPersona.catchphrase}"` : ""}
+- 이름: ${persona.name}
+- 글쓰기 스타일: ${persona.writing_style}
+- 톤: ${persona.tone}
+- 전문 분야: ${persona.expertise_areas?.join(", ") || "일반"}
+${persona.unique_perspective ? `- 관점/시각: ${persona.unique_perspective}` : ""}
+${persona.catchphrase ? `- 캐치프레이즈: "${persona.catchphrase}"` : ""}
 
 언어 스타일:
-- 이모지 사용: ${writerPersona.language_preferences?.emoji_usage || "적당히"}
-- 문장 길이: ${writerPersona.language_preferences?.sentence_length || "중간"}
-- 기술 용어 사용: ${writerPersona.language_preferences?.technical_terms ? "예" : "아니오"}
-- 비유/은유 사용: ${writerPersona.language_preferences?.use_analogies ? "예" : "아니오"}
-- 데이터/통계 활용: ${writerPersona.language_preferences?.use_data_statistics ? "예" : "아니오"}
+- 이모지 사용: ${persona.language_preferences?.emoji_usage || "적당히"}
+- 문장 길이: ${persona.language_preferences?.sentence_length || "중간"}
+- 기술 용어 사용: ${persona.language_preferences?.technical_terms ? "예" : "아니오"}
+- 비유/은유 사용: ${persona.language_preferences?.use_analogies ? "예" : "아니오"}
+- 데이터/통계 활용: ${persona.language_preferences?.use_data_statistics ? "예" : "아니오"}
 
-${writerPersona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${writerPersona.signature_phrases.join(", ")}` : ""}
+${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona.signature_phrases.join(", ")}` : ""}
 
 이 작성자 페르소나의 스타일과 톤을 반영하여 콘텐츠를 작성해주세요.`
     }
 
+    // Type assertion for brand
+    const typedBrand = brand as any
+
     // Call AI API
-    const prompt = `당신은 ${brand.name}의 전문 마케팅 콘텐츠 작성자입니다.
+    const prompt = `당신은 ${typedBrand.name}의 전문 마케팅 콘텐츠 작성자입니다.
 
 제품 정보:
-- 이름: ${brand.name}
-- 설명: ${brand.description}
-- 타겟 시장: ${brand.target_market?.join(", ") || "글로벌"}
-- 브랜드 톤: ${brand.brand_voice?.tone || "전문적인"}
-- 브랜드 스타일: ${brand.brand_voice?.style || "친근한"}
+- 이름: ${typedBrand.name}
+- 설명: ${typedBrand.description}
+- 타겟 시장: ${typedBrand.target_market?.join(", ") || "글로벌"}
+- 브랜드 톤: ${typedBrand.brand_voice?.tone || "전문적인"}
+- 브랜드 스타일: ${typedBrand.brand_voice?.style || "친근한"}
 
 플랫폼: ${platform}
 스타일: ${settings.style}
@@ -140,7 +144,7 @@ ${writerPersona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${w
 형식: ${settings.format}
 
 타겟 페르소나:
-${brand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n") || "일반 대중"}
+${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n") || "일반 대중"}
 ${writerContext}
 
 다음 지침을 따라 콘텐츠를 생성하세요:
