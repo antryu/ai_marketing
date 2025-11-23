@@ -104,7 +104,7 @@ export default function ContentCreatePage() {
             tone,
             length,
             writerPersonaId: selectedWriterPersona || null,
-            aiModel: compareMode ? ollamaModel : (ollamaModel === "claude" ? null : ollamaModel),
+            aiModel: compareMode ? ollamaModel : null, // 비교 모드 OFF면 항상 Claude 사용
             ...(compareMode && { ollamaModel })
           })
         })
