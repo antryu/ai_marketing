@@ -473,7 +473,7 @@ export default function WriterPersonaPage() {
                 <PersonaTemplateGallery onSelectTemplate={(template) => {
                   toast.success('페르소나가 생성되었습니다. 목록을 새로고침하세요.')
                   setIsCreating(false)
-                  loadPersonas()
+                  fetchPersonas()
                 }} />
               </TabsContent>
             </Tabs>
