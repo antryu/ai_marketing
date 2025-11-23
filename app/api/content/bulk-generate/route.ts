@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     const { data: brands } = await supabase
       .from("brands")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id" as any, user.id)
       .limit(1)
 
     let brandId: string
