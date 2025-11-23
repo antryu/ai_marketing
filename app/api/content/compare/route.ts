@@ -75,6 +75,9 @@ export async function POST(request: Request) {
       )
     }
 
+    // Type assertion for brand
+    const typedBrand = brand as any
+
     // Platform-specific content generation
     const platformSettings = {
       thread: {
@@ -97,14 +100,14 @@ export async function POST(request: Request) {
     const settings = platformSettings[platform as keyof typeof platformSettings] || platformSettings.thread
 
     // 프롬프트 생성
-    const prompt = `당신은 ${brand.name}의 전문 마케팅 콘텐츠 작성자입니다.
+    const prompt = `당신은 ${typedBrand.name}의 전문 마케팅 콘텐츠 작성자입니다.
 
 제품 정보:
-- 이름: ${brand.name}
-- 설명: ${brand.description}
-- 타겟 시장: ${brand.target_market?.join(", ") || "글로벌"}
-- 브랜드 톤: ${brand.brand_voice?.tone || "전문적인"}
-- 브랜드 스타일: ${brand.brand_voice?.style || "친근한"}
+- 이름: ${typedBrand.name}
+- 설명: ${typedBrand.description}
+- 타겟 시장: ${typedBrand.target_market?.join(", ") || "글로벌"}
+- 브랜드 톤: ${typedBrand.brand_voice?.tone || "전문적인"}
+- 브랜드 스타일: ${typedBrand.brand_voice?.style || "친근한"}
 
 플랫폼: ${platform}
 스타일: ${settings.style}
@@ -112,7 +115,7 @@ export async function POST(request: Request) {
 형식: ${settings.format}
 
 타겟 페르소나:
-${brand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n") || "일반 대중"}
+${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n") || "일반 대중"}
 
 다음 지침을 따라 콘텐츠를 생성하세요:
 1. 플랫폼에 최적화된 형식으로 작성
