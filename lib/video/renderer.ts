@@ -211,7 +211,7 @@ async function combineFrames(
 
   // Read output file
   const data = await ffmpeg.readFile('output.mp4')
-  const blob = new Blob([data], { type: 'video/mp4' })
+  const blob = new Blob([data as any], { type: 'video/mp4' })
 
   return blob
 }
