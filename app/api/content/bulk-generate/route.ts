@@ -84,17 +84,17 @@ export async function POST(request: Request) {
     const selectedModel = aiModel || "qwen2.5:7b"
 
     // 사용자의 첫 번째 브랜드 가져오기 (없으면 생성)
-    const brandsResult = await supabase
+    const brandsResult: any = await supabase
       .from("brands")
       .select("id")
       .eq("user_id" as any, user.id as any)
       .limit(1)
 
-    const brands = brandsResult.data as any
+    const brands = brandsResult.data
 
     let brandId: string
     if (!brands || brands.length === 0) {
-      const { data: newBrand, error: brandError } = await supabase
+      const newBrandResult: any = await supabase
         .from("brands")
         .insert({
           user_id: user.id,
@@ -104,12 +104,12 @@ export async function POST(request: Request) {
         .select("id")
         .single()
 
-      if (brandError || !newBrand) {
+      if (newBrandResult.error || !newBrandResult.data) {
         return NextResponse.json({ error: "브랜드 생성 실패" }, { status: 500 })
       }
-      brandId = (newBrand as any).id
+      brandId = newBrandResult.data.id
     } else {
-      brandId = (brands[0] as any).id
+      brandId = brands[0].id
     }
 
     const contents = []
@@ -147,7 +147,7 @@ IMPORTANT: 답변은 반드시 한국어로만 작성하세요. 영어나 중국
         })
 
         // DB에 저장
-        const { data: savedContent, error: saveError } = await supabase
+        const savedContentResult: any = await supabase
           .from("contents")
           .insert({
             brand_id: brandId,
@@ -160,8 +160,8 @@ IMPORTANT: 답변은 반드시 한국어로만 작성하세요. 영어나 중국
           .select()
           .single()
 
-        if (saveError) {
-          console.error("Save error:", saveError)
+        if (savedContentResult.error) {
+          console.error("Save error:", savedContentResult.error)
           return {
             success: false,
             error: "저장 실패",
@@ -174,7 +174,7 @@ IMPORTANT: 답변은 반드시 한국어로만 작성하세요. 영어나 중국
           success: true,
           body: aiContent,
           platforms,
-          contentId: (savedContent as any).id,
+          contentId: savedContentResult.data.id,
           index: index + 1,
           aiModel: selectedModel,
         }
