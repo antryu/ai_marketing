@@ -11,12 +11,18 @@ import {
   Zap,
   Sparkles,
   CreditCard,
+  Target,
+  User,
+  Building2,
 } from "lucide-react"
 
 const navigation = [
   { name: "대시보드", href: "/dashboard", icon: LayoutDashboard, highlight: false },
-  { name: "일괄 생성", href: "/content/bulk", icon: Sparkles, highlight: true },
-  { name: "콘텐츠", href: "/content", icon: FileText, highlight: false },
+  { name: "브랜드 설정", href: "/brand", icon: Building2, highlight: false },
+  { name: "타겟 페르소나", href: "/personas", icon: Target, highlight: false },
+  { name: "작성자 페르소나", href: "/writer-personas", icon: User, highlight: false },
+  { name: "콘텐츠 생성", href: "/content/create", icon: Sparkles, highlight: true },
+  { name: "콘텐츠 목록", href: "/content", icon: FileText, highlight: false },
   { name: "캘린더", href: "/calendar", icon: Calendar, highlight: false },
   { name: "분석", href: "/analytics", icon: BarChart3, highlight: false },
   { name: "요금제", href: "/pricing", icon: CreditCard, highlight: false },
