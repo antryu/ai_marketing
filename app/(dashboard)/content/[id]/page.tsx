@@ -14,14 +14,15 @@ import { toast } from "sonner"
 export default function ContentDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const contentId = Array.isArray(params.id) ? params.id[0] : params.id as string
   const [content, setContent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (params.id) {
-      loadContent(params.id as string)
+    if (contentId) {
+      loadContent(contentId)
     }
-  }, [params.id])
+  }, [contentId])
 
   const loadContent = async (id: string) => {
     const supabase = createClient()
@@ -54,7 +55,7 @@ export default function ContentDetailPage() {
     const { error } = await supabase
       .from("contents")
       .delete()
-      .eq("id", params.id)
+      .eq("id", contentId)
 
     if (error) {
       toast.error("삭제 실패")
