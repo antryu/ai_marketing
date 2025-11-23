@@ -46,11 +46,11 @@ export async function POST(request: Request) {
     }
 
     // Get brand information
-    const brandResult = (await supabase
+    const brandResult = await (supabase as any)
       .from('brands')
       .select('*, personas(*)')
-      .eq('id' as any, brandId as any)
-      .single()) as any
+      .eq('id', brandId)
+      .single()
 
     const brand = brandResult.data
 
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     })
 
     // Save video project to database
-    const projectResult = (await supabase
+    const projectResult = await (supabase as any)
       .from('video_projects')
       .insert({
         brand_id: brandId,
@@ -89,9 +89,9 @@ export async function POST(request: Request) {
           platform,
           style
         }
-      } as any)
+      })
       .select()
-      .single()) as any
+      .single()
 
     if (projectResult.error) {
       throw projectResult.error

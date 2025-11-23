@@ -16,14 +16,14 @@ export async function POST(request: Request) {
     }
 
     // Ensure profile exists (create if not)
-    const profileResult = (await supabase
+    const profileResult = await (supabase as any)
       .from("profiles")
       .select("id")
       .eq("id", session.user.id)
-      .single()) as any
+      .single()
 
     if (!profileResult.data) {
-      await supabase.from("profiles").insert({
+      await (supabase as any).from("profiles").insert({
         id: session.user.id,
         email: session.user.email!,
         full_name: session.user.user_metadata?.full_name || session.user.email,
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const { name, description, product_type, target_market, brand_voice } = body
 
     // Create brand
-    const brandResult = (await supabase
+    const brandResult = await (supabase as any)
       .from("brands")
       .insert({
         user_id: session.user.id,
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         brand_voice,
       })
       .select()
-      .single()) as any
+      .single()
 
     if (brandResult.error) throw brandResult.error
 
@@ -73,11 +73,11 @@ export async function GET(request: Request) {
     }
 
     // Get user's brands
-    const brandsResult = (await supabase
+    const brandsResult = await (supabase as any)
       .from("brands")
       .select("*")
       .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })) as any
+      .order("created_at", { ascending: false })
 
     if (brandsResult.error) throw brandsResult.error
 
