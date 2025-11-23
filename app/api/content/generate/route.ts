@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       const { data } = await supabase
         .from("writer_personas")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id" as any, user.id as any)
         .eq("is_default", true)
         .single()
       writerPersona = data
@@ -204,7 +204,7 @@ ${writerContext}
           }
         },
         status: "draft"
-      })
+      } as any)
       .select()
       .single()
 
