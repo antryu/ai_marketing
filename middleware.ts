@@ -9,8 +9,9 @@ export async function middleware(req: NextRequest) {
     },
   })
 
-  // DEVELOPMENT ONLY: Skip authentication checks
+  // DEVELOPMENT ONLY: Skip authentication checks - FORCE BYPASS
   // TODO: Remove this in production!
+  console.log('[MIDDLEWARE] Authentication bypassed for development')
   return res
 
   // Skip middleware if environment variables are not set
