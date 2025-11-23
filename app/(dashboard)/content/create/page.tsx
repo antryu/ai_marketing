@@ -38,11 +38,12 @@ export default function ContentCreatePage() {
 
   const loadBrands = async () => {
     const supabase = createClient()
-    const { data } = await supabase
+    const result = await supabase
       .from("brands")
       .select("*")
       .order("created_at", { ascending: false })
 
+    const data = result.data as any[]
     if (data) {
       setBrands(data)
       if (data.length > 0) {
@@ -54,12 +55,13 @@ export default function ContentCreatePage() {
 
   const loadWriterPersonas = async () => {
     const supabase = createClient()
-    const { data } = await supabase
+    const result = await supabase
       .from("writer_personas")
       .select("*")
       .order("is_default", { ascending: false })
       .order("usage_count", { ascending: false })
 
+    const data = result.data as any[]
     if (data) {
       setWriterPersonas(data)
       // Auto-select default persona if exists
