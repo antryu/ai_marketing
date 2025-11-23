@@ -11,11 +11,11 @@ export async function GET(request: Request) {
     let query = supabase
       .from('persona_templates')
       .select('*')
-      .eq('is_active', true)
+      .eq('is_active' as any, true as any)
       .order('popularity_score', { ascending: false })
 
     if (category && category !== 'all') {
-      query = query.eq('category', category)
+      query = query.eq('category' as any, category as any)
     }
 
     const { data, error } = await query
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const { data: template, error: templateError } = await supabase
       .from('persona_templates')
       .select('*')
-      .eq('id', templateId)
+      .eq('id' as any, templateId as any)
       .single()
 
     if (templateError || !template) {
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
     const { data: persona, error: createError } = await supabase
       .from('writer_personas')
-      .insert(personaData)
+      .insert(personaData as any)
       .select()
       .single()
 
@@ -104,10 +104,11 @@ export async function POST(request: Request) {
     }
 
     // 템플릿 인기도 증가
+    const typedTemplate = template as any
     await supabase
       .from('persona_templates')
-      .update({ popularity_score: (template.popularity_score || 0) + 1 })
-      .eq('id', templateId)
+      .update({ popularity_score: (typedTemplate.popularity_score || 0) + 1 } as any)
+      .eq('id' as any, templateId as any)
 
     return NextResponse.json({
       success: true,
