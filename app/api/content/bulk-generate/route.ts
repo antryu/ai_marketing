@@ -84,17 +84,17 @@ export async function POST(request: Request) {
     const selectedModel = aiModel || "qwen2.5:7b"
 
     // 사용자의 첫 번째 브랜드 가져오기 (없으면 생성)
-    const brandsResult: any = await supabase
+    const brandsResult = (await supabase
       .from("brands")
       .select("id")
       .eq("user_id" as any, user.id as any)
-      .limit(1)
+      .limit(1)) as any
 
     const brands = brandsResult.data
 
     let brandId: string
     if (!brands || brands.length === 0) {
-      const newBrandResult: any = await supabase
+      const newBrandResult = (await supabase
         .from("brands")
         .insert({
           user_id: user.id,
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
           description: "자동 생성된 브랜드",
         } as any)
         .select("id")
-        .single()
+        .single()) as any
 
       if (newBrandResult.error || !newBrandResult.data) {
         return NextResponse.json({ error: "브랜드 생성 실패" }, { status: 500 })
@@ -147,7 +147,7 @@ IMPORTANT: 답변은 반드시 한국어로만 작성하세요. 영어나 중국
         })
 
         // DB에 저장
-        const savedContentResult: any = await supabase
+        const savedContentResult = (await supabase
           .from("contents")
           .insert({
             brand_id: brandId,
@@ -158,7 +158,7 @@ IMPORTANT: 답변은 반드시 한국어로만 작성하세요. 영어나 중국
             status: "draft",
           } as any)
           .select()
-          .single()
+          .single()) as any
 
         if (savedContentResult.error) {
           console.error("Save error:", savedContentResult.error)

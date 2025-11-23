@@ -19,12 +19,12 @@ export async function POST(request: Request) {
     }
 
     // 브랜드 정보 가져오기
-    const brandResult: any = await supabase
+    const brandResult = (await supabase
       .from("brands")
       .select("*")
       .eq("id", brandId)
       .eq("user_id", session.user.id) // Ensure user owns this brand
-      .single()
+      .single()) as any
 
     if (brandResult.error) throw brandResult.error
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const personas = await generatePersonas(brand)
 
     // DB에 저장
-    const personasResult: any = await supabase
+    const personasResult = (await supabase
       .from("personas")
       .insert(
         personas.map((p, index) => ({
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
           is_primary: index === 0, // 첫 번째를 primary로
         }))
       )
-      .select()
+      .select()) as any
 
     if (personasResult.error) throw personasResult.error
 
