@@ -16,13 +16,13 @@ export async function POST(request: Request) {
     }
 
     // Ensure profile exists (create if not)
-    const { data: existingProfile } = await supabase
+    const profileResult: any = await supabase
       .from("profiles")
       .select("id")
       .eq("id", session.user.id)
       .single()
 
-    if (!existingProfile) {
+    if (!profileResult.data) {
       await supabase.from("profiles").insert({
         id: session.user.id,
         email: session.user.email!,
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const { name, description, product_type, target_market, brand_voice } = body
 
     // Create brand
-    const { data: brand, error: brandError } = await supabase
+    const brandResult: any = await supabase
       .from("brands")
       .insert({
         user_id: session.user.id,
@@ -47,9 +47,9 @@ export async function POST(request: Request) {
       .select()
       .single()
 
-    if (brandError) throw brandError
+    if (brandResult.error) throw brandResult.error
 
-    return NextResponse.json(brand)
+    return NextResponse.json(brandResult.data)
   } catch (error: any) {
     console.error("Brand creation error:", error)
     return NextResponse.json(
@@ -73,15 +73,15 @@ export async function GET(request: Request) {
     }
 
     // Get user's brands
-    const { data: brands, error } = await supabase
+    const brandsResult: any = await supabase
       .from("brands")
       .select("*")
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
 
-    if (error) throw error
+    if (brandsResult.error) throw brandsResult.error
 
-    return NextResponse.json(brands)
+    return NextResponse.json(brandsResult.data)
   } catch (error: any) {
     console.error("Brands fetch error:", error)
     return NextResponse.json(

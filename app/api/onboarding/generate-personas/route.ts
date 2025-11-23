@@ -19,14 +19,16 @@ export async function POST(request: Request) {
     }
 
     // 브랜드 정보 가져오기
-    const { data: brand, error: brandError } = await supabase
+    const brandResult: any = await supabase
       .from("brands")
       .select("*")
       .eq("id", brandId)
       .eq("user_id", session.user.id) // Ensure user owns this brand
       .single()
 
-    if (brandError) throw brandError
+    if (brandResult.error) throw brandResult.error
+
+    const brand = brandResult.data
 
     if (!brand) {
       return NextResponse.json({ error: "Brand not found" }, { status: 404 })
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     const personas = await generatePersonas(brand)
 
     // DB에 저장
-    const { data: savedPersonas, error: personaError } = await supabase
+    const personasResult: any = await supabase
       .from("personas")
       .insert(
         personas.map((p, index) => ({
@@ -61,9 +63,9 @@ export async function POST(request: Request) {
       )
       .select()
 
-    if (personaError) throw personaError
+    if (personasResult.error) throw personasResult.error
 
-    return NextResponse.json(savedPersonas)
+    return NextResponse.json(personasResult.data)
   } catch (error: any) {
     console.error("Persona generation error:", error)
     return NextResponse.json(
