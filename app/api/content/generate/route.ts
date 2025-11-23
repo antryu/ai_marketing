@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         .from("writer_personas")
         .select("*")
         .eq("user_id" as any, user.id as any)
-        .eq("is_default", true)
+        .eq("is_default" as any, true as any)
         .single()
       writerPersona = data
     }
