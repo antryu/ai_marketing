@@ -8,17 +8,18 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
 
-    let query = supabase
+    let query = (supabase as any)
       .from('persona_templates')
       .select('*')
-      .eq('is_active' as any, true as any)
+      .eq('is_active', true)
       .order('popularity_score', { ascending: false })
 
     if (category && category !== 'all') {
-      query = query.eq('category' as any, category as any)
+      query = query.eq('category', category)
     }
 
-    const { data, error } = await query
+    const result = await query
+    const { data, error } = result
 
     if (error) {
       console.error('Template fetch error:', error)
@@ -59,11 +60,13 @@ export async function POST(request: Request) {
     }
 
     // 템플릿 조회
-    const { data: template, error: templateError } = await supabase
+    const templateResult = await (supabase as any)
       .from('persona_templates')
       .select('*')
-      .eq('id' as any, templateId as any)
+      .eq('id', templateId)
       .single()
+
+    const { data: template, error: templateError } = templateResult
 
     if (templateError || !template) {
       return NextResponse.json(
@@ -92,11 +95,13 @@ export async function POST(request: Request) {
       usage_count: 0
     }
 
-    const { data: persona, error: createError } = await supabase
+    const personaResult = await (supabase as any)
       .from('writer_personas')
-      .insert(personaData as any)
+      .insert(personaData)
       .select()
       .single()
+
+    const { data: persona, error: createError } = personaResult
 
     if (createError) {
       console.error('Persona creation error:', createError)
@@ -107,10 +112,10 @@ export async function POST(request: Request) {
     }
 
     // 템플릿 인기도 증가
-    await supabase
+    await (supabase as any)
       .from('persona_templates')
-      .update({ popularity_score: (typedTemplate.popularity_score || 0) + 1 } as any)
-      .eq('id' as any, templateId as any)
+      .update({ popularity_score: (typedTemplate.popularity_score || 0) + 1 })
+      .eq('id', templateId)
 
     return NextResponse.json({
       success: true,
