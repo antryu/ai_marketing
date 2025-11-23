@@ -195,7 +195,7 @@ ${writerContext}
       .from("contents")
       .insert({
         brand_id: brandId,
-        writer_persona_id: writerPersona?.id || null,
+        writer_persona_id: (writerPersona as any)?.id || null,
         topic,
         body: generatedContent,
         content_type: "text",
