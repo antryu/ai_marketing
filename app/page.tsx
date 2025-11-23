@@ -3,10 +3,12 @@ import { ArrowRight, Zap, Target, TrendingUp, Sparkles, CheckCircle2 } from "luc
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { OAuthHandler } from "@/components/auth/OAuthHandler"
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-zinc-950 dark:bg-zinc-950">
+      <OAuthHandler />
       {/* Navigation Bar - Porsche Style */}
       <nav className="sticky top-0 w-full z-50 bg-zinc-950/95 backdrop-blur-lg border-b border-zinc-800">
         <div className="container mx-auto px-6 lg:px-12">
