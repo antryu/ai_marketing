@@ -32,7 +32,7 @@ export default function ContentCreatePage() {
   const [loadingBrands, setLoadingBrands] = useState(true)
   const [compareMode, setCompareMode] = useState(false)
   const [comparison, setComparison] = useState<any>(null)
-  const [ollamaModel, setOllamaModel] = useState("qwen2.5:7b")
+  const [ollamaModel, setOllamaModel] = useState("claude")
   const [usedAiModel, setUsedAiModel] = useState("")
 
   useEffect(() => {
@@ -104,8 +104,8 @@ export default function ContentCreatePage() {
             tone,
             length,
             writerPersonaId: selectedWriterPersona || null,
-            aiModel: compareMode ? ollamaModel : null, // 비교 모드 OFF면 항상 Claude 사용
-            ...(compareMode && { ollamaModel })
+            aiModel: ollamaModel === "claude" ? null : ollamaModel, // claude 선택 시 null, 나머지는 모델명 전달
+            ...(compareMode && { ollamaModel: ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel })
           })
         })
 
@@ -120,10 +120,12 @@ export default function ContentCreatePage() {
           toast.success(`AI 비교 완료! (${(data.comparison.generationTime / 1000).toFixed(1)}초)`)
         } else {
           setGeneratedContent(data.generated)
-          // 사용된 AI 모델 저장
-          const modelUsed = compareMode ? ollamaModel : "Claude (Haiku)"
+          // 사용된 AI 모델 표시
+          const modelUsed = ollamaModel === "claude" ? "Claude (Haiku)" :
+                           ollamaModel === "qwen2.5:7b" ? "Qwen 2.5 7B" :
+                           ollamaModel === "gemma2:2b" ? "Gemma2 2B" : ollamaModel
           setUsedAiModel(modelUsed)
-          toast.success("AI 콘텐츠가 생성되었습니다!")
+          toast.success(`AI 콘텐츠가 생성되었습니다! (모델: ${modelUsed})`)
         }
       } else {
         // Video generation
@@ -329,51 +331,55 @@ export default function ContentCreatePage() {
             {/* AI Model Selection */}
             <div className="space-y-2">
               {contentType === "text" && (
-                <div className="flex items-center justify-between">
-                  <Label>AI 모델 비교</Label>
-                  <div className="flex gap-1 bg-zinc-900/50 border border-zinc-700 rounded p-0.5">
-                    <button
-                      onClick={() => setCompareMode(false)}
-                      className={`
-                        px-3 py-1 text-xs rounded transition-all
-                        ${!compareMode
-                          ? "bg-zinc-800 border border-zinc-600 text-white"
-                          : "text-zinc-400 hover:text-zinc-300"
-                        }
-                      `}
-                    >
-                      OFF
-                    </button>
-                    <button
-                      onClick={() => setCompareMode(true)}
-                      className={`
-                        px-3 py-1 text-xs rounded transition-all
-                        ${compareMode
-                          ? "bg-amber-500/20 border border-amber-500 text-amber-400"
-                          : "text-zinc-400 hover:text-zinc-300"
-                        }
-                      `}
-                    >
-                      ON
-                    </button>
-                  </div>
-                </div>
-              )}
-              {compareMode && contentType === "text" && (
                 <>
-                  <Label>Ollama 모델 (Claude와 비교)</Label>
+                  <Label>AI 모델</Label>
                   <Select value={ollamaModel} onValueChange={setOllamaModel}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (추천)</SelectItem>
+                      <SelectItem value="claude">🟣 Claude (Haiku) - 추천</SelectItem>
+                      <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (Ollama)</SelectItem>
                       <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-zinc-500">
-                    💡 Claude (Haiku)와 선택한 Ollama 모델을 비교합니다
-                  </p>
+
+                  {/* AI 모델 비교 토글 */}
+                  <div className="flex items-center justify-between pt-2">
+                    <Label className="text-sm">AI 모델 비교</Label>
+                    <div className="flex gap-1 bg-zinc-900/50 border border-zinc-700 rounded p-0.5">
+                      <button
+                        onClick={() => setCompareMode(false)}
+                        className={`
+                          px-3 py-1 text-xs rounded transition-all
+                          ${!compareMode
+                            ? "bg-zinc-800 border border-zinc-600 text-white"
+                            : "text-zinc-400 hover:text-zinc-300"
+                          }
+                        `}
+                      >
+                        OFF
+                      </button>
+                      <button
+                        onClick={() => setCompareMode(true)}
+                        className={`
+                          px-3 py-1 text-xs rounded transition-all
+                          ${compareMode
+                            ? "bg-amber-500/20 border border-amber-500 text-amber-400"
+                            : "text-zinc-400 hover:text-zinc-300"
+                          }
+                        `}
+                      >
+                        ON
+                      </button>
+                    </div>
+                  </div>
+
+                  {compareMode && (
+                    <p className="text-xs text-zinc-500">
+                      💡 선택한 모델과 Claude (Haiku)를 비교합니다
+                    </p>
+                  )}
                 </>
               )}
               {contentType === "video" && (
