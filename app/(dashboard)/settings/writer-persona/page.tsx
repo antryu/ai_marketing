@@ -116,11 +116,7 @@ export default function WriterPersonaPage() {
       .order('usage_count', { ascending: false })
 
     if (error) {
-      toast({
-        title: '오류',
-        description: '작성자 페르소나를 불러오는데 실패했습니다',
-        variant: 'destructive',
-      })
+      toast.error('작성자 페르소나를 불러오는데 실패했습니다')
     } else {
       setPersonas(data || [])
     }
@@ -179,13 +175,9 @@ export default function WriterPersonaPage() {
         .insert({ ...personaData, user_id: user.id })
 
       if (error) {
-        toast({
-          title: '오류',
-          description: '페르소나 생성에 실패했습니다',
-          variant: 'destructive',
-        })
+        toast.error('페르소나 생성에 실패했습니다')
       } else {
-        toast({ title: '생성 완료', description: '새 페르소나가 생성되었습니다' })
+        toast.success('새 페르소나가 생성되었습니다')
         setIsCreating(false)
         resetForm()
         fetchPersonas()
@@ -202,13 +194,9 @@ export default function WriterPersonaPage() {
       .eq('id', id)
 
     if (error) {
-      toast({
-        title: '오류',
-        description: '삭제에 실패했습니다',
-        variant: 'destructive',
-      })
+      toast.error('삭제에 실패했습니다')
     } else {
-      toast({ title: '삭제 완료' })
+      toast.success('삭제 완료')
       fetchPersonas()
     }
   }
@@ -227,13 +215,9 @@ export default function WriterPersonaPage() {
       .eq('id', id)
 
     if (error) {
-      toast({
-        title: '오류',
-        description: '기본 페르소나 설정에 실패했습니다',
-        variant: 'destructive',
-      })
+      toast.error('기본 페르소나 설정에 실패했습니다')
     } else {
-      toast({ title: '설정 완료', description: '기본 페르소나로 설정되었습니다' })
+      toast.success('기본 페르소나로 설정되었습니다')
       fetchPersonas()
     }
   }
