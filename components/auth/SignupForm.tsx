@@ -40,7 +40,7 @@ export function SignupForm() {
 
       if (authData?.user) {
         // Create profile
-        const { error: profileError } = await supabase
+        const profileResult = await (supabase as any)
           .from("profiles")
           .insert({
             id: authData.user.id,
@@ -48,6 +48,7 @@ export function SignupForm() {
             full_name: fullName,
           })
 
+        const { error: profileError } = profileResult
         if (profileError) throw profileError
 
         toast.success("회원가입 성공! 이메일을 확인해주세요.")
