@@ -105,9 +105,9 @@ export async function POST(request: Request) {
       if (brandError || !newBrand) {
         return NextResponse.json({ error: "브랜드 생성 실패" }, { status: 500 })
       }
-      brandId = newBrand.id
+      brandId = (newBrand as any).id
     } else {
-      brandId = brands[0].id
+      brandId = (brands[0] as any).id
     }
 
     const contents = []
