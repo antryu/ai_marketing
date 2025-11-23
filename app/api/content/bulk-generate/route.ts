@@ -172,7 +172,7 @@ IMPORTANT: 답변은 반드시 한국어로만 작성하세요. 영어나 중국
           success: true,
           body: aiContent,
           platforms,
-          contentId: savedContent.id,
+          contentId: (savedContent as any).id,
           index: index + 1,
           aiModel: selectedModel,
         }
