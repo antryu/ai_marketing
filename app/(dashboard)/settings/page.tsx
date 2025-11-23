@@ -134,11 +134,13 @@ export default function SettingsPage() {
     if (!confirm("정말 연결을 해제하시겠습니까?")) return
 
     const supabase = createClient()
-    const { error } = await supabase
+    const result = await (supabase as any)
       .from("platform_connections")
       .update({ is_active: false })
       .eq("brand_id", selectedBrand.id)
       .eq("platform", platformId)
+
+    const { error } = result
 
     if (error) {
       toast.error("연결 해제 실패")
