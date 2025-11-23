@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     const { data: brand } = await supabase
       .from('brands')
       .select('*, personas(*)')
-      .eq('id', brandId)
+      .eq('id' as any, brandId as any)
       .single()
 
     if (!brand) {
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
           platform,
           style
         }
-      })
+      } as any)
       .select()
       .single()
 
@@ -138,13 +138,16 @@ async function generateVideoScenes(params: VideoGenerationParams & { aiModel?: s
 
   const spec = platformSpecs[platform] || platformSpecs.youtube
 
+  // Type assertion for brand
+  const typedBrand = brand as any
+
   const prompt = `당신은 전문 비디오 스크립트 작성자입니다.
 
 브랜드 정보:
-- 이름: ${brand.name}
-- 설명: ${brand.description}
-- 타겟 시장: ${brand.target_market?.join(', ') || '글로벌'}
-- 브랜드 톤: ${brand.brand_voice?.tone || '전문적인'}
+- 이름: ${typedBrand.name}
+- 설명: ${typedBrand.description}
+- 타겟 시장: ${typedBrand.target_market?.join(', ') || '글로벌'}
+- 브랜드 톤: ${typedBrand.brand_voice?.tone || '전문적인'}
 
 비디오 사양:
 - 플랫폼: ${platform}
