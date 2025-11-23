@@ -14,13 +14,13 @@ import {
 } from "lucide-react"
 
 const navigation = [
-  { name: "대시보드", href: "/dashboard", icon: LayoutDashboard },
-  { name: "일괄 생성", href: "/content/bulk", icon: Sparkles },
-  { name: "콘텐츠", href: "/content", icon: FileText },
-  { name: "캘린더", href: "/calendar", icon: Calendar },
-  { name: "분석", href: "/analytics", icon: BarChart3 },
-  { name: "요금제", href: "/pricing", icon: CreditCard },
-  { name: "설정", href: "/settings", icon: Settings },
+  { name: "대시보드", href: "/dashboard", icon: LayoutDashboard, highlight: false },
+  { name: "일괄 생성", href: "/content/bulk", icon: Sparkles, highlight: true },
+  { name: "콘텐츠", href: "/content", icon: FileText, highlight: false },
+  { name: "캘린더", href: "/calendar", icon: Calendar, highlight: false },
+  { name: "분석", href: "/analytics", icon: BarChart3, highlight: false },
+  { name: "요금제", href: "/pricing", icon: CreditCard, highlight: false },
+  { name: "설정", href: "/settings", icon: Settings, highlight: false },
 ]
 
 export function Sidebar() {
