@@ -3,8 +3,7 @@ import { cookies } from 'next/headers';
 import { Database } from '@/types/database.types';
 
 export const createServerClient = async () => {
-  const cookieStore = await cookies();
-  return createServerComponentClient<Database>({ cookies: () => cookieStore });
+  return createServerComponentClient<Database>({ cookies });
 };
 
 // Alias for backward compatibility
