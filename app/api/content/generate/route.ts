@@ -101,6 +101,16 @@ export async function POST(request: Request) {
         maxLength: 280,
         style: "간결하고 임팩트 있는",
         format: "짧은 form"
+      },
+      naver: {
+        maxLength: 2500,
+        style: "친근하고 상세한, 한국 독자 맞춤, 실용적 정보 제공, SEO 최적화",
+        format: "블로그 포스트"
+      },
+      tistory: {
+        maxLength: 2000,
+        style: "체계적이고 구조화된, 단계별 가이드, 기술적 디테일 포함",
+        format: "블로그 포스트"
       }
     }
 
@@ -135,7 +145,7 @@ ${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona
 
     // Determine which platforms to generate content for
     const platformsToGenerate = platform === 'all'
-      ? ['thread', 'linkedin', 'twitter', 'instagram']
+      ? ['thread', 'linkedin', 'twitter', 'instagram', 'naver', 'tistory']
       : [platform]
 
     const platformVariations: Record<string, { text: string; tone: string; length: string }> = {}
@@ -189,10 +199,16 @@ ${writerContext}
 6. 실제 가치 제공에 집중
 7. CTA(Call-to-Action) 자연스럽게 포함
 8. ${settings.maxLength}자 이내로 작성
+${platformKey === 'naver' || platformKey === 'tistory' ? `
+9. **블로그 형식** - 서론, 본론, 결론 구조 사용
+10. **소제목 활용** - ## 마크다운으로 명확한 섹션 구분
+11. **SEO 최적화** - 키워드 자연스럽게 배치
+12. **가독성** - 단락 구분, 리스트 활용
+13. **실용성** - 구체적 예시, 팁, 단계별 가이드 포함` : ''}
 
 토픽: ${topic}
 
-위 토픽으로 ${platformKey}에 발행할 콘텐츠를 작성해주세요. 플랫폼에 맞게 간결하고 임팩트 있게 작성하세요.
+위 토픽으로 ${platformKey}에 발행할 콘텐츠를 작성해주세요.${platformKey === 'naver' || platformKey === 'tistory' ? ' 블로그 독자가 끝까지 읽고 실행할 수 있도록 상세하고 구조적으로 작성하세요.' : ' 플랫폼에 맞게 간결하고 임팩트 있게 작성하세요.'}
 
 출력 요구사항 / OUTPUT REQUIREMENTS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

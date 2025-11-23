@@ -47,6 +47,16 @@ const PlatformIcon = ({ platformId, className = "w-6 h-6" }: { platformId: strin
         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
       </svg>
     ),
+    naver: (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M16.273 12.845 7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727v12.845Z"/>
+      </svg>
+    ),
+    tistory: (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M0 3a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm9 18a3 3 0 1 0 6 0 3 3 0 0 0-6 0zM0 12a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm9-9a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm9 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm0 9a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm0 9a3 3 0 1 0 6 0 3 3 0 0 0-6 0zM9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/>
+      </svg>
+    ),
   }
 
   return icons[platformId] || null
@@ -60,6 +70,8 @@ const getPlatformLabel = (platformId: string): string => {
     twitter: "Twitter/X",
     x: "X.com",
     instagram: "Instagram",
+    naver: "네이버 블로그",
+    tistory: "티스토리",
   }
   return labels[platformId] || platformId
 }
@@ -79,6 +91,8 @@ export function PlatformPreview({ variations }: PlatformPreviewProps) {
       linkedin: variations.all,
       twitter: variations.all,
       instagram: variations.all,
+      naver: variations.all,
+      tistory: variations.all,
     }
   }
 
@@ -102,7 +116,14 @@ export function PlatformPreview({ variations }: PlatformPreviewProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue={platforms[0]} className="w-full">
-          <TabsList className={`grid w-full bg-zinc-800 ${platforms.length === 1 ? 'grid-cols-1' : platforms.length === 2 ? 'grid-cols-2' : platforms.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full bg-zinc-800 ${
+            platforms.length === 1 ? 'grid-cols-1' :
+            platforms.length === 2 ? 'grid-cols-2' :
+            platforms.length === 3 ? 'grid-cols-3' :
+            platforms.length === 4 ? 'grid-cols-4' :
+            platforms.length === 5 ? 'grid-cols-5' :
+            'grid-cols-6'
+          }`}>
             {platforms.map((platform) => (
               <TabsTrigger key={platform} value={platform} className="flex items-center gap-2">
                 <PlatformIcon platformId={platform} className="w-4 h-4" />
@@ -118,23 +139,49 @@ export function PlatformPreview({ variations }: PlatformPreviewProps) {
             return (
               <TabsContent key={platform} value={platform} className="mt-6">
                 <div className="bg-zinc-800 rounded-lg p-6 border border-zinc-700 overflow-hidden">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className={`${platform === 'linkedin' ? 'w-12 h-12 rounded' : 'w-10 h-10 rounded-full'} bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold`}>
-                      {platform === 'linkedin' ? 'Y' : 'U'}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-white mb-1">Your Brand</div>
-                      <div className="text-sm text-zinc-400">
-                        {platform === 'linkedin' ? '팔로워 1,234명' : '@yourbrand'}
+                  {/* 블로그 플랫폼과 SNS 플랫폼을 다르게 렌더링 */}
+                  {platform === 'naver' || platform === 'tistory' ? (
+                    // 블로그 스타일 프리뷰
+                    <div className="bg-white text-black p-8 rounded">
+                      <div className="mb-6 pb-4 border-b border-gray-200">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white font-bold">
+                            B
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-900">Your Blog</div>
+                            <div className="text-sm text-gray-500">
+                              {platform === 'naver' ? '네이버 블로그' : '티스토리'}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      {platform === 'linkedin' && (
-                        <div className="text-xs text-zinc-500">방금</div>
-                      )}
+                      <div className="prose prose-lg max-w-none">
+                        <ReactMarkdown>{variation.text}</ReactMarkdown>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-white mb-4 prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
-                    <ReactMarkdown>{variation.text}</ReactMarkdown>
-                  </div>
+                  ) : (
+                    // SNS 스타일 프리뷰
+                    <>
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className={`${platform === 'linkedin' ? 'w-12 h-12 rounded' : 'w-10 h-10 rounded-full'} bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold`}>
+                          {platform === 'linkedin' ? 'Y' : 'U'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-white mb-1">Your Brand</div>
+                          <div className="text-sm text-zinc-400">
+                            {platform === 'linkedin' ? '팔로워 1,234명' : '@yourbrand'}
+                          </div>
+                          {platform === 'linkedin' && (
+                            <div className="text-xs text-zinc-500">방금</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-white mb-4 prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
+                        <ReactMarkdown>{variation.text}</ReactMarkdown>
+                      </div>
+                    </>
+                  )}
                   {variation.hashtags && variation.hashtags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-4">
                       {variation.hashtags.map((tag, i) => (
@@ -144,31 +191,34 @@ export function PlatformPreview({ variations }: PlatformPreviewProps) {
                       ))}
                     </div>
                   )}
-                  <div className="mt-4 pt-4 border-t border-zinc-700 flex gap-6 text-zinc-400 text-sm">
-                    {platform === 'linkedin' ? (
-                      <>
-                        <span>👍 추천</span>
-                        <span>💬 댓글</span>
-                        <span>🔁 다시 게시</span>
-                        <span>📤 보내기</span>
-                      </>
-                    ) : platform === 'twitter' || platform === 'x' ? (
-                      <div className="flex justify-between w-full">
-                        <span>💬</span>
-                        <span>🔁</span>
-                        <span>♥</span>
-                        <span>📊</span>
-                        <span>🔖</span>
-                        <span>📤</span>
-                      </div>
-                    ) : (
-                      <>
-                        <span>♥ 좋아요</span>
-                        <span>💬 댓글</span>
-                        <span>🔁 공유</span>
-                      </>
-                    )}
-                  </div>
+                  {/* SNS 플랫폼만 인터랙션 버튼 표시 */}
+                  {platform !== 'naver' && platform !== 'tistory' && (
+                    <div className="mt-4 pt-4 border-t border-zinc-700 flex gap-6 text-zinc-400 text-sm">
+                      {platform === 'linkedin' ? (
+                        <>
+                          <span>👍 추천</span>
+                          <span>💬 댓글</span>
+                          <span>🔁 다시 게시</span>
+                          <span>📤 보내기</span>
+                        </>
+                      ) : platform === 'twitter' || platform === 'x' ? (
+                        <div className="flex justify-between w-full">
+                          <span>💬</span>
+                          <span>🔁</span>
+                          <span>♥</span>
+                          <span>📊</span>
+                          <span>🔖</span>
+                          <span>📤</span>
+                        </div>
+                      ) : (
+                        <>
+                          <span>♥ 좋아요</span>
+                          <span>💬 댓글</span>
+                          <span>🔁 공유</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4 text-xs text-zinc-500">
                   <div className="flex items-center justify-between">

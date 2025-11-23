@@ -401,11 +401,13 @@ export default function ContentCreatePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">✨ 모든 플랫폼 (Thread, LinkedIn, Twitter, Instagram)</SelectItem>
-                  <SelectItem value="thread">Thread만 (150-500자)</SelectItem>
-                  <SelectItem value="linkedin">LinkedIn만 (1200-1500자)</SelectItem>
-                  <SelectItem value="instagram">Instagram만 (캡션)</SelectItem>
-                  <SelectItem value="twitter">Twitter/X만</SelectItem>
+                  <SelectItem value="all">✨ 모든 플랫폼 (SNS + 블로그)</SelectItem>
+                  <SelectItem value="thread">📱 Thread (500자)</SelectItem>
+                  <SelectItem value="linkedin">💼 LinkedIn (1,500자)</SelectItem>
+                  <SelectItem value="instagram">📷 Instagram (캡션)</SelectItem>
+                  <SelectItem value="twitter">🐦 Twitter/X (280자)</SelectItem>
+                  <SelectItem value="naver">📝 네이버 블로그 (2,500자)</SelectItem>
+                  <SelectItem value="tistory">✍️ 티스토리 (2,000자)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
