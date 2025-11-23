@@ -97,21 +97,24 @@ export default function SettingsPage() {
     const supabase = createClient()
 
     // Load first brand
-    const { data: brands } = await supabase
+    const brandsResult = await supabase
       .from("brands")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(1)
 
+    const brands = brandsResult.data as any[]
+
     if (brands && brands.length > 0) {
       setSelectedBrand(brands[0])
 
       // Load platform connections
-      const { data: conns } = await supabase
+      const connsResult = await supabase
         .from("platform_connections")
         .select("*")
         .eq("brand_id", brands[0].id)
 
+      const conns = connsResult.data as any[]
       setConnections(conns || [])
     }
 
