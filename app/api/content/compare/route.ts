@@ -168,7 +168,7 @@ ${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n
         .select()
         .single()
 
-      claudeContentId = saved?.id
+      claudeContentId = (saved as any)?.id
     }
 
     // Ollama 결과 저장 (성공한 경우)
@@ -194,7 +194,7 @@ ${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n
         .select()
         .single()
 
-      ollamaContentId = saved?.id
+      ollamaContentId = (saved as any)?.id
     }
 
     return NextResponse.json({
