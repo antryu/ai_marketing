@@ -332,21 +332,9 @@ export default function ContentCreatePage() {
             <div className="space-y-2">
               {contentType === "text" && (
                 <>
-                  <Label>AI 모델</Label>
-                  <Select value={ollamaModel} onValueChange={setOllamaModel}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="claude">🟣 Claude (Haiku) - 추천</SelectItem>
-                      <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (Ollama)</SelectItem>
-                      <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
-                    </SelectContent>
-                  </Select>
-
                   {/* AI 모델 비교 토글 */}
-                  <div className="flex items-center justify-between pt-2">
-                    <Label className="text-sm">AI 모델 비교</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>AI 모델 비교</Label>
                     <div className="flex gap-1 bg-zinc-900/50 border border-zinc-700 rounded p-0.5">
                       <button
                         onClick={() => setCompareMode(false)}
@@ -375,10 +363,40 @@ export default function ContentCreatePage() {
                     </div>
                   </div>
 
+                  {/* 비교 모드 OFF: 모델 선택 */}
+                  {!compareMode && (
+                    <>
+                      <Label>AI 모델</Label>
+                      <Select value={ollamaModel} onValueChange={setOllamaModel}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="claude">🟣 Claude (Haiku) - 추천</SelectItem>
+                          <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (Ollama)</SelectItem>
+                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+
+                  {/* 비교 모드 ON: Ollama 모델 선택 */}
                   {compareMode && (
-                    <p className="text-xs text-zinc-500">
-                      💡 선택한 모델과 Claude (Haiku)를 비교합니다
-                    </p>
+                    <>
+                      <Label>비교할 Ollama 모델</Label>
+                      <Select value={ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel} onValueChange={setOllamaModel}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (추천)</SelectItem>
+                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-zinc-500">
+                        💡 Claude (Haiku)와 선택한 Ollama 모델을 비교합니다
+                      </p>
+                    </>
                   )}
                 </>
               )}
