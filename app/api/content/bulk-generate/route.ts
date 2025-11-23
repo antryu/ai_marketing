@@ -84,11 +84,13 @@ export async function POST(request: Request) {
     const selectedModel = aiModel || "qwen2.5:7b"
 
     // 사용자의 첫 번째 브랜드 가져오기 (없으면 생성)
-    const { data: brands } = await supabase
+    const brandsResult = await supabase
       .from("brands")
       .select("id")
       .eq("user_id" as any, user.id as any)
       .limit(1)
+
+    const brands = brandsResult.data as any
 
     let brandId: string
     if (!brands || brands.length === 0) {
