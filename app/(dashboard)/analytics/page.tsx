@@ -26,11 +26,13 @@ export default function AnalyticsPage() {
     else startDate.setDate(startDate.getDate() - 90)
 
     // Get analytics data
-    const { data } = await supabase
+    const result = await supabase
       .from("analytics")
       .select("*")
       .gte("date", startDate.toISOString().split("T")[0])
       .lte("date", endDate.toISOString().split("T")[0])
+
+    const data = result.data as any[]
 
     // Aggregate data
     const aggregated = {
