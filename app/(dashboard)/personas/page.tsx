@@ -75,7 +75,7 @@ export default function PersonasPage() {
       const supabase = createClient()
 
       // Load personas for selected brand only
-      const { data: personasData } = await supabase
+      const { data: personasData } = await (supabase as any)
         .from("personas")
         .select("*")
         .eq("brand_id", selectedBrandId)
@@ -108,7 +108,7 @@ export default function PersonasPage() {
 
       if (editingId) {
         // Update existing persona
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("personas")
           .update(formData)
           .eq("id", editingId)
@@ -117,7 +117,7 @@ export default function PersonasPage() {
         toast.success("페르소나가 업데이트되었습니다")
       } else {
         // Create new persona
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("personas")
           .insert([formData])
 
@@ -166,7 +166,7 @@ export default function PersonasPage() {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("personas")
         .delete()
         .eq("id", id)
