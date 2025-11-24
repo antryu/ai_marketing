@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client"
 import { Building2, Plus, Trash2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { useBrand } from "@/contexts/BrandContext"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 
 interface Brand {
   id: string
@@ -22,6 +24,9 @@ interface Brand {
 
 export default function BrandPage() {
   const { selectedBrandId, refreshBrands, setSelectedBrandId } = useBrand()
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
   const [loading, setLoading] = useState(true)
   const [currentBrand, setCurrentBrand] = useState<Brand | null>(null)
   const [isCreatingNew, setIsCreatingNew] = useState(false)
@@ -68,7 +73,7 @@ export default function BrandPage() {
       }
     } catch (error) {
       console.error("Error loading brand:", error)
-      toast.error("데이터 로딩 실패")
+      toast.error(t("dataLoadError"))
     } finally {
       setLoading(false)
     }
@@ -76,7 +81,7 @@ export default function BrandPage() {
 
   const handleSave = async () => {
     if (!formData.name) {
-      toast.error("브랜드/제품명을 입력해주세요")
+      toast.error(t("brandNameRequired"))
       return
     }
 
@@ -85,7 +90,7 @@ export default function BrandPage() {
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
-        toast.error("로그인이 필요합니다")
+        toast.error(t("loginRequired"))
         return
       }
 
@@ -108,7 +113,7 @@ export default function BrandPage() {
           .order("created_at", { ascending: false })
           .limit(1)
 
-        toast.success("브랜드가 생성되었습니다")
+        toast.success(t("brandCreated"))
 
         // Set as selected brand and exit create mode
         if (newBrands && newBrands.length > 0) {
@@ -123,20 +128,20 @@ export default function BrandPage() {
           .eq("id", selectedBrandId)
 
         if (error) throw error
-        toast.success("브랜드 정보가 업데이트되었습니다")
+        toast.success(t("brandUpdated"))
       }
 
       await refreshBrands()
       loadCurrentBrand()
     } catch (error: any) {
       console.error("Error saving brand:", error)
-      toast.error(error.message || "저장 실패")
+      toast.error(error.message || t("saveFailed"))
     }
   }
 
   const handleDelete = async () => {
     if (!currentBrand) return
-    if (!confirm("정말 삭제하시겠습니까? 연결된 모든 데이터가 삭제될 수 있습니다.")) return
+    if (!confirm(t("deleteConfirm"))) return
 
     try {
       const supabase = createClient()
@@ -146,13 +151,13 @@ export default function BrandPage() {
         .eq("id", currentBrand.id)
 
       if (error) throw error
-      toast.success("브랜드가 삭제되었습니다")
+      toast.success(t("brandDeleted"))
 
       await refreshBrands()
       // After deletion, the BrandContext will auto-select the first available brand
     } catch (error: any) {
       console.error("Error deleting brand:", error)
-      toast.error(error.message || "삭제 실패")
+      toast.error(error.message || t("deleteFailed"))
     }
   }
 
@@ -203,7 +208,7 @@ export default function BrandPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-zinc-400">로딩 중...</div>
+        <div className="text-zinc-400">{t("loadingText")}</div>
       </div>
     )
   }
@@ -215,14 +220,14 @@ export default function BrandPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center py-16 border border-dashed border-zinc-700">
             <Building2 className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-light text-white mb-2">브랜드가 없습니다</h2>
-            <p className="text-zinc-400 mb-6">첫 브랜드를 만들어 시작하세요</p>
+            <h2 className="text-2xl font-light text-white mb-2">{t("noBrands")}</h2>
+            <p className="text-zinc-400 mb-6">{t("createFirstBrand")}</p>
             <button
               onClick={handleCreateNew}
               className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50 inline-flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
-              첫 브랜드 만들기
+              {t("createFirstBrandButton")}
             </button>
           </div>
         </div>
@@ -233,46 +238,26 @@ export default function BrandPage() {
   return (
     <div className="p-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center">
-                <Building2 className="w-8 h-8 text-amber-400" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-light text-white tracking-wide">
-                  {isCreatingNew ? "새 브랜드" : "브랜드 설정"}
-                </h1>
-                <p className="text-zinc-400 mt-2">
-                  {isCreatingNew
-                    ? "새 브랜드 정보를 입력하세요"
-                    : "현재 선택된 브랜드 정보를 관리하세요"}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              {!isCreatingNew && (
-                <>
-                  <button
-                    onClick={handleCreateNew}
-                    className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-6 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50 flex items-center gap-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    새 브랜드
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="bg-zinc-800 hover:bg-red-900/50 text-zinc-300 hover:text-red-400 font-medium py-3 px-6 transition-all duration-300 border border-zinc-700 hover:border-red-500/50 tracking-wide flex items-center gap-2"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    삭제
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="w-24 h-px bg-gradient-to-r from-amber-400 to-transparent"></div>
+        {/* Action Buttons */}
+        <div className="mb-6 flex justify-end gap-3">
+          {!isCreatingNew && (
+            <>
+              <button
+                onClick={handleCreateNew}
+                className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-6 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50 flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                {t("newBrand")}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="bg-zinc-800 hover:bg-red-900/50 text-zinc-300 hover:text-red-400 font-medium py-3 px-6 transition-all duration-300 border border-zinc-700 hover:border-red-500/50 tracking-wide flex items-center gap-2"
+              >
+                <Trash2 className="w-5 h-5" />
+                {t("deleteBrand")}
+              </button>
+            </>
+          )}
         </div>
 
         {/* Form */}
@@ -281,13 +266,13 @@ export default function BrandPage() {
             {/* Brand Name */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-200 tracking-wide">
-                브랜드/제품명 *
+                {t("brandName")} *
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="예: 테크스타트업"
+                placeholder={t("brandNamePlaceholder")}
                 className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
               />
             </div>
@@ -295,12 +280,12 @@ export default function BrandPage() {
             {/* Description */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-200 tracking-wide">
-                제품/서비스 설명
+                {t("productDescription")}
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="제품이나 서비스에 대해 자세히 설명해주세요"
+                placeholder={t("productDescPlaceholder")}
                 rows={4}
                 className="w-full bg-zinc-900/50 border border-zinc-700 px-4 py-3 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors resize-none"
               />
@@ -309,31 +294,31 @@ export default function BrandPage() {
             {/* Product Type */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-200 tracking-wide">
-                유형
+                {t("productType")}
               </label>
               <select
                 value={formData.product_type}
                 onChange={(e) => setFormData({ ...formData, product_type: e.target.value })}
                 className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
               >
-                <option value="">선택하세요</option>
-                <option value="product">제품 (Physical Product)</option>
-                <option value="service">서비스 (Service)</option>
+                <option value="">{t("selectType")}</option>
+                <option value="product">{t("physicalProduct")}</option>
+                <option value="service">{t("service")}</option>
                 <option value="b2b_saas">B2B SaaS</option>
                 <option value="b2c_saas">B2C SaaS</option>
-                <option value="ecommerce">이커머스</option>
-                <option value="education">교육</option>
-                <option value="consulting">컨설팅</option>
-                <option value="personal_brand">개인 브랜드</option>
-                <option value="company">회사/기업</option>
-                <option value="other">기타</option>
+                <option value="ecommerce">{language === "en" ? "E-commerce" : "이커머스"}</option>
+                <option value="education">{language === "en" ? "Education" : "교육"}</option>
+                <option value="consulting">{language === "en" ? "Consulting" : "컨설팅"}</option>
+                <option value="personal_brand">{language === "en" ? "Personal Brand" : "개인 브랜드"}</option>
+                <option value="company">{language === "en" ? "Company/Enterprise" : "회사/기업"}</option>
+                <option value="other">{language === "en" ? "Other" : "기타"}</option>
               </select>
             </div>
 
             {/* Brand Voice - Tone */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-200 tracking-wide">
-                브랜드 톤
+                {t("brandTone")}
               </label>
               <input
                 type="text"
@@ -344,7 +329,7 @@ export default function BrandPage() {
                     brand_voice: { ...formData.brand_voice, tone: e.target.value },
                   })
                 }
-                placeholder="예: 전문적이면서도 친근한"
+                placeholder={t("brandTonePlaceholder")}
                 className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
               />
             </div>
@@ -352,7 +337,7 @@ export default function BrandPage() {
             {/* Brand Voice - Style */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-200 tracking-wide">
-                브랜드 스타일
+                {t("brandStyle")}
               </label>
               <input
                 type="text"
@@ -363,7 +348,7 @@ export default function BrandPage() {
                     brand_voice: { ...formData.brand_voice, style: e.target.value },
                   })
                 }
-                placeholder="예: 간결하고 명확한"
+                placeholder={t("brandStylePlaceholder")}
                 className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
               />
             </div>
@@ -375,14 +360,14 @@ export default function BrandPage() {
               className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50 flex items-center gap-2"
             >
               <Sparkles className="w-5 h-5" />
-              {isCreatingNew ? "브랜드 생성" : "저장"}
+              {isCreatingNew ? t("createBrand") : t("save")}
             </button>
             {isCreatingNew && (
               <button
                 onClick={handleCancelCreate}
                 className="bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-8 transition-all duration-300 border border-zinc-700 hover:border-zinc-600 tracking-wide"
               >
-                취소
+                {t("cancel")}
               </button>
             )}
           </div>

@@ -14,9 +14,13 @@ import { toast } from "sonner"
 import { Sparkles, Zap, Video, FileText } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import ReactMarkdown from "react-markdown"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 
 export default function ContentCreatePage() {
   const router = useRouter()
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
   const [brands, setBrands] = useState<any[]>([])
   const [writerPersonas, setWriterPersonas] = useState<any[]>([])
   const [selectedBrand, setSelectedBrand] = useState("")
@@ -78,12 +82,12 @@ export default function ContentCreatePage() {
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
-      toast.error("토픽을 입력해주세요")
+      toast.error(t("topicRequired"))
       return
     }
 
     if (!selectedBrand) {
-      toast.error("제품을 선택해주세요")
+      toast.error(t("productSelectRequired"))
       return
     }
 
@@ -105,6 +109,7 @@ export default function ContentCreatePage() {
             length,
             writerPersonaId: selectedWriterPersona || null,
             aiModel: ollamaModel === "claude" ? null : ollamaModel, // claude 선택 시 null, 나머지는 모델명 전달
+            language, // 언어 추가
             ...(compareMode && { ollamaModel: ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel })
           })
         })
@@ -112,12 +117,12 @@ export default function ContentCreatePage() {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || "콘텐츠 생성 실패")
+          throw new Error(data.error || t("contentGenerationFailed"))
         }
 
         if (compareMode) {
           setComparison(data.comparison)
-          toast.success(`AI 비교 완료! (${(data.comparison.generationTime / 1000).toFixed(1)}초)`)
+          toast.success(`${t("comparisonComplete")} (${(data.comparison.generationTime / 1000).toFixed(1)}초)`)
         } else {
           setGeneratedContent(data.generated)
           // 사용된 AI 모델 표시
@@ -125,7 +130,7 @@ export default function ContentCreatePage() {
                            ollamaModel === "qwen2.5:7b" ? "Qwen 2.5 7B" :
                            ollamaModel === "gemma2:2b" ? "Gemma2 2B" : ollamaModel
           setUsedAiModel(modelUsed)
-          toast.success(`AI 콘텐츠가 생성되었습니다! (모델: ${modelUsed})`)
+          toast.success(`${t("contentGenerated")} (${language === "ko" ? "모델" : "Model"}: ${modelUsed})`)
         }
       } else {
         // Video generation
@@ -145,23 +150,23 @@ export default function ContentCreatePage() {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || "비디오 생성 실패")
+          throw new Error(data.error || t("videoGenerationFailed"))
         }
 
         setVideoProject(data.project)
-        toast.success("AI 비디오가 생성되었습니다!")
+        toast.success(t("videoGenerated"))
       }
 
     } catch (error: any) {
       console.error(error)
-      toast.error(error.message || "오류가 발생했습니다")
+      toast.error(error.message || t("errorOccurred"))
     } finally {
       setLoading(false)
     }
   }
 
   const handlePublish = async () => {
-    toast.success("발행 기능은 곧 추가됩니다!")
+    toast.success(t("publishSoon"))
   }
 
   if (loadingBrands) {
@@ -169,7 +174,7 @@ export default function ContentCreatePage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-zinc-300 font-normal">로딩 중...</p>
+          <p className="text-zinc-300 font-normal">{t("loadingText")}</p>
         </div>
       </div>
     )
@@ -180,15 +185,15 @@ export default function ContentCreatePage() {
       <div className="flex items-center justify-center min-h-screen p-6">
         <div className="max-w-md text-center bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-12">
           <Zap className="w-16 h-16 text-amber-400 mx-auto mb-6" />
-          <h2 className="text-2xl font-light text-white mb-4">제품이 필요합니다</h2>
+          <h2 className="text-2xl font-light text-white mb-4">{t("productRequired")}</h2>
           <p className="text-zinc-300 font-normal mb-8">
-            콘텐츠를 생성하려면 먼저 제품을 등록해주세요
+            {t("productRequiredDesc")}
           </p>
           <a
             href="/onboarding"
             className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5"
           >
-            제품 등록하기 →
+            {t("registerProduct")}
           </a>
         </div>
       </div>
@@ -202,10 +207,10 @@ export default function ContentCreatePage() {
         project={videoProject}
         onSave={(project) => {
           setVideoProject(project)
-          toast.success("프로젝트가 저장되었습니다")
+          toast.success(t("projectSaved"))
         }}
         onExport={(project) => {
-          toast.success("비디오 내보내기를 시작합니다")
+          toast.success(t("videoExportStarted"))
         }}
       />
     )
@@ -214,30 +219,17 @@ export default function ContentCreatePage() {
   return (
     <div className="p-12 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-12">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-light tracking-wide text-white">콘텐츠 생성</h1>
-              <p className="text-zinc-300 font-normal text-base tracking-wide">AI로 최적화된 콘텐츠를 만드세요</p>
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: Input Form */}
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10 space-y-6">
             <div>
-              <h2 className="text-xl font-light text-white mb-6 tracking-wide">설정</h2>
+              <h2 className="text-xl font-light text-white mb-6 tracking-wide">{t("configuration")}</h2>
               <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
             </div>
 
             {/* Content Type Selection */}
             <div className="space-y-2">
-              <Label>콘텐츠 유형</Label>
+              <Label>{t("contentType")}</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setContentType("text")}
@@ -250,7 +242,7 @@ export default function ContentCreatePage() {
                   `}
                 >
                   <FileText className="w-5 h-5" />
-                  <span className="font-medium">텍스트</span>
+                  <span className="font-medium">{t("text")}</span>
                 </button>
                 <button
                   onClick={() => setContentType("video")}
@@ -263,14 +255,14 @@ export default function ContentCreatePage() {
                   `}
                 >
                   <Video className="w-5 h-5" />
-                  <span className="font-medium">비디오</span>
+                  <span className="font-medium">{t("video")}</span>
                 </button>
               </div>
             </div>
 
             {/* Brand Selection */}
             <div className="space-y-2">
-              <Label>제품</Label>
+              <Label>{t("product")}</Label>
               <Select value={selectedBrand} onValueChange={setSelectedBrand}>
                 <SelectTrigger>
                   <SelectValue />
@@ -289,20 +281,20 @@ export default function ContentCreatePage() {
             {contentType === "text" && writerPersonas.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>작성자 페르소나</Label>
+                  <Label>{t("writerPersona")}</Label>
                   <a
                     href="/settings/writer-persona"
                     className="text-xs text-amber-400 hover:text-amber-300"
                   >
-                    관리
+                    {t("manage")}
                   </a>
                 </div>
                 <Select value={selectedWriterPersona || "default"} onValueChange={(value) => setSelectedWriterPersona(value === "default" ? "" : value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="작성자 스타일 선택 (선택사항)" />
+                    <SelectValue placeholder={t("writerPersonaSelect")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="default">기본 스타일</SelectItem>
+                    <SelectItem value="default">{t("defaultStyle")}</SelectItem>
                     {writerPersonas.map((persona) => (
                       <SelectItem key={persona.id} value={persona.id}>
                         {persona.name} {persona.is_default && "⭐"}
@@ -320,9 +312,9 @@ export default function ContentCreatePage() {
 
             {/* Topic Input */}
             <div className="space-y-2">
-              <Label>토픽</Label>
+              <Label>{t("topic")}</Label>
               <Input
-                placeholder="예: AI 마케팅 자동화의 장점"
+                placeholder={t("topicPlaceholder")}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
@@ -334,7 +326,7 @@ export default function ContentCreatePage() {
                 <>
                   {/* AI 모델 비교 토글 */}
                   <div className="flex items-center justify-between">
-                    <Label>AI 모델 비교</Label>
+                    <Label>{t("aiModelComparison")}</Label>
                     <div className="flex gap-1 bg-zinc-900/50 border border-zinc-700 rounded p-0.5">
                       <button
                         onClick={() => setCompareMode(false)}
@@ -366,15 +358,15 @@ export default function ContentCreatePage() {
                   {/* 비교 모드 OFF: 모델 선택 */}
                   {!compareMode && (
                     <>
-                      <Label>AI 모델</Label>
+                      <Label>{t("aiModel")}</Label>
                       <Select value={ollamaModel} onValueChange={setOllamaModel}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="claude">🟣 Claude (Haiku) - 추천</SelectItem>
+                          <SelectItem value="claude">🟣 Claude (Haiku) - {language === "ko" ? "추천" : "Recommended"}</SelectItem>
                           <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (Ollama)</SelectItem>
-                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량 ⚡)</SelectItem>
+                          <SelectItem value="gemma2:2b">💎 Gemma2 2B ({language === "ko" ? "초경량 ⚡" : "Ultra-light ⚡"})</SelectItem>
                         </SelectContent>
                       </Select>
                     </>
@@ -383,18 +375,18 @@ export default function ContentCreatePage() {
                   {/* 비교 모드 ON: Ollama 모델 선택 */}
                   {compareMode && (
                     <>
-                      <Label>비교할 Ollama 모델</Label>
+                      <Label>{t("compareOllamaModel")}</Label>
                       <Select value={ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel} onValueChange={setOllamaModel}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (추천)</SelectItem>
-                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량 ⚡)</SelectItem>
+                          <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B ({language === "ko" ? "추천" : "Recommended"})</SelectItem>
+                          <SelectItem value="gemma2:2b">💎 Gemma2 2B ({language === "ko" ? "초경량 ⚡" : "Ultra-light ⚡"})</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-zinc-500">
-                        💡 Claude (Haiku)와 선택한 Ollama 모델을 비교합니다
+                        {t("compareDescription")}
                       </p>
                     </>
                   )}
@@ -402,7 +394,7 @@ export default function ContentCreatePage() {
               )}
               {contentType === "video" && (
                 <>
-                  <Label>AI 모델</Label>
+                  <Label>{t("aiModel")}</Label>
                   <Select value={ollamaModel} onValueChange={setOllamaModel}>
                     <SelectTrigger>
                       <SelectValue />
@@ -419,50 +411,50 @@ export default function ContentCreatePage() {
 
             {/* Platform Selection */}
             <div className="space-y-2">
-              <Label>플랫폼</Label>
+              <Label>{t("platform")}</Label>
               <Select value={platform} onValueChange={setPlatform}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">✨ 모든 플랫폼 (SNS + 블로그)</SelectItem>
-                  <SelectItem value="thread">📱 Thread (500자)</SelectItem>
-                  <SelectItem value="linkedin">💼 LinkedIn (1,500자)</SelectItem>
-                  <SelectItem value="instagram">📷 Instagram (캡션)</SelectItem>
-                  <SelectItem value="twitter">🐦 Twitter/X (280자)</SelectItem>
-                  <SelectItem value="naver">📝 네이버 블로그 (2,500자)</SelectItem>
-                  <SelectItem value="tistory">✍️ 티스토리 (2,000자)</SelectItem>
+                  <SelectItem value="all">{t("platformAll")}</SelectItem>
+                  <SelectItem value="thread">{t("platformThread")}</SelectItem>
+                  <SelectItem value="linkedin">{t("platformLinkedIn")}</SelectItem>
+                  <SelectItem value="instagram">{t("platformInstagram")}</SelectItem>
+                  <SelectItem value="twitter">{t("platformTwitter")}</SelectItem>
+                  <SelectItem value="naver">{t("platformNaver")}</SelectItem>
+                  <SelectItem value="tistory">{t("platformTistory")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Tone Selection */}
             <div className="space-y-2">
-              <Label>톤</Label>
+              <Label>{t("toneField")}</Label>
               <Select value={tone} onValueChange={setTone}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="professional">전문적인</SelectItem>
-                  <SelectItem value="casual">캐주얼한</SelectItem>
-                  <SelectItem value="friendly">친근한</SelectItem>
-                  <SelectItem value="authoritative">권위있는</SelectItem>
+                  <SelectItem value="professional">{t("toneProfessional")}</SelectItem>
+                  <SelectItem value="casual">{t("toneCasual")}</SelectItem>
+                  <SelectItem value="friendly">{t("toneFriendly")}</SelectItem>
+                  <SelectItem value="authoritative">{t("toneAuthoritative")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Length Selection */}
             <div className="space-y-2">
-              <Label>길이</Label>
+              <Label>{t("length")}</Label>
               <Select value={length} onValueChange={setLength}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="short">짧게</SelectItem>
-                  <SelectItem value="medium">보통</SelectItem>
-                  <SelectItem value="long">길게</SelectItem>
+                  <SelectItem value="short">{t("lengthShort")}</SelectItem>
+                  <SelectItem value="medium">{t("lengthMedium")}</SelectItem>
+                  <SelectItem value="long">{t("lengthLong")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -474,7 +466,7 @@ export default function ContentCreatePage() {
               className="w-full h-12 text-base group"
             >
               {loading ? (
-                <>생성 중...</>
+                <>{t("generating")}</>
               ) : (
                 <>
                   {contentType === "video" ? (
@@ -482,7 +474,7 @@ export default function ContentCreatePage() {
                   ) : (
                     <Sparkles className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
                   )}
-                  AI {contentType === "video" ? "비디오" : "콘텐츠"} 생성
+                  {contentType === "video" ? t("generateVideo") : t("generateContent")}
                 </>
               )}
             </Button>
@@ -493,10 +485,10 @@ export default function ContentCreatePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-light text-white tracking-wide">
-                  {compareMode && comparison ? "AI 비교" : "미리보기"}
+                  {compareMode && comparison ? t("aiComparison") : t("preview")}
                 </h2>
                 <p className="text-zinc-400 text-xs font-normal tracking-wide mt-1">
-                  {compareMode && comparison ? "Claude vs Ollama" : "생성된 콘텐츠"}
+                  {compareMode && comparison ? "Claude vs Ollama" : t("generatedContentPreview")}
                 </p>
               </div>
               <Sparkles className="w-5 h-5 text-amber-400" />
@@ -544,7 +536,7 @@ export default function ContentCreatePage() {
                 {/* Stats */}
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
                   <div className="flex justify-between items-center text-xs text-zinc-400">
-                    <span>생성 시간: {(comparison.generationTime / 1000).toFixed(2)}초</span>
+                    <span>{t("generationTime")} {(comparison.generationTime / 1000).toFixed(2)}{language === "ko" ? "초" : "s"}</span>
                     <button
                       onClick={() => {
                         setComparison(null)
@@ -552,19 +544,19 @@ export default function ContentCreatePage() {
                       }}
                       className="text-amber-400 hover:text-amber-300"
                     >
-                      닫기
+                      {t("closeComparison")}
                     </button>
                   </div>
                   <div className="pt-3 border-t border-zinc-700">
                     <p className="text-xs text-zinc-400 mb-3">
-                      💡 Tip: 비교 결과를 확인했습니다. 실제 콘텐츠를 생성하려면 비교 모드를 끄고 다시 생성하세요.
+                      {t("comparisonTip")}
                     </p>
                     <Button
                       onClick={() => router.push('/content')}
                       className="w-full bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
                     >
                       <FileText className="w-4 h-4 mr-2" />
-                      콘텐츠 목록으로 이동
+                      {t("goToContentList")}
                     </Button>
                   </div>
                 </div>
@@ -580,7 +572,7 @@ export default function ContentCreatePage() {
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-zinc-400 font-normal">
-                      💡 Tip: 마크다운 형식으로 렌더링된 콘텐츠입니다
+                      {t("markdownTip")}
                     </p>
                     {usedAiModel && (
                       <p className="text-xs text-amber-400 font-medium">
@@ -593,7 +585,7 @@ export default function ContentCreatePage() {
                     className="w-full bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
                   >
                     <FileText className="w-4 h-4 mr-2" />
-                    콘텐츠 목록으로 이동
+                    {t("goToContentList")}
                   </Button>
                 </div>
               </div>
@@ -602,7 +594,7 @@ export default function ContentCreatePage() {
                 <div className="text-center">
                   <Sparkles className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
                   <p className="text-zinc-400 font-normal">
-                    토픽을 입력하고 AI 콘텐츠를 생성하세요
+                    {t("enterTopicPrompt")}
                   </p>
                 </div>
               </div>

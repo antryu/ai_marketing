@@ -8,8 +8,13 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { FileText, Calendar, Eye, Trash2, Zap } from "lucide-react"
 import { toast } from "sonner"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 
 export default function ContentPage() {
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
   const router = useRouter()
   const [contents, setContents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +37,7 @@ export default function ContentPage() {
 
     if (error) {
       console.error(error)
-      toast.error("콘텐츠를 불러오는데 실패했습니다")
+      toast.error(t("contentLoadFailed"))
     } else {
       setContents(data || [])
     }
@@ -41,7 +46,7 @@ export default function ContentPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return
+    if (!confirm(t("deleteContentConfirm"))) return
 
     const supabase = createClient()
     const { error } = await (supabase as any)
@@ -50,9 +55,9 @@ export default function ContentPage() {
       .eq("id", id)
 
     if (error) {
-      toast.error("삭제 실패")
+      toast.error(t("deleteFailed"))
     } else {
-      toast.success("삭제되었습니다")
+      toast.success(t("deleteSuccess"))
       loadContents()
     }
   }
@@ -65,9 +70,9 @@ export default function ContentPage() {
     }
 
     const labels = {
-      draft: "초안",
-      scheduled: "예약됨",
-      published: "발행됨",
+      draft: t("statusDraft"),
+      scheduled: t("statusScheduled"),
+      published: t("statusPublished"),
     }
 
     return (
@@ -99,7 +104,7 @@ export default function ContentPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-zinc-300 font-normal">로딩 중...</p>
+          <p className="text-zinc-300 font-normal">{t("loadingText")}</p>
         </div>
       </div>
     )
@@ -108,27 +113,17 @@ export default function ContentPage() {
   return (
     <div className="p-12">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h1 className="text-4xl font-light tracking-wide text-white mb-3">콘텐츠</h1>
-            <p className="text-zinc-300 font-normal text-base tracking-wide">
-              생성된 콘텐츠를 관리하세요
-            </p>
-          </div>
-        </div>
-
         {/* Content List */}
         {contents.length === 0 ? (
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-16 text-center">
             <FileText className="w-16 h-16 text-zinc-600 mx-auto mb-6" />
-            <h2 className="text-2xl font-light text-white mb-4">콘텐츠가 없습니다</h2>
+            <h2 className="text-2xl font-light text-white mb-4">{t("noContent")}</h2>
             <p className="text-zinc-400 font-normal mb-8">
-              첫 번째 콘텐츠를 생성해보세요
+              {t("noContentDesc")}
             </p>
             <Button onClick={() => router.push("/content/create")} className="group">
               <Zap className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-              콘텐츠 생성하기
+              {t("createContent")}
             </Button>
           </div>
         ) : (
@@ -175,7 +170,7 @@ export default function ContentPage() {
                         )}
                         {content.published_posts && content.published_posts.length > 0 && (
                           <span className="text-emerald-400">
-                            {content.published_posts.length}개 플랫폼 발행됨
+                            {content.published_posts.length}{t("platformsPublished")}
                           </span>
                         )}
                       </div>
@@ -187,14 +182,14 @@ export default function ContentPage() {
                     <button
                       onClick={() => router.push(`/content/${content.id}`)}
                       className="w-9 h-9 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-amber-400/50 flex items-center justify-center transition-all duration-300"
-                      title="상세 보기"
+                      title={t("viewDetails")}
                     >
                       <Eye className="w-4 h-4 text-zinc-400 hover:text-amber-400" />
                     </button>
                     <button
                       onClick={() => handleDelete(content.id)}
                       className="w-9 h-9 bg-zinc-800 hover:bg-red-900/30 border border-zinc-700 hover:border-red-700 flex items-center justify-center transition-all duration-300"
-                      title="삭제"
+                      title={t("deleteContent")}
                     >
                       <Trash2 className="w-4 h-4 text-zinc-400 hover:text-red-400" />
                     </button>

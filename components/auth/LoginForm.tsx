@@ -6,9 +6,14 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { Mail, Lock, Zap } from "lucide-react"
 import Link from "next/link"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 
 export function LoginForm() {
   const router = useRouter()
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -26,11 +31,11 @@ export function LoginForm() {
 
       if (error) throw error
 
-      toast.success("로그인 성공!")
+      toast.success(language === "en" ? "Login successful!" : "로그인 성공!")
       router.push("/dashboard")
       router.refresh()
     } catch (error: any) {
-      toast.error(error.message || "로그인에 실패했습니다")
+      toast.error(error.message || t("loginError"))
     } finally {
       setLoading(false)
     }
@@ -48,7 +53,7 @@ export function LoginForm() {
 
       if (error) throw error
     } catch (error: any) {
-      toast.error(error.message || "Google 로그인에 실패했습니다")
+      toast.error(error.message || t("googleLoginError"))
     }
   }
 
@@ -78,11 +83,11 @@ export function LoginForm() {
           {/* Header */}
           <div className="mb-10">
             <h1 className="text-4xl font-light text-white tracking-wide mb-4">
-              로그인
+              {t("loginTitle")}
             </h1>
             <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-6"></div>
             <p className="text-zinc-300 font-normal tracking-wide">
-              계정에 로그인하여 AI 마케팅을 시작하세요
+              {t("loginSubtitle")}
             </p>
           </div>
 
@@ -91,12 +96,12 @@ export function LoginForm() {
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium tracking-wide text-zinc-200 flex items-center gap-2">
                 <Mail className="w-4 h-4 text-amber-400" />
-                이메일
+                {t("email")}
               </label>
               <input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t("emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -109,12 +114,12 @@ export function LoginForm() {
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium tracking-wide text-zinc-200 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-amber-400" />
-                비밀번호
+                {t("password")}
               </label>
               <input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder={t("passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -129,7 +134,7 @@ export function LoginForm() {
               disabled={loading}
               className="inline-flex items-center justify-content gap-2 whitespace-nowrap rounded text-sm font-medium tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white border border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5 h-11 px-8 w-full"
             >
-              {loading ? "로그인 중..." : "로그인"}
+              {loading ? t("loggingIn") : t("loginButton")}
             </button>
 
             {/* Divider */}
@@ -139,7 +144,7 @@ export function LoginForm() {
               </div>
               <div className="relative flex justify-center">
                 <span className="bg-gradient-to-br from-zinc-900 to-zinc-800 px-4 text-zinc-400 font-normal text-sm tracking-wide">
-                  또는
+                  {t("orDivider")}
                 </span>
               </div>
             </div>
@@ -156,15 +161,15 @@ export function LoginForm() {
                 <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              Google로 계속하기
+              {t("continueWithGoogle")}
             </button>
 
             {/* Signup Link */}
             <div className="text-center pt-6 border-t border-zinc-800">
               <p className="text-zinc-400 font-normal text-sm tracking-wide">
-                계정이 없으신가요?{" "}
+                {t("noAccount")}{" "}
                 <Link href="/signup" className="text-amber-400 hover:text-amber-300 font-medium transition-colors duration-300">
-                  회원가입
+                  {t("signup")}
                 </Link>
               </p>
             </div>

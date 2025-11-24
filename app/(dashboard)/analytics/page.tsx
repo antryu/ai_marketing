@@ -2,11 +2,16 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { BarChart3, TrendingUp, Eye, Heart, Share2, MessageCircle, ArrowUp, ArrowDown } from "lucide-react"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 
 export default function AnalyticsPage() {
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
   const [analytics, setAnalytics] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState("7d") // 7d, 30d, 90d
@@ -67,36 +72,36 @@ export default function AnalyticsPage() {
     return num.toString()
   }
 
-  const stats = [
+  const stats = useMemo(() => [
     {
-      name: "총 조회수",
+      name: t("totalViews"),
       value: analytics?.totalViews || 0,
       icon: Eye,
       change: "+12.5%",
       trend: "up"
     },
     {
-      name: "총 노출수",
+      name: t("totalImpressions"),
       value: analytics?.totalImpressions || 0,
       icon: TrendingUp,
       change: "+8.2%",
       trend: "up"
     },
     {
-      name: "총 좋아요",
+      name: t("totalLikes"),
       value: analytics?.totalLikes || 0,
       icon: Heart,
       change: "+15.3%",
       trend: "up"
     },
     {
-      name: "평균 참여율",
+      name: t("avgEngagementRate"),
       value: `${analytics?.avgEngagementRate?.toFixed(1) || 0}%`,
       icon: Share2,
       change: "+2.1%",
       trend: "up"
     },
-  ]
+  ], [language, analytics])
 
   const platformStats = [
     {
@@ -145,12 +150,18 @@ export default function AnalyticsPage() {
     },
   ]
 
+  const timeRanges = useMemo(() => [
+    { value: "7d", label: t("days7") },
+    { value: "30d", label: t("days30") },
+    { value: "90d", label: t("days90") },
+  ], [language])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-zinc-300 font-normal">데이터 로딩 중...</p>
+          <p className="text-zinc-300 font-normal">{t("loadingData")}</p>
         </div>
       </div>
     )
@@ -159,27 +170,9 @@ export default function AnalyticsPage() {
   return (
     <div className="p-12">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-light tracking-wide text-white">분석</h1>
-              <p className="text-zinc-300 font-normal text-base tracking-wide">
-                콘텐츠 성과를 추적하세요
-              </p>
-            </div>
-          </div>
-
-          {/* Time Range Selector */}
-          <div className="flex gap-2">
-            {[
-              { value: "7d", label: "7일" },
-              { value: "30d", label: "30일" },
-              { value: "90d", label: "90일" },
-            ].map((range) => (
+        {/* Time Range Selector */}
+        <div className="flex justify-end gap-2">
+          {timeRanges.map((range) => (
               <button
                 key={range.value}
                 onClick={() => setTimeRange(range.value)}
@@ -192,11 +185,10 @@ export default function AnalyticsPage() {
                 {range.label}
               </button>
             ))}
-          </div>
         </div>
 
         {/* Main Stats */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4" key={language}>
           {stats.map((stat) => (
             <div
               key={stat.name}
@@ -223,7 +215,7 @@ export default function AnalyticsPage() {
 
         {/* Platform Breakdown */}
         <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
-          <h2 className="text-2xl font-light text-white mb-6 tracking-wide">플랫폼별 성과</h2>
+          <h2 className="text-2xl font-light text-white mb-6 tracking-wide">{t("platformPerformance")}</h2>
           <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -246,7 +238,7 @@ export default function AnalyticsPage() {
                       <span className="text-white font-normal">{platform.name}</span>
                     </div>
                     <span className="text-zinc-400 text-sm font-normal">
-                      {formatNumber(platform.views)} 조회
+                      {formatNumber(platform.views)} {t("viewsLabel")}
                     </span>
                   </div>
 
@@ -264,8 +256,8 @@ export default function AnalyticsPage() {
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-zinc-500 font-normal">
-                    <span>{formatNumber(platform.engagement)} 참여</span>
-                    <span>{((platform.engagement / (platform.views || 1)) * 100).toFixed(1)}% 참여율</span>
+                    <span>{formatNumber(platform.engagement)} {t("engagementLabel")}</span>
+                    <span>{((platform.engagement / (platform.views || 1)) * 100).toFixed(1)}% {t("engagementRateText")}</span>
                   </div>
                 </div>
               )
@@ -275,28 +267,28 @@ export default function AnalyticsPage() {
 
         {/* Top Content */}
         <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
-          <h2 className="text-2xl font-light text-white mb-6 tracking-wide">인기 콘텐츠</h2>
+          <h2 className="text-2xl font-light text-white mb-6 tracking-wide">{t("topContent")}</h2>
           <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
           <div className="text-center py-16 border border-dashed border-zinc-700">
             <BarChart3 className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400 font-normal mb-2">분석 데이터 수집 중</p>
+            <p className="text-zinc-400 font-normal mb-2">{t("collectingData")}</p>
             <p className="text-sm text-zinc-500 font-normal">
-              콘텐츠를 발행하면 성과 데이터가 여기에 표시됩니다
+              {t("noAnalyticsDesc")}
             </p>
           </div>
         </div>
 
         {/* Engagement Timeline */}
         <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
-          <h2 className="text-2xl font-light text-white mb-6 tracking-wide">참여도 추이</h2>
+          <h2 className="text-2xl font-light text-white mb-6 tracking-wide">{t("engagementTimeline")}</h2>
           <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
           <div className="text-center py-16 border border-dashed border-zinc-700">
             <TrendingUp className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400 font-normal mb-2">차트 데이터 준비 중</p>
+            <p className="text-zinc-400 font-normal mb-2">{t("collectingData")}</p>
             <p className="text-sm text-zinc-500 font-normal">
-              시간별 참여도 차트가 곧 추가됩니다
+              {t("noAnalyticsDesc")}
             </p>
           </div>
         </div>

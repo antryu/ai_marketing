@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,8 @@ import { WritingAnalyzer } from '@/components/writer-persona/WritingAnalyzer'
 import { PersonaTemplateGallery } from '@/components/writer-persona/PersonaTemplateGallery'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { translations, TranslationKey } from '@/lib/translations'
 
 interface WriterPersona {
   id: string
@@ -44,37 +46,10 @@ interface WriterPersona {
   usage_count: number
 }
 
-const WRITING_STYLES = [
-  { value: 'professional', label: '전문적' },
-  { value: 'casual', label: '캐주얼' },
-  { value: 'technical', label: '기술적' },
-  { value: 'storytelling', label: '스토리텔링' },
-  { value: 'humorous', label: '유머러스' },
-]
-
-const TONES = [
-  { value: 'formal', label: '격식있는' },
-  { value: 'friendly', label: '친근한' },
-  { value: 'authoritative', label: '권위있는' },
-  { value: 'conversational', label: '대화형' },
-  { value: 'inspirational', label: '영감을 주는' },
-]
-
-const EMOJI_USAGE = [
-  { value: 'heavy', label: '많이 사용' },
-  { value: 'moderate', label: '적당히 사용' },
-  { value: 'minimal', label: '최소한 사용' },
-  { value: 'none', label: '사용 안함' },
-]
-
-const SENTENCE_LENGTH = [
-  { value: 'short', label: '짧게 (10-15단어)' },
-  { value: 'medium', label: '중간 (15-25단어)' },
-  { value: 'long', label: '길게 (25-40단어)' },
-  { value: 'mixed', label: '혼합' },
-]
-
 export default function WriterPersonaPage() {
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
   const [personas, setPersonas] = useState<WriterPersona[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -84,6 +59,29 @@ export default function WriterPersonaPage() {
   const [aiModel, setAiModel] = useState('claude')
 
   const supabase = createClient()
+
+  const WRITING_STYLES = useMemo(() => [
+    { value: 'professional', label: t('writingStyleProfessional') },
+    { value: 'casual', label: t('writingStyleCasual') },
+    { value: 'technical', label: t('writingStyleTechnical') },
+    { value: 'storytelling', label: t('writingStyleStorytelling') },
+    { value: 'humorous', label: t('writingStyleHumorous') },
+  ], [language])
+
+  const TONES = useMemo(() => [
+    { value: 'formal', label: t('toneFormal') },
+    { value: 'friendly', label: t('toneFriendlyLabel') },
+    { value: 'authoritative', label: t('toneAuthoritative') },
+    { value: 'conversational', label: t('toneConversational') },
+    { value: 'inspirational', label: t('toneInspirational') },
+  ], [language])
+
+  const EMOJI_USAGE = useMemo(() => [
+    { value: 'heavy', label: t('emojiHeavy') },
+    { value: 'moderate', label: t('emojiModerate') },
+    { value: 'minimal', label: t('emojiMinimal') },
+    { value: 'none', label: t('emojiNone') },
+  ], [language])
 
   const [formData, setFormData] = useState({
     name: '',
@@ -118,7 +116,7 @@ export default function WriterPersonaPage() {
       .order('usage_count', { ascending: false })
 
     if (error) {
-      toast.error('작성자 페르소나를 불러오는데 실패했습니다')
+      toast.error(t('personaLoadFailed'))
     } else {
       setPersonas(data || [])
     }
@@ -162,9 +160,9 @@ export default function WriterPersonaPage() {
       const { error } = result
 
       if (error) {
-        toast.error('페르소나 수정에 실패했습니다')
+        toast.error(t('personaUpdateFailed'))
       } else {
-        toast.success('페르소나가 수정되었습니다')
+        toast.success(t('personaUpdated'))
         setEditingId(null)
         resetForm()
         fetchPersonas()
@@ -181,9 +179,9 @@ export default function WriterPersonaPage() {
       const { error } = insertResult
 
       if (error) {
-        toast.error('페르소나 생성에 실패했습니다')
+        toast.error(t('personaCreateFailed'))
       } else {
-        toast.success('새 페르소나가 생성되었습니다')
+        toast.success(t('personaCreatedSuccess'))
         setIsCreating(false)
         resetForm()
         fetchPersonas()
@@ -192,7 +190,7 @@ export default function WriterPersonaPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
+    if (!confirm(t('deleteConfirm'))) return
 
     const deleteResult = await (supabase as any)
       .from('writer_personas')
@@ -202,9 +200,9 @@ export default function WriterPersonaPage() {
     const { error } = deleteResult
 
     if (error) {
-      toast.error('삭제에 실패했습니다')
+      toast.error(t('deleteFailed'))
     } else {
-      toast.success('삭제 완료')
+      toast.success(t('deleteSuccess'))
       fetchPersonas()
     }
   }
@@ -225,9 +223,9 @@ export default function WriterPersonaPage() {
     const { error } = setDefaultResult
 
     if (error) {
-      toast.error('기본 페르소나 설정에 실패했습니다')
+      toast.error(t('setDefaultFailed'))
     } else {
-      toast.success('기본 페르소나로 설정되었습니다')
+      toast.success(t('setDefaultSuccess'))
       fetchPersonas()
     }
   }
@@ -259,7 +257,7 @@ export default function WriterPersonaPage() {
   const handleAnalysisComplete = (analysis: any) => {
     setFormData({
       name: analysis.suggested_name || '',
-      description: 'AI 분석으로 생성된 페르소나',
+      description: t('aiGeneratedPersona'),
       writing_style: analysis.writing_style || 'professional',
       tone: analysis.tone || 'friendly',
       opening: 'question',
@@ -277,7 +275,7 @@ export default function WriterPersonaPage() {
       catchphrase: '',
     })
     setIsCreating(true)
-    toast.success('분석 결과가 입력되었습니다! 확인 후 저장하세요.')
+    toast.success(t('analysisComplete'))
   }
 
   const resetForm = () => {
@@ -304,15 +302,11 @@ export default function WriterPersonaPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-white">작성자 페르소나</h1>
-          <p className="text-zinc-400 mt-1">콘텐츠 작성 시 나만의 스타일과 전문성을 반영하세요</p>
-        </div>
+      <div className="flex justify-end items-center">
         {!isCreating && (
           <Button onClick={() => setIsCreating(true)} className="bg-amber-600 hover:bg-amber-700">
             <Plus className="w-4 h-4 mr-2" />
-            새 페르소나 추가
+            {t('newPersona')}
           </Button>
         )}
       </div>
@@ -323,40 +317,40 @@ export default function WriterPersonaPage() {
             <Tabs defaultValue="manual" className="w-full">
               <TabsList className="grid w-full grid-cols-3 bg-zinc-800">
                 <TabsTrigger value="manual" className="data-[state=active]:bg-zinc-700 text-zinc-300">
-                  직접 입력
+                  {t('manualInput')}
                 </TabsTrigger>
                 <TabsTrigger value="analyze" className="data-[state=active]:bg-zinc-700 text-zinc-300">
-                  AI 글 분석
+                  {t('aiAnalysis')}
                 </TabsTrigger>
                 <TabsTrigger value="templates" className="data-[state=active]:bg-zinc-700 text-zinc-300">
-                  정교한 템플릿
+                  {t('sophisticatedTemplates')}
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="manual" className="mt-6">
                 <Card className="bg-zinc-900 border-zinc-800">
                   <CardHeader>
-                    <CardTitle className="text-white">새 작성자 페르소나</CardTitle>
+                    <CardTitle className="text-white">{t('newWriterPersona')}</CardTitle>
                     <CardDescription className="text-zinc-400">
-                      나만의 글쓰기 스타일과 전문성을 정의하세요
+                      {t('defineYourStyle')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-zinc-300">페르소나 이름 *</Label>
+                  <Label className="text-zinc-300">{t('personaName')} *</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="예: 기술 전문가, 친근한 스토리텔러"
+                    placeholder={t('personaNamePlaceholder')}
                     required
                     className="bg-zinc-800 border-zinc-700 text-white"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-zinc-300">글쓰기 스타일</Label>
+                  <Label className="text-zinc-300">{t('writingStyle')}</Label>
                   <Select value={formData.writing_style} onValueChange={(v) => setFormData({ ...formData, writing_style: v })}>
                     <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
                       <SelectValue />
@@ -371,11 +365,11 @@ export default function WriterPersonaPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-zinc-300">설명</Label>
+                <Label className="text-zinc-300">{t('descriptionLabel')}</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="이 페르소나에 대해 설명해주세요"
+                  placeholder={t('personaDescription')}
                   className="bg-zinc-800 border-zinc-700 text-white"
                   rows={2}
                 />
@@ -383,7 +377,7 @@ export default function WriterPersonaPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-zinc-300">톤</Label>
+                  <Label className="text-zinc-300">{t('tone')}</Label>
                   <Select value={formData.tone} onValueChange={(v) => setFormData({ ...formData, tone: v })}>
                     <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
                       <SelectValue />
@@ -397,7 +391,7 @@ export default function WriterPersonaPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-zinc-300">이모지 사용</Label>
+                  <Label className="text-zinc-300">{t('emojiUsage')}</Label>
                   <Select value={formData.emoji_usage} onValueChange={(v) => setFormData({ ...formData, emoji_usage: v })}>
                     <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
                       <SelectValue />
@@ -412,41 +406,41 @@ export default function WriterPersonaPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-zinc-300">전문 분야 (콤마로 구분)</Label>
+                <Label className="text-zinc-300">{t('expertiseAreas')}</Label>
                 <Input
                   value={formData.expertise_areas}
                   onChange={(e) => setFormData({ ...formData, expertise_areas: e.target.value })}
-                  placeholder="예: 기술, 마케팅, 창업"
+                  placeholder={t('expertiseAreasPlaceholder')}
                   className="bg-zinc-800 border-zinc-700 text-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-zinc-300">나만의 관점/시각</Label>
+                <Label className="text-zinc-300">{t('uniquePerspective')}</Label>
                 <Input
                   value={formData.unique_perspective}
                   onChange={(e) => setFormData({ ...formData, unique_perspective: e.target.value })}
-                  placeholder="예: 10년차 개발자 관점, 스타트업 CEO 경험 기반"
+                  placeholder={t('uniquePerspectivePlaceholder')}
                   className="bg-zinc-800 border-zinc-700 text-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-zinc-300">시그니처 문구 (콤마로 구분)</Label>
+                <Label className="text-zinc-300">{t('signaturePhrases')}</Label>
                 <Input
                   value={formData.signature_phrases}
                   onChange={(e) => setFormData({ ...formData, signature_phrases: e.target.value })}
-                  placeholder="예: 경험상, 제 생각엔, 실무에서는"
+                  placeholder={t('signaturePhrasesPlaceholder')}
                   className="bg-zinc-800 border-zinc-700 text-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-zinc-300">대표 캐치프레이즈</Label>
+                <Label className="text-zinc-300">{t('catchphrase')}</Label>
                 <Input
                   value={formData.catchphrase}
                   onChange={(e) => setFormData({ ...formData, catchphrase: e.target.value })}
-                  placeholder="예: 데이터가 말하는 진실"
+                  placeholder={t('catchphrasePlaceholder')}
                   className="bg-zinc-800 border-zinc-700 text-white"
                 />
               </div>
@@ -454,7 +448,7 @@ export default function WriterPersonaPage() {
               <div className="flex gap-2">
                 <Button type="submit" className="bg-amber-600 hover:bg-amber-700">
                   <Check className="w-4 h-4 mr-2" />
-                  {editingId ? '수정' : '생성'}
+                  {editingId ? t('edit') : t('create')}
                 </Button>
                 <Button
                   type="button"
@@ -467,7 +461,7 @@ export default function WriterPersonaPage() {
                   className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
                 >
                   <X className="w-4 h-4 mr-2" />
-                  취소
+                  {t('cancel')}
                 </Button>
               </div>
             </form>
@@ -481,7 +475,7 @@ export default function WriterPersonaPage() {
 
               <TabsContent value="templates" className="mt-6">
                 <PersonaTemplateGallery onSelectTemplate={(template) => {
-                  toast.success('페르소나가 생성되었습니다. 목록을 새로고침하세요.')
+                  toast.success(t('personaGeneratedRefresh'))
                   setIsCreating(false)
                   fetchPersonas()
                 }} />
@@ -492,16 +486,16 @@ export default function WriterPersonaPage() {
           {editingId && (
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
-                <CardTitle className="text-white">페르소나 수정</CardTitle>
+                <CardTitle className="text-white">{t('editPersonaTitle')}</CardTitle>
                 <CardDescription className="text-zinc-400">
-                  페르소나 정보를 수정하세요
+                  {t('editPersonaDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Same form content as manual input */}
                   <div className="text-zinc-400 text-sm mb-4">
-                    수정 모드에서는 기존 폼이 표시됩니다
+                    {t('editMode')}
                   </div>
                 </form>
               </CardContent>
@@ -511,15 +505,15 @@ export default function WriterPersonaPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-zinc-400">로딩중...</div>
+        <div className="text-center py-12 text-zinc-400">{t('loadingPersonas')}</div>
       ) : personas.length === 0 ? (
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="text-center py-12">
-            <p className="text-zinc-400">작성자 페르소나가 없습니다. 새로 추가해보세요!</p>
+            <p className="text-zinc-400">{t('noPersonasYet')}</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4" key={language}>
           {personas.map((persona) => (
             <Card key={persona.id} className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-colors">
               <CardContent className="p-6">
@@ -528,10 +522,10 @@ export default function WriterPersonaPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-xl font-bold text-white">{persona.name}</h3>
                       {persona.is_default && (
-                        <Badge className="bg-amber-600">기본</Badge>
+                        <Badge className="bg-amber-600">{t('defaultBadgeLabel')}</Badge>
                       )}
                       <Badge variant="outline" className="text-zinc-400 border-zinc-700">
-                        {persona.usage_count}회 사용
+                        {persona.usage_count}{t('usageCount')}
                       </Badge>
                     </div>
                     {persona.description && (

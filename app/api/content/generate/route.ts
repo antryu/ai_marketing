@@ -35,11 +35,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { topic, brandId, platform, tone, length, writerPersonaId, aiModel } = await request.json()
+    const { topic, brandId, platform, tone, length, writerPersonaId, aiModel, language } = await request.json()
 
     if (!topic || !brandId) {
       return NextResponse.json(
-        { error: "토픽과 브랜드는 필수입니다" },
+        { error: language === "en" ? "Topic and brand are required" : "토픽과 브랜드는 필수입니다" },
         { status: 400 }
       )
     }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
     if (!brand) {
       return NextResponse.json(
-        { error: "브랜드를 찾을 수 없습니다" },
+        { error: language === "en" ? "Brand not found" : "브랜드를 찾을 수 없습니다" },
         { status: 404 }
       )
     }
@@ -163,7 +163,15 @@ ${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona
       const settings = platformSettings[platformKey as keyof typeof platformSettings]
       console.log(`설정: 최대 ${settings.maxLength}자, 스타일: ${settings.style}`)
 
-      const prompt = `당신은 한국어만 사용하는 전문 마케팅 콘텐츠 작성자입니다.
+      const prompt = `${language === "en"
+        ? `You are a professional marketing content writer.
+CRITICAL INSTRUCTION: You MUST write EXCLUSIVELY in English.
+NEVER use Korean, Chinese, Japanese, or any other language.
+If you write in any language other than English, you will FAIL this task.
+
+You are a professional marketing content writer for ${typedBrand.name}.
+Important: You must write ONLY in English. Never use Korean, Chinese, Japanese, or any other language.`
+        : `당신은 한국어만 사용하는 전문 마케팅 콘텐츠 작성자입니다.
 절대 영어, 중국어, 일본어를 사용하지 마세요. 오직 한국어로만 답변하세요.
 
 You are a professional Korean marketing content writer.
@@ -172,8 +180,22 @@ NEVER use English, Chinese, Japanese, or any other language.
 If you write in English, Chinese, or any language other than Korean, you will FAIL this task.
 
 당신은 ${typedBrand.name}의 전문 마케팅 콘텐츠 작성자입니다.
-중요: 반드시 한국어로만 작성하세요. 영어, 중국어, 일본어 또는 다른 언어를 절대 사용하지 마세요.
+중요: 반드시 한국어로만 작성하세요. 영어, 중국어, 일본어 또는 다른 언어를 절대 사용하지 마세요.`}
 
+${language === "en" ? `
+Product Information:
+- Name: ${typedBrand.name}
+- Description: ${typedBrand.description}
+- Target Market: ${typedBrand.target_market?.join(", ") || "Global"}
+- Brand Tone: ${typedBrand.brand_voice?.tone || "Professional"}
+- Brand Style: ${typedBrand.brand_voice?.style || "Friendly"}
+
+Platform: ${platformKey}
+Style: ${settings.style}
+Max Length: ${settings.maxLength} characters
+Format: ${settings.format}
+
+Target Personas:` : `
 제품 정보:
 - 이름: ${typedBrand.name}
 - 설명: ${typedBrand.description}
@@ -186,7 +208,7 @@ If you write in English, Chinese, or any language other than Korean, you will FA
 최대 길이: ${settings.maxLength}자
 형식: ${settings.format}
 
-타겟 페르소나:
+타겟 페르소나:`}
 ${typedBrand.personas?.map((p: any) => {
   let personaInfo = `- ${p.name}: ${p.description}`
 
@@ -268,6 +290,42 @@ ${typedBrand.personas?.map((p: any) => {
 ` : ''}
 ${writerContext}
 
+${language === "en" ? `
+Please follow these guidelines to generate content:
+1. **Write in English ONLY** - All content must be written in English
+${platformKey === 'thread' ? `2. **Use casual tone** - Write in a friendly, conversational style
+   Example: "You should know this", "Really great", "Try it out"` : '2. Use formal/professional tone'}
+3. Optimize format for ${platformKey} platform
+4. Maintain brand voice and tone
+5. **Apply the 🎯 Target-specific content strategy above** - Use tone, style, and approach that matches each target's personality traits
+6. Reflect target persona's interests and pain points
+7. Reflect writer persona's style and characteristics
+8. Focus on providing real value
+9. Include Call-to-Action (CTA) naturally
+10. Keep within ${settings.maxLength} characters
+${platformKey === 'naver' || platformKey === 'tistory' ? `
+10. **Blog format** - Use introduction, body, conclusion structure
+11. **Use subheadings** - Clear section divisions with ## markdown
+12. **SEO optimization** - Natural keyword placement
+13. **Readability** - Paragraph breaks, use of lists
+14. **Practicality** - Include specific examples, tips, step-by-step guides` : ''}
+
+Topic: ${topic}
+
+Please write content for ${platformKey} on the above topic.${platformKey === 'naver' || platformKey === 'tistory' ? ' Write in detail and structured so blog readers can read to the end and take action.' : ' Write concisely and impactfully for the platform.'}
+
+OUTPUT REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Language: 100% English ONLY
+2. NO Korean words
+3. NO Chinese/Japanese
+4. NO code blocks (\`\`\`markdown blocks)
+5. Use markdown formatting (#, **, - for lists)
+6. Start writing English content immediately
+
+⚠️ WARNING: Using Korean or other languages will FAIL this task!
+
+Start writing in English NOW!` : `
 다음 지침을 따라 콘텐츠를 생성하세요:
 1. **반드시 한국어로 작성** - 모든 콘텐츠는 한국어로 작성해야 합니다
 ${platformKey === 'thread' ? `2. **반말체 사용 필수** - "~요", "~니다" 대신 "~야", "~어", "~지" 등 반말로 작성
@@ -304,7 +362,8 @@ ${platformKey === 'naver' || platformKey === 'tistory' ? `
 WARNING: Using English or other languages will FAIL this task!
 
 지금 바로 한국어로만 콘텐츠를 작성하세요!
-Start writing in Korean NOW!`
+Start writing in Korean NOW!`}
+`
 
       let generatedContent: string
 
@@ -398,8 +457,9 @@ Start writing in Korean NOW!`
 
   } catch (error: any) {
     console.error("Content generation error:", error)
+    const { language } = await request.json().catch(() => ({ language: "ko" }))
     return NextResponse.json(
-      { error: error.message || "콘텐츠 생성 실패" },
+      { error: error.message || (language === "en" ? "Content generation failed" : "콘텐츠 생성 실패") },
       { status: 500 }
     )
   }

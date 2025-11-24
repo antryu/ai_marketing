@@ -2,13 +2,18 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 
 export default function CalendarPage() {
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [scheduledPosts, setScheduledPosts] = useState<any[]>([])
@@ -94,26 +99,21 @@ export default function CalendarPage() {
   }
 
   const days = getDaysInMonth()
-  const monthName = currentDate.toLocaleDateString("ko-KR", { month: "long", year: "numeric" })
-  const weekDays = ["일", "월", "화", "수", "목", "금", "토"]
+  const monthName = currentDate.toLocaleDateString(language === "ko" ? "ko-KR" : "en-US", { month: "long", year: "numeric" })
+
+  const weekDays = useMemo(() => [
+    t("sunday"),
+    t("monday"),
+    t("tuesday"),
+    t("wednesday"),
+    t("thursday"),
+    t("friday"),
+    t("saturday")
+  ], [language])
 
   return (
     <div className="p-12">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-12">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center">
-              <CalendarIcon className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-light tracking-wide text-white">콘텐츠 캘린더</h1>
-              <p className="text-zinc-300 font-normal text-base tracking-wide">
-                예약된 콘텐츠를 관리하세요
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Calendar */}
         <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
@@ -131,7 +131,7 @@ export default function CalendarPage() {
                 onClick={() => setCurrentDate(new Date())}
                 className="px-4 h-10 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-amber-400/50 text-zinc-300 hover:text-white text-sm font-normal transition-all duration-300"
               >
-                오늘
+                {t("today")}
               </button>
               <button
                 onClick={nextMonth}
@@ -189,13 +189,13 @@ export default function CalendarPage() {
                             title={post.content?.topic}
                           >
                             <div className="truncate">
-                              {post.content?.topic || "제목 없음"}
+                              {post.content?.topic || t("noTitle")}
                             </div>
                           </div>
                         ))}
                         {postsForDay.length > 3 && (
                           <div className="text-xs text-zinc-500 font-normal">
-                            +{postsForDay.length - 3} 더보기
+                            +{postsForDay.length - 3} {t("moreItems")}
                           </div>
                         )}
                       </div>
@@ -208,7 +208,7 @@ export default function CalendarPage() {
 
           {/* Legend */}
           <div className="mt-8 pt-6 border-t border-zinc-700">
-            <p className="text-sm text-zinc-400 font-normal mb-3">플랫폼 범례:</p>
+            <p className="text-sm text-zinc-400 font-normal mb-3">{t("platformLegend")}</p>
             <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-purple-900/30 border border-purple-700"></div>

@@ -17,22 +17,8 @@ import {
   ChevronDown,
 } from "lucide-react"
 import { useBrand } from "@/contexts/BrandContext"
-
-const navigation = [
-  { name: "대시보드", href: "/dashboard", icon: LayoutDashboard, highlight: false },
-  { name: "브랜드 설정", href: "/brand", icon: Building2, highlight: false },
-  { name: "브랜드 보이스", href: "/writer-personas", icon: User, highlight: false },
-  { name: "타겟 고객", href: "/personas", icon: Target, highlight: false },
-  { name: "콘텐츠 생성", href: "/content/create", icon: Sparkles, highlight: false },
-  { name: "콘텐츠 목록", href: "/content", icon: FileText, highlight: false },
-  { name: "캘린더", href: "/calendar", icon: Calendar, highlight: false },
-  { name: "분석", href: "/analytics", icon: BarChart3, highlight: false },
-]
-
-const bottomNavigation = [
-  { name: "요금제", href: "/pricing", icon: CreditCard, highlight: false },
-  { name: "설정", href: "/settings", icon: Settings, highlight: false },
-]
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 
 interface SidebarProps {
   isOpen?: boolean
@@ -42,6 +28,24 @@ interface SidebarProps {
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { selectedBrandId, setSelectedBrandId, brands, loading } = useBrand()
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
+  const navigation = [
+    { name: t("navDashboard"), href: "/dashboard", icon: LayoutDashboard, highlight: false },
+    { name: t("navBrandSettings"), href: "/brand", icon: Building2, highlight: false },
+    { name: t("navBrandVoice"), href: "/writer-personas", icon: User, highlight: false },
+    { name: t("navTargetCustomers"), href: "/personas", icon: Target, highlight: false },
+    { name: t("navContentGeneration"), href: "/content/create", icon: Sparkles, highlight: false },
+    { name: t("navContentList"), href: "/content", icon: FileText, highlight: false },
+    { name: t("navCalendar"), href: "/calendar", icon: Calendar, highlight: false },
+    { name: t("navAnalytics"), href: "/analytics", icon: BarChart3, highlight: false },
+  ]
+
+  const bottomNavigation = [
+    { name: t("navPricing"), href: "/pricing", icon: CreditCard, highlight: false },
+    { name: t("navSettings"), href: "/settings", icon: Settings, highlight: false },
+  ]
 
   const handleLinkClick = () => {
     if (onClose) {
@@ -175,7 +179,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
           <div className="text-xs text-zinc-400 font-normal tracking-wide">
-            1단계 MVP
+            {t("mvpStage")}
           </div>
         </div>
       </div>
