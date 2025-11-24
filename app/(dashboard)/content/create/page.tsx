@@ -374,7 +374,7 @@ export default function ContentCreatePage() {
                         <SelectContent>
                           <SelectItem value="claude">🟣 Claude (Haiku) - 추천</SelectItem>
                           <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (Ollama)</SelectItem>
-                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
+                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량 ⚡)</SelectItem>
                         </SelectContent>
                       </Select>
                     </>
@@ -390,7 +390,7 @@ export default function ContentCreatePage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (추천)</SelectItem>
-                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량)</SelectItem>
+                          <SelectItem value="gemma2:2b">💎 Gemma2 2B (초경량 ⚡)</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-zinc-500">
