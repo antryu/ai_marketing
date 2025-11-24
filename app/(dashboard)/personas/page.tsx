@@ -25,6 +25,11 @@ interface Persona {
   confidence_score: number
   data_sources: string[]
   is_primary: boolean
+  // 성격 특성
+  mbti: string
+  generation: string
+  blood_type: string
+  zodiac_sign: string
   created_at: string
 }
 
@@ -49,6 +54,11 @@ export default function PersonasPage() {
     values: [] as string[],
     platforms: [] as string[],
     is_primary: false,
+    // 성격 특성
+    mbti: "",
+    generation: "",
+    blood_type: "",
+    zodiac_sign: "",
   })
 
   useEffect(() => {
@@ -141,6 +151,11 @@ export default function PersonasPage() {
       values: persona.values || [],
       platforms: persona.platforms || [],
       is_primary: persona.is_primary || false,
+      // 성격 특성
+      mbti: persona.mbti || "",
+      generation: persona.generation || "",
+      blood_type: persona.blood_type || "",
+      zodiac_sign: persona.zodiac_sign || "",
     })
     setEditingId(persona.id)
     setShowForm(true)
@@ -181,6 +196,11 @@ export default function PersonasPage() {
       values: [],
       platforms: [],
       is_primary: false,
+      // 성격 특성
+      mbti: "",
+      generation: "",
+      blood_type: "",
+      zodiac_sign: "",
     })
   }
 
@@ -281,6 +301,26 @@ export default function PersonasPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-zinc-500">플랫폼:</span>
                       <span className="text-zinc-300">{persona.platforms.join(", ")}</span>
+                    </div>
+                  )}
+                  {/* 성격 특성 표시 */}
+                  {(persona.mbti || persona.generation) && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-zinc-700">
+                      {persona.mbti && (
+                        <span className="bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded text-xs">
+                          {persona.mbti}
+                        </span>
+                      )}
+                      {persona.generation && (
+                        <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-xs">
+                          {persona.generation}
+                        </span>
+                      )}
+                      {persona.blood_type && (
+                        <span className="bg-red-500/10 text-red-400 px-2 py-0.5 rounded text-xs">
+                          {persona.blood_type}형
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -468,6 +508,120 @@ export default function PersonasPage() {
                 placeholder="예: LinkedIn, Instagram, Blog"
                 className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
               />
+            </div>
+
+            {/* Personality Traits Section */}
+            <div className="pt-6 border-t border-zinc-700">
+              <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                🎯 성격 특성 (선택사항)
+              </h3>
+              <p className="text-sm text-zinc-400 mb-6">
+                타겟 고객의 성격 유형을 지정하면 더 정교한 콘텐츠를 생성할 수 있습니다
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* MBTI */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-200 tracking-wide flex items-center gap-2">
+                    MBTI
+                    <span className="text-xs text-zinc-500">(16가지 유형)</span>
+                  </label>
+                  <select
+                    value={formData.mbti}
+                    onChange={(e) => setFormData({ ...formData, mbti: e.target.value })}
+                    className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
+                  >
+                    <option value="">선택하세요</option>
+                    <optgroup label="분석가형">
+                      <option value="INTJ">🧠 INTJ (전략가)</option>
+                      <option value="INTP">🔬 INTP (논리술사)</option>
+                      <option value="ENTJ">👔 ENTJ (통솔자)</option>
+                      <option value="ENTP">💡 ENTP (변론가)</option>
+                    </optgroup>
+                    <optgroup label="외교관형">
+                      <option value="INFJ">🌟 INFJ (옹호자)</option>
+                      <option value="INFP">🎨 INFP (중재자)</option>
+                      <option value="ENFJ">🤝 ENFJ (선도자)</option>
+                      <option value="ENFP">🔥 ENFP (활동가)</option>
+                    </optgroup>
+                    <optgroup label="관리자형">
+                      <option value="ISTJ">📋 ISTJ (현실주의자)</option>
+                      <option value="ISFJ">🛡️ ISFJ (수호자)</option>
+                      <option value="ESTJ">⚖️ ESTJ (경영자)</option>
+                      <option value="ESFJ">🤗 ESFJ (집정관)</option>
+                    </optgroup>
+                    <optgroup label="탐험가형">
+                      <option value="ISTP">🔧 ISTP (장인)</option>
+                      <option value="ISFP">🎭 ISFP (모험가)</option>
+                      <option value="ESTP">⚡ ESTP (사업가)</option>
+                      <option value="ESFP">🎉 ESFP (연예인)</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                {/* Generation */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-200 tracking-wide">
+                    세대
+                  </label>
+                  <select
+                    value={formData.generation}
+                    onChange={(e) => setFormData({ ...formData, generation: e.target.value })}
+                    className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="Z세대">📱 Z세대 (1997-2012)</option>
+                    <option value="밀레니얼">💻 밀레니얼 (1981-1996)</option>
+                    <option value="X세대">📺 X세대 (1965-1980)</option>
+                    <option value="베이비부머">📻 베이비부머 (1946-1964)</option>
+                  </select>
+                </div>
+
+                {/* Blood Type */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-200 tracking-wide flex items-center gap-2">
+                    혈액형
+                    <span className="text-xs text-zinc-500">(한국 문화)</span>
+                  </label>
+                  <select
+                    value={formData.blood_type}
+                    onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
+                    className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="A">🅰️ A형</option>
+                    <option value="B">🅱️ B형</option>
+                    <option value="O">⭕ O형</option>
+                    <option value="AB">🔤 AB형</option>
+                  </select>
+                </div>
+
+                {/* Zodiac Sign */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-zinc-200 tracking-wide">
+                    별자리
+                  </label>
+                  <select
+                    value={formData.zodiac_sign}
+                    onChange={(e) => setFormData({ ...formData, zodiac_sign: e.target.value })}
+                    className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="양자리">♈ 양자리 (3.21-4.19)</option>
+                    <option value="황소자리">♉ 황소자리 (4.20-5.20)</option>
+                    <option value="쌍둥이자리">♊ 쌍둥이자리 (5.21-6.21)</option>
+                    <option value="게자리">♋ 게자리 (6.22-7.22)</option>
+                    <option value="사자자리">♌ 사자자리 (7.23-8.22)</option>
+                    <option value="처녀자리">♍ 처녀자리 (8.23-9.22)</option>
+                    <option value="천칭자리">♎ 천칭자리 (9.23-10.23)</option>
+                    <option value="전갈자리">♏ 전갈자리 (10.24-11.21)</option>
+                    <option value="사수자리">♐ 사수자리 (11.22-12.21)</option>
+                    <option value="염소자리">♑ 염소자리 (12.22-1.19)</option>
+                    <option value="물병자리">♒ 물병자리 (1.20-2.18)</option>
+                    <option value="물고기자리">♓ 물고기자리 (2.19-3.20)</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Is Primary */}

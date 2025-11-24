@@ -187,7 +187,22 @@ If you write in English, Chinese, or any language other than Korean, you will FA
 형식: ${settings.format}
 
 타겟 페르소나:
-${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n") || "일반 대중"}
+${typedBrand.personas?.map((p: any) => {
+  let personaInfo = `- ${p.name}: ${p.description}`
+
+  // 성격 특성 추가
+  const traits = []
+  if (p.mbti) traits.push(`MBTI ${p.mbti}`)
+  if (p.generation) traits.push(`${p.generation} 세대`)
+  if (p.blood_type) traits.push(`${p.blood_type}형`)
+  if (p.zodiac_sign) traits.push(`${p.zodiac_sign}`)
+
+  if (traits.length > 0) {
+    personaInfo += ` (${traits.join(", ")})`
+  }
+
+  return personaInfo
+}).join("\n") || "일반 대중"}
 ${writerContext}
 
 다음 지침을 따라 콘텐츠를 생성하세요:
@@ -196,11 +211,16 @@ ${platformKey === 'thread' ? `2. **반말체 사용 필수** - "~요", "~니다"
    예시: "이걸 알아야 해", "정말 좋아", "한번 해봐" 등의 친근한 반말체` : '2. 존댓말 사용'}
 3. ${platformKey} 플랫폼에 최적화된 형식으로 작성
 4. 브랜드 보이스와 톤 유지
-5. 타겟 페르소나의 관심사와 페인 포인트 반영
-6. 작성자 페르소나의 스타일과 특성 반영
-7. 실제 가치 제공에 집중
-8. CTA(Call-to-Action) 자연스럽게 포함
-9. ${settings.maxLength}자 이내로 작성
+5. **타겟 페르소나의 성격 특성 반영**:
+   - MBTI: 해당 유형의 선호도와 의사결정 방식 고려 (예: ENFP는 창의적이고 열정적, INTJ는 논리적이고 전략적)
+   - 세대: 세대별 가치관과 커뮤니케이션 스타일 반영 (예: Z세대는 짧고 솔직한 콘텐츠 선호, 베이비부머는 상세하고 신뢰할 수 있는 정보 선호)
+   - 혈액형: 한국 문화권에서 인식되는 특성 고려 (예: A형은 완벽주의적, B형은 자유로운, O형은 리더십, AB형은 합리적)
+   - 별자리: 성향과 관심사 패턴 반영
+6. 타겟 페르소나의 관심사와 페인 포인트 반영
+7. 작성자 페르소나의 스타일과 특성 반영
+8. 실제 가치 제공에 집중
+9. CTA(Call-to-Action) 자연스럽게 포함
+10. ${settings.maxLength}자 이내로 작성
 ${platformKey === 'naver' || platformKey === 'tistory' ? `
 10. **블로그 형식** - 서론, 본론, 결론 구조 사용
 11. **소제목 활용** - ## 마크다운으로 명확한 섹션 구분
