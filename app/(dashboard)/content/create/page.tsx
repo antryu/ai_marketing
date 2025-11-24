@@ -42,7 +42,7 @@ export default function ContentCreatePage() {
 
   const loadBrands = async () => {
     const supabase = createClient()
-    const result = await supabase
+    const result = await (supabase as any)
       .from("brands")
       .select("*")
       .order("created_at", { ascending: false })
@@ -59,7 +59,7 @@ export default function ContentCreatePage() {
 
   const loadWriterPersonas = async () => {
     const supabase = createClient()
-    const result = await supabase
+    const result = await (supabase as any)
       .from("writer_personas")
       .select("*")
       .order("is_default", { ascending: false })

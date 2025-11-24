@@ -75,7 +75,7 @@ export default function PlatformsSettingsPage() {
   const loadConnections = async () => {
     const supabase = createClient()
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("platform_connections")
       .select("*")
       .order("created_at", { ascending: false })
@@ -116,7 +116,7 @@ export default function PlatformsSettingsPage() {
     if (!confirm(`${platformName} 연결을 해제하시겠습니까?`)) return
 
     const supabase = createClient()
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("platform_connections")
       .delete()
       .eq("id", connectionId)

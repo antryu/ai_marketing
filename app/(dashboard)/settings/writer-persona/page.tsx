@@ -111,7 +111,7 @@ export default function WriterPersonaPage() {
 
   const fetchPersonas = async () => {
     setLoading(true)
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('writer_personas')
       .select('*')
       .order('is_default', { ascending: false })

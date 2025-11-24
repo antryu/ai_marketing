@@ -49,7 +49,7 @@ export default function BrandPage() {
 
     try {
       const supabase = createClient()
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("brands")
         .select("*")
         .eq("id", selectedBrandId)

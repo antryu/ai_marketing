@@ -26,7 +26,7 @@ export default function AnalyticsPage() {
     else startDate.setDate(startDate.getDate() - 90)
 
     // Get analytics data
-    const result = await supabase
+    const result = await (supabase as any)
       .from("analytics")
       .select("*")
       .gte("date", startDate.toISOString().split("T")[0])

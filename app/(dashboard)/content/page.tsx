@@ -21,7 +21,7 @@ export default function ContentPage() {
   const loadContents = async () => {
     const supabase = createClient()
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("contents")
       .select(`
         *,
@@ -44,7 +44,7 @@ export default function ContentPage() {
     if (!confirm("정말 삭제하시겠습니까?")) return
 
     const supabase = createClient()
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("contents")
       .delete()
       .eq("id", id)

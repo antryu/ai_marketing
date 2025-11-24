@@ -58,7 +58,7 @@ export default function WriterPersonasPage() {
       const supabase = createClient()
 
       // Load writer personas for selected brand only
-      const { data: writerPersonasData } = await supabase
+      const { data: writerPersonasData } = await (supabase as any)
         .from("writer_personas")
         .select("*")
         .eq("brand_id", selectedBrandId)
@@ -104,7 +104,7 @@ export default function WriterPersonasPage() {
 
       if (editingId) {
         // Update existing writer persona
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("writer_personas")
           .update(saveData)
           .eq("id", editingId)
@@ -113,7 +113,7 @@ export default function WriterPersonasPage() {
         toast.success("브랜드 보이스가 업데이트되었습니다")
       } else {
         // Create new writer persona
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("writer_personas")
           .insert([saveData])
 
@@ -155,7 +155,7 @@ export default function WriterPersonasPage() {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("writer_personas")
         .delete()
         .eq("id", id)
