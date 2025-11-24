@@ -35,17 +35,18 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const loadBrands = async () => {
     try {
       const supabase = createClient()
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("brands")
         .select("*")
         .order("created_at", { ascending: false })
 
       if (data && data.length > 0) {
-        setBrands(data)
+        const brands = data as Brand[]
+        setBrands(brands)
 
         // Auto-select first brand if none selected
         if (!selectedBrandId) {
-          setSelectedBrandId(data[0].id)
+          setSelectedBrandId(brands[0].id)
         }
       }
     } catch (error) {
