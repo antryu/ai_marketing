@@ -64,8 +64,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <div className="w-10 h-10 bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center border border-zinc-700 group-hover:border-amber-400/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-amber-400/20">
             <Zap className="h-5 w-5 text-amber-400 group-hover:scale-110 transition-transform duration-300" />
           </div>
-          <div>
-            <span className="font-light text-xl text-white tracking-wide block group-hover:text-amber-400 transition-colors duration-300">AI Marketing</span>
+          <div className="flex-1 min-w-0">
+            <span className="font-light text-base text-white tracking-wide block group-hover:text-amber-400 transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis">My Marketing Wise</span>
           </div>
         </Link>
       </div>
