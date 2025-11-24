@@ -456,7 +456,6 @@ export const translations = {
   perYear: { ko: "년", en: "year" },
   monthlyBilled: { ko: "월 $", en: "$" },
   yearlyBilled: { ko: "(연간 결제 시)", en: "(billed annually)" },
-  getStarted: { ko: "시작하기", en: "Get Started" },
   mostPopular: { ko: "가장 인기있는 플랜", en: "Most Popular" },
   keyFeatures: { ko: "주요 기능", en: "Key Features" },
   usageLimits: { ko: "사용 제한", en: "Usage Limits" },
