@@ -91,7 +91,7 @@ export default function BrandPage() {
 
       if (isCreatingNew) {
         // Create new brand
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("brands")
           .insert([{
             ...formData,
@@ -101,7 +101,7 @@ export default function BrandPage() {
         if (error) throw error
 
         // Get the newly created brand
-        const { data: newBrands } = await supabase
+        const { data: newBrands } = await (supabase as any)
           .from("brands")
           .select("*")
           .eq("user_id", session.user.id)
@@ -117,7 +117,7 @@ export default function BrandPage() {
         }
       } else if (selectedBrandId) {
         // Update existing brand
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("brands")
           .update(formData)
           .eq("id", selectedBrandId)
@@ -140,7 +140,7 @@ export default function BrandPage() {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("brands")
         .delete()
         .eq("id", currentBrand.id)
