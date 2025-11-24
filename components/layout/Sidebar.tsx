@@ -34,12 +34,25 @@ const bottomNavigation = [
   { name: "설정", href: "/settings", icon: Settings, highlight: false },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { selectedBrandId, setSelectedBrandId, brands, loading } = useBrand()
 
+  const handleLinkClick = () => {
+    if (onClose) {
+      onClose()
+    }
+  }
+
   return (
-    <div className="w-72 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 border-r border-zinc-800 flex flex-col relative">
+    <div className={`w-72 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 border-r border-zinc-800 flex flex-col z-50 transition-transform duration-300 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+    } fixed top-0 left-0 h-screen`}>
       <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-transparent via-amber-400/20 to-transparent"></div>
 
       <div className="h-20 px-8 flex items-center border-b border-zinc-800">
@@ -102,6 +115,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={handleLinkClick}
               className={`group relative flex items-center gap-4 px-4 py-4 text-sm font-normal tracking-wide transition-all duration-300 ${
                 isActive
                   ? "text-white bg-gradient-to-r from-zinc-800 to-transparent border-l-2 border-amber-400"
@@ -136,6 +150,7 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={handleLinkClick}
                 className={`group relative flex items-center gap-4 px-4 py-4 text-sm font-normal tracking-wide transition-all duration-300 ${
                   isActive
                     ? "text-white bg-gradient-to-r from-zinc-800 to-transparent border-l-2 border-amber-400"

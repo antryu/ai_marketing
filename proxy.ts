@@ -1,75 +1,74 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(req: NextRequest) {
-  let res = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
+export async function proxy(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request,
   })
 
-  // Skip middleware if environment variables are not set
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return res
-  }
-
-  try {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return req.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              req.cookies.set(name, value)
-            })
-            res = NextResponse.next({
-              request: {
-                headers: req.headers,
-              },
-            })
-            cookiesToSet.forEach(({ name, value, options }) => {
-              res.cookies.set(name, value, options)
-            })
-          },
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
         },
-      }
-    )
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            supabaseResponse.cookies.set(name, value, options)
+          })
+        },
+      },
+    }
+  )
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+  // Refresh session if expired
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    // Protected routes
-    const protectedPaths = ['/dashboard', '/onboarding', '/content', '/calendar', '/analytics', '/settings']
-    const isProtectedPath = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path))
+  // Protected routes - require authentication
+  if (request.nextUrl.pathname.startsWith('/dashboard') ||
+      request.nextUrl.pathname.startsWith('/content') ||
+      request.nextUrl.pathname.startsWith('/brand') ||
+      request.nextUrl.pathname.startsWith('/personas') ||
+      request.nextUrl.pathname.startsWith('/writer-personas') ||
+      request.nextUrl.pathname.startsWith('/calendar') ||
+      request.nextUrl.pathname.startsWith('/analytics') ||
+      request.nextUrl.pathname.startsWith('/settings') ||
+      request.nextUrl.pathname.startsWith('/pricing')) {
 
-    if (isProtectedPath && !session) {
-      const redirectUrl = req.nextUrl.clone()
-      redirectUrl.pathname = '/login'
-      redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
+    if (!user) {
+      // Redirect to login if not authenticated
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirect', request.nextUrl.pathname)
       return NextResponse.redirect(redirectUrl)
     }
-
-    // Redirect to dashboard if logged in user tries to access auth pages
-    if ((req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup') && session) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-
-    return res
-  } catch (error) {
-    // If middleware fails, allow the request to continue
-    console.error('Middleware error:', error)
-    return res
   }
+
+  // Auth routes - redirect to dashboard if already logged in
+  if (request.nextUrl.pathname.startsWith('/login') ||
+      request.nextUrl.pathname.startsWith('/signup')) {
+
+    if (user) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
+  return supabaseResponse
 }
 
-export default proxy
-
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public (public files)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

@@ -2,10 +2,14 @@
 
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { LogOut, User, Zap } from "lucide-react"
+import { LogOut, User, Menu } from "lucide-react"
 import { toast } from "sonner"
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
 
@@ -27,28 +31,39 @@ export function Header() {
                            pathname === "/content/bulk"
 
   return (
-    <header className="h-20 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border-b border-zinc-800 flex items-center justify-between px-12 relative">
+    <header className="h-16 md:h-20 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border-b border-zinc-800 flex items-center justify-between px-4 md:px-12 relative">
       {/* Subtle accent line */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent"></div>
 
-      <div>
-        <h2 className="text-xl font-normal text-white tracking-wide">대시보드</h2>
-        <p className="text-xs text-zinc-400 font-normal tracking-wide">AI 마케팅 자동화 현황</p>
+      <div className="flex items-center gap-4">
+        {/* Hamburger Menu - Mobile Only */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden w-10 h-10 flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
+        <div>
+          <h2 className="text-base md:text-xl font-normal text-white tracking-wide">대시보드</h2>
+          <p className="text-xs text-zinc-400 font-normal tracking-wide hidden md:block">AI 마케팅 자동화 현황</p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-2 md:gap-5">
         {/* Enhanced CTA Button with Energy - Only show on relevant pages */}
         {!hideContentButton && (
           <button
             onClick={() => router.push("/content/create")}
-            className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide text-sm hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5"
+            className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-2 md:py-3 px-4 md:px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide text-xs md:text-sm hover:shadow-lg hover:shadow-amber-500/50 hover:-translate-y-0.5"
           >
-            새 콘텐츠 생성
+            <span className="hidden md:inline">새 콘텐츠 생성</span>
+            <span className="md:hidden">생성</span>
           </button>
         )}
 
         <div className="relative group">
-          <button className="w-11 h-11 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 hover:border-amber-400/50 rounded-full flex items-center justify-center font-light text-white text-base transition-all duration-300 hover:shadow-lg hover:shadow-amber-400/20 hover:scale-105">
+          <button className="w-9 h-9 md:w-11 md:h-11 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 hover:border-amber-400/50 rounded-full flex items-center justify-center font-light text-white text-sm md:text-base transition-all duration-300 hover:shadow-lg hover:shadow-amber-400/20 hover:scale-105">
             U
           </button>
 

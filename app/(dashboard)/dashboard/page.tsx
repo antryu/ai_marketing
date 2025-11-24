@@ -98,28 +98,28 @@ export default function DashboardPage() {
   const progress = (completedSteps / setupSteps.length) * 100
 
   return (
-    <div className="p-12 text-white">
-      <div className="max-w-7xl mx-auto space-y-16">
+    <div className="p-4 md:p-8 lg:p-12 text-white">
+      <div className="max-w-7xl mx-auto space-y-8 md:space-y-16">
         {/* Header */}
         <div className="relative">
-          <div className="absolute -left-12 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-amber-400/50 to-transparent"></div>
-          <h1 className="text-4xl font-light tracking-wide mb-3">대시보드</h1>
-          <p className="text-zinc-300 font-normal text-base tracking-wide">
+          <div className="absolute -left-4 md:-left-12 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-amber-400/50 to-transparent hidden md:block"></div>
+          <h1 className="text-2xl md:text-4xl font-light tracking-wide mb-2 md:mb-3">대시보드</h1>
+          <p className="text-zinc-300 font-normal text-sm md:text-base tracking-wide">
             AI 마케팅 자동화 현황
           </p>
         </div>
 
         {/* Setup Progress */}
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
+        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-6 md:p-10">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-light tracking-wide mb-2">시작 가이드</h2>
-              <p className="text-zinc-400 text-sm">
+              <h2 className="text-xl md:text-2xl font-light tracking-wide mb-2">시작 가이드</h2>
+              <p className="text-zinc-400 text-xs md:text-sm">
                 {completedSteps}/{setupSteps.length} 단계 완료
               </p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-light text-amber-400">{Math.round(progress)}%</div>
+              <div className="text-2xl md:text-3xl font-light text-amber-400">{Math.round(progress)}%</div>
             </div>
           </div>
 
@@ -180,26 +180,26 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-6 md:gap-8 md:grid-cols-2">
           {/* Recent Content */}
-          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-10">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-700">
-              <FileText className="w-6 h-6 text-amber-400" />
+          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-6 md:p-10">
+            <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8 pb-4 md:pb-6 border-b border-zinc-700">
+              <FileText className="w-5 h-5 md:w-6 md:h-6 text-amber-400" />
               <div>
-                <h2 className="text-xl font-light tracking-wide">최근 콘텐츠</h2>
+                <h2 className="text-lg md:text-xl font-light tracking-wide">최근 콘텐츠</h2>
                 <p className="text-zinc-300 text-xs font-normal tracking-wider">최신 생성 콘텐츠</p>
               </div>
             </div>
 
             {hasContent ? (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {contents.slice(0, 3).map((content) => (
                   <Link key={content.id} href={`/content/${content.id}`}>
-                    <div className="border-l-2 border-amber-400 hover:border-amber-300 pl-6 py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
-                      <div className="font-normal text-base tracking-wide">
+                    <div className="border-l-2 border-amber-400 hover:border-amber-300 pl-4 md:pl-6 py-2 md:py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
+                      <div className="font-normal text-sm md:text-base tracking-wide">
                         {content.title || "제목 없음"}
                       </div>
-                      <div className="text-zinc-400 text-sm mt-1">
+                      <div className="text-zinc-400 text-xs md:text-sm mt-1">
                         {content.created_at && new Date(content.created_at).toLocaleDateString("ko-KR")}
                       </div>
                     </div>
@@ -207,11 +207,11 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 border border-dashed border-zinc-700">
-                <p className="text-zinc-300 font-normal mb-6 tracking-wide">아직 생성된 콘텐츠가 없습니다</p>
+              <div className="text-center py-12 md:py-16 border border-dashed border-zinc-700">
+                <p className="text-zinc-300 font-normal mb-4 md:mb-6 tracking-wide text-sm md:text-base">아직 생성된 콘텐츠가 없습니다</p>
                 <Link
                   href="/content/create"
-                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
+                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-2 md:py-3 px-6 md:px-8 text-sm md:text-base transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
                 >
                   첫 콘텐츠 생성 →
                 </Link>
@@ -220,37 +220,37 @@ export default function DashboardPage() {
           </div>
 
           {/* Target Personas */}
-          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-10">
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-zinc-700">
-              <Target className="w-6 h-6 text-amber-400" />
+          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-6 md:p-10">
+            <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8 pb-4 md:pb-6 border-b border-zinc-700">
+              <Target className="w-5 h-5 md:w-6 md:h-6 text-amber-400" />
               <div>
-                <h2 className="text-xl font-light tracking-wide">타겟 고객</h2>
+                <h2 className="text-lg md:text-xl font-light tracking-wide">타겟 고객</h2>
                 <p className="text-zinc-300 text-xs font-normal tracking-wider">목표 고객층</p>
               </div>
             </div>
 
             {hasPersonas ? (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {personas.slice(0, 3).map((persona) => (
-                  <div key={persona.id} className="border-l-2 border-amber-400 hover:border-amber-300 pl-6 py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
+                  <div key={persona.id} className="border-l-2 border-amber-400 hover:border-amber-300 pl-4 md:pl-6 py-2 md:py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
                     <div className="flex items-center gap-2">
-                      <div className="font-normal text-base tracking-wide">{persona.name}</div>
+                      <div className="font-normal text-sm md:text-base tracking-wide">{persona.name}</div>
                       {persona.is_primary && (
                         <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">주요</span>
                       )}
                     </div>
                     {persona.age_range && (
-                      <div className="text-zinc-400 text-sm mt-1">{persona.age_range}</div>
+                      <div className="text-zinc-400 text-xs md:text-sm mt-1">{persona.age_range}</div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 border border-dashed border-zinc-700">
-                <p className="text-zinc-300 font-normal mb-6 tracking-wide">아직 타겟 고객이 없습니다</p>
+              <div className="text-center py-12 md:py-16 border border-dashed border-zinc-700">
+                <p className="text-zinc-300 font-normal mb-4 md:mb-6 tracking-wide text-sm md:text-base">아직 타겟 고객이 없습니다</p>
                 <Link
                   href="/personas"
-                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-3 px-8 transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
+                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-2 md:py-3 px-6 md:px-8 text-sm md:text-base transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
                 >
                   타겟 고객 설정하기 →
                 </Link>
