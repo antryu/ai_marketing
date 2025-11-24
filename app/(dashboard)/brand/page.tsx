@@ -56,13 +56,14 @@ export default function BrandPage() {
         .single()
 
       if (data) {
-        setCurrentBrand(data)
+        const brand = data as Brand
+        setCurrentBrand(brand)
         setFormData({
-          name: data.name,
-          description: data.description || "",
-          product_type: data.product_type || "",
-          target_market: data.target_market || [],
-          brand_voice: data.brand_voice || { tone: "", style: "", values: [] },
+          name: brand.name,
+          description: brand.description || "",
+          product_type: brand.product_type || "",
+          target_market: brand.target_market || [],
+          brand_voice: brand.brand_voice || { tone: "", style: "", values: [] },
         })
       }
     } catch (error) {
