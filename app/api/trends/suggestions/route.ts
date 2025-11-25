@@ -238,7 +238,47 @@ async function fetchRealTimeTrends(
           }
         }
 
-        // Reddit API removed - now paid API with strict limitations
+        // Fetch Reddit trending posts with OAuth authentication (free tier: 100 QPM)
+        let redditData = null
+        if (process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET) {
+          try {
+            // Get Reddit access token using client credentials
+            const authString = Buffer.from(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`).toString('base64')
+            const authRes = await fetch('https://www.reddit.com/api/v1/access_token', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Basic ${authString}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'MarketingAutomation/1.0 by /u/YourRedditUsername'
+              },
+              body: 'grant_type=client_credentials'
+            })
+
+            if (authRes.ok) {
+              const authData = await authRes.json()
+              const accessToken = authData.access_token
+
+              // Search Reddit with OAuth token
+              const redditRes = await fetch(
+                `https://oauth.reddit.com/search?q=${encodeURIComponent(keyword)}&sort=hot&t=week&limit=5&raw_json=1`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'User-Agent': 'MarketingAutomation/1.0 by /u/YourRedditUsername'
+                  }
+                }
+              )
+
+              if (redditRes.ok) {
+                const json = await redditRes.json()
+                redditData = json.data?.children || []
+              }
+            }
+          } catch (e) {
+            console.error('Reddit API error:', e)
+            // Fail silently - Reddit is optional
+          }
+        }
 
         // Fetch Twitter/X trending topics for selected language
         const twitterRes = await fetch(
@@ -254,11 +294,12 @@ async function fetchRealTimeTrends(
           keyword,
           googleTrends: googleRes.ok ? await googleRes.text() : null,
           naverTrends,
+          reddit: redditData,
           twitter: twitterRes?.ok ? await twitterRes.json() : null,
         }
       } catch (error) {
         console.error(`Error fetching trends for ${keyword}:`, error)
-        return { keyword, googleTrends: null, naverTrends: null, twitter: null }
+        return { keyword, googleTrends: null, naverTrends: null, reddit: null, twitter: null }
       }
     })
 
@@ -267,7 +308,7 @@ async function fetchRealTimeTrends(
     // Format trend data for AI (in selected language)
     let trendContext = isKorean ? '최근 트렌드 데이터:\n\n' : 'Recent Trend Data:\n\n'
 
-    results.forEach(({ keyword, googleTrends, naverTrends, twitter }) => {
+    results.forEach(({ keyword, googleTrends, naverTrends, reddit, twitter }) => {
       trendContext += isKorean ? `[${keyword} 관련]\n` : `[Related to ${keyword}]\n`
 
       // Naver DataLab (Korean market priority)
@@ -291,6 +332,19 @@ async function fetchRealTimeTrends(
         } catch (e) {
           // Skip if parsing fails
         }
+      }
+
+      // Reddit
+      if (reddit && reddit.length > 0) {
+        const hotPosts = reddit.slice(0, 3)
+        const label = isKorean ? 'Reddit 인기 토론' : 'Reddit Hot Discussions'
+        const postTitles = hotPosts.map((post: any) => {
+          const title = post.data.title.substring(0, 60)
+          const score = post.data.score
+          const subreddit = post.data.subreddit
+          return `[r/${subreddit}] ${title} (👍${score})`
+        }).join(' | ')
+        trendContext += `${label}: ${postTitles}\n`
       }
 
       // Twitter/X
