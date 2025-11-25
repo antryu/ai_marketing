@@ -373,8 +373,7 @@ export default function TrendsPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: Google Trends</span>
-                          <span className="text-amber-400 font-medium">{language === "ko" ? "검색량" : "Search Volume"}: {query.value}/100</span>
+                          <span className="text-amber-400 font-medium">Google Trends {language === "ko" ? "검색량" : "Search Volume"}: {query.value}/100</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(query.query) }}>
@@ -404,8 +403,8 @@ export default function TrendsPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: @{tweet.author}</span>
-                          <span className="text-blue-400 font-medium">{language === "ko" ? "좋아요" : "Likes"}: {tweet.likes.toLocaleString()} · {language === "ko" ? "리트윗" : "Retweets"}: {tweet.retweets.toLocaleString()}</span>
+                          <span className="text-blue-400 font-medium">Twitter/X {language === "ko" ? "좋아요" : "Likes"}: {tweet.likes.toLocaleString()} · {language === "ko" ? "리트윗" : "Retweets"}: {tweet.retweets.toLocaleString()}</span>
+                          <span className="text-zinc-500">@{tweet.author}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(tweet.text) }}>
@@ -440,8 +439,8 @@ export default function TrendsPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: r/{post.subreddit}</span>
-                          <span className="text-orange-400 font-medium">{language === "ko" ? "추천" : "Upvotes"}: {post.score.toLocaleString()} · {language === "ko" ? "댓글" : "Comments"}: {post.comments.toLocaleString()}</span>
+                          <span className="text-orange-400 font-medium">Reddit {language === "ko" ? "추천" : "Upvotes"}: {post.score.toLocaleString()} · {language === "ko" ? "댓글" : "Comments"}: {post.comments.toLocaleString()}</span>
+                          <span className="text-zinc-500">r/{post.subreddit}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(post.title) }}>
