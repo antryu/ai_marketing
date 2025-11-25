@@ -87,6 +87,8 @@ export default function TrendsPage() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(true)
   const [personas, setPersonas] = useState<Persona[]>([])
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>("")
+  const [redditTrends, setRedditTrends] = useState<any[]>([])
+  const [loadingReddit, setLoadingReddit] = useState(false)
 
   // Load personas when brand changes
   useEffect(() => {
@@ -148,6 +150,25 @@ export default function TrendsPage() {
       console.error("Failed to load suggestions:", error)
     } finally {
       setLoadingSuggestions(false)
+      // Load Reddit trends after AI suggestions are displayed
+      setTimeout(() => loadRedditTrends(), 100)
+    }
+  }
+
+  const loadRedditTrends = async () => {
+    setLoadingReddit(true)
+    try {
+      const res = await fetch(`/api/trends/reddit-suggestions?language=${language}`)
+      const data = await res.json()
+
+      if (data.success) {
+        setRedditTrends(data.data)
+        console.log('✅ Reddit trends loaded:', data.data.length, 'posts')
+      }
+    } catch (error) {
+      console.error("Failed to load Reddit trends:", error)
+    } finally {
+      setLoadingReddit(false)
     }
   }
 
@@ -322,6 +343,74 @@ export default function TrendsPage() {
                 </button>
               ))}
             </div>
+          </Card>
+        )}
+
+        {/* Reddit Trending Topics - Separate box with loading state */}
+        {!loadingSuggestions && suggestions && (
+          <Card className="p-6 bg-gradient-to-br from-orange-400/10 via-zinc-900 to-zinc-900 border-orange-400/30 mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-orange-400/10 flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-5 w-5 text-orange-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-medium text-white">
+                  {language === "ko"
+                    ? "🌍 Reddit 글로벌 트렌드"
+                    : "🌍 Reddit Global Trends"
+                  }
+                </h2>
+                <p className="text-zinc-400 text-sm">
+                  {language === "ko"
+                    ? "주간 인기 + 실시간 Hot 토픽 (별도 로딩)"
+                    : "Weekly Top + Real-time Hot Topics (Loading separately)"
+                  }
+                </p>
+              </div>
+            </div>
+
+            {loadingReddit ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400 mb-4"></div>
+                <p className="text-zinc-400">
+                  {language === "ko"
+                    ? "Reddit 트렌드 데이터 로딩 중..."
+                    : "Loading Reddit trend data..."
+                  }
+                </p>
+              </div>
+            ) : redditTrends.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {redditTrends.map((post: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="p-4 bg-zinc-950 rounded border border-zinc-800 hover:border-orange-400/50 transition-all"
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-lg">{post.icon}</span>
+                      <h3 className="text-white font-medium text-sm flex-1 line-clamp-2">
+                        {post.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-zinc-500">
+                      <span>
+                        {post.source === 'hot'
+                          ? (language === "ko" ? "실시간 Hot" : "Hot Now")
+                          : (language === "ko" ? "주간 Top" : "Weekly Top")
+                        }
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-zinc-500">
+                {language === "ko"
+                  ? "Reddit 데이터를 불러올 수 없습니다"
+                  : "Unable to load Reddit data"
+                }
+              </div>
+            )}
           </Card>
         )}
 
