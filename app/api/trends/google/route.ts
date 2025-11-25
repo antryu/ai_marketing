@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const { keyword } = await request.json()
+    const { keyword, language = 'ko' } = await request.json()
 
     if (!keyword) {
       return NextResponse.json(
@@ -14,17 +14,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Set geo and language based on user preference
+    const geo = language === 'ko' ? 'KR' : 'US'
+    const hl = language === 'ko' ? 'ko' : 'en'
+
     // Get related queries
     const relatedQueriesPromise = googleTrends.relatedQueries({
       keyword,
-      geo: 'KR', // South Korea
-      hl: 'ko', // Korean language
+      geo,
+      hl,
     })
 
     // Get interest over time (last 30 days)
     const interestOverTimePromise = googleTrends.interestOverTime({
       keyword,
-      geo: 'KR',
+      geo,
       startTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     })
 
@@ -41,6 +45,19 @@ export async function POST(request: NextRequest) {
     const topQueries = relatedQueries?.default?.rankedList?.[0]?.rankedKeyword?.slice(0, 10) || []
     const risingQueries = relatedQueries?.default?.rankedList?.[1]?.rankedKeyword?.slice(0, 10) || []
 
+    // Filter function to remove Twitter handles, IDs, and URLs
+    const filterQuery = (query: string): boolean => {
+      // Remove Twitter handles (@username)
+      if (query.startsWith('@')) return false
+      // Remove pure numbers (likely Twitter IDs)
+      if (/^\d+$/.test(query)) return false
+      // Remove URLs
+      if (query.includes('http://') || query.includes('https://')) return false
+      // Remove very short queries (likely noise)
+      if (query.length < 3) return false
+      return true
+    }
+
     // Extract timeline data
     const timeline = interestOverTime?.default?.timelineData || []
 
@@ -48,14 +65,18 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         keyword,
-        topQueries: topQueries.map((q: any) => ({
-          query: q.query,
-          value: q.value,
-        })),
-        risingQueries: risingQueries.map((q: any) => ({
-          query: q.query,
-          value: q.value,
-        })),
+        topQueries: topQueries
+          .filter((q: any) => filterQuery(q.query))
+          .map((q: any) => ({
+            query: q.query,
+            value: q.value,
+          })),
+        risingQueries: risingQueries
+          .filter((q: any) => filterQuery(q.query))
+          .map((q: any) => ({
+            query: q.query,
+            value: q.value,
+          })),
         timeline: timeline.map((t: any) => ({
           time: t.formattedTime,
           value: t.value[0],

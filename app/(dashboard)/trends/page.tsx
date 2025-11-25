@@ -351,6 +351,37 @@ export default function TrendsPage() {
 
         {trendData && (
           <div className="space-y-6">
+            {/* Data Source Information */}
+            <Card className="p-5 bg-gradient-to-r from-zinc-900 to-zinc-950 border-zinc-800">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
+                  <BarChart3 className="h-5 w-5 text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-medium mb-2">
+                    {language === "ko" ? "📊 트렌드 데이터 출처" : "📊 Trend Data Sources"}
+                  </h3>
+                  <div className="text-sm text-zinc-400 space-y-1.5">
+                    {language === "ko" ? (
+                      <>
+                        <p>• <span className="text-amber-400 font-medium">Google Trends (한국)</span>: 한국에서 검색량이 급상승하는 키워드와 관련 검색어</p>
+                        <p>• <span className="text-blue-400 font-medium">Twitter/X (한국)</span>: 한국어로 작성된 트윗 중 높은 참여도를 보이는 콘텐츠</p>
+                        <p>• <span className="text-orange-400 font-medium">Reddit (한국 관련)</span>: 한국 또는 관련 키워드가 포함된 글로벌 커뮤니티 토론</p>
+                        <p>• <span className="text-green-400 font-medium">Naver DataLab (한국)</span>: 네이버 검색 트렌드 데이터 (한국 전용)</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>• <span className="text-amber-400 font-medium">Google Trends (US)</span>: Rising keywords and related searches in the United States</p>
+                        <p>• <span className="text-blue-400 font-medium">Twitter/X (Global)</span>: High-engagement tweets in English from global users</p>
+                        <p>• <span className="text-orange-400 font-medium">Reddit (Global)</span>: Popular discussions from global communities</p>
+                        <p>• <span className="text-green-400 font-medium">Naver DataLab (Korea)</span>: Naver search trend data (Korea only)</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             {/* Unified Trend Cards */}
             <div className="grid grid-cols-1 gap-4">
               {/* Google Trends Topics */}
@@ -362,9 +393,14 @@ export default function TrendsPage() {
                       <TrendingUp className="h-6 w-6 text-amber-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-white mb-2 group-hover:text-amber-400 transition-colors">
-                        {query.query}
-                      </h3>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-medium text-white group-hover:text-amber-400 transition-colors flex-1">
+                          {query.query}
+                        </h3>
+                        <span className="text-xs bg-amber-400/20 text-amber-400 px-2 py-1 rounded border border-amber-400/30 ml-3 whitespace-nowrap">
+                          {language === "ko" ? "🌐 Google Trends (한국)" : "🌐 Google Trends (US)"}
+                        </span>
+                      </div>
                       <p className="text-zinc-400 text-sm mb-3">
                         {language === "ko"
                           ? "검색 트렌드 급상승 키워드 · Google에서 인기 검색어로 선정"
@@ -373,7 +409,7 @@ export default function TrendsPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-amber-400 font-medium">Google Trends {language === "ko" ? "검색량" : "Search Volume"}: {query.value}/100</span>
+                          <span className="text-amber-400 font-medium">{language === "ko" ? "검색량" : "Search Volume"}: {query.value}/100</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(query.query) }}>
@@ -395,15 +431,20 @@ export default function TrendsPage() {
                       {tweet.author[0]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-white mb-2 group-hover:text-blue-400 transition-colors line-clamp-2">
-                        {tweet.text.split('.')[0] || tweet.text.substring(0, 80)}
-                      </h3>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-medium text-white group-hover:text-blue-400 transition-colors line-clamp-2 flex-1">
+                          {tweet.text.split('.')[0] || tweet.text.substring(0, 80)}
+                        </h3>
+                        <span className="text-xs bg-blue-400/20 text-blue-400 px-2 py-1 rounded border border-blue-400/30 ml-3 whitespace-nowrap">
+                          {language === "ko" ? "𝕏 Twitter (한국)" : "𝕏 Twitter (Global)"}
+                        </span>
+                      </div>
                       <p className="text-zinc-400 text-sm mb-3 line-clamp-2">
                         {tweet.text}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-blue-400 font-medium">Twitter/X {language === "ko" ? "좋아요" : "Likes"}: {tweet.likes.toLocaleString()} · {language === "ko" ? "리트윗" : "Retweets"}: {tweet.retweets.toLocaleString()}</span>
+                          <span className="text-blue-400 font-medium">{language === "ko" ? "좋아요" : "Likes"}: {tweet.likes.toLocaleString()} · {language === "ko" ? "리트윗" : "Retweets"}: {tweet.retweets.toLocaleString()}</span>
                           <span className="text-zinc-500">@{tweet.author}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
@@ -428,9 +469,14 @@ export default function TrendsPage() {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-white mb-2 group-hover:text-orange-400 transition-colors line-clamp-2">
-                        {post.title}
-                      </h3>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-medium text-white group-hover:text-orange-400 transition-colors line-clamp-2 flex-1">
+                          {post.title}
+                        </h3>
+                        <span className="text-xs bg-orange-400/20 text-orange-400 px-2 py-1 rounded border border-orange-400/30 ml-3 whitespace-nowrap">
+                          {language === "ko" ? "🗨️ Reddit (한국 관련)" : "🗨️ Reddit (Global)"}
+                        </span>
+                      </div>
                       <p className="text-zinc-400 text-sm mb-3 line-clamp-2">
                         {post.preview || (language === "ko"
                           ? `Reddit에서 ${post.score.toLocaleString()}명이 공감한 ${post.subreddit} 커뮤니티의 인기 토론 주제`
@@ -439,7 +485,7 @@ export default function TrendsPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-orange-400 font-medium">Reddit {language === "ko" ? "추천" : "Upvotes"}: {post.score.toLocaleString()} · {language === "ko" ? "댓글" : "Comments"}: {post.comments.toLocaleString()}</span>
+                          <span className="text-orange-400 font-medium">{language === "ko" ? "추천" : "Upvotes"}: {post.score.toLocaleString()} · {language === "ko" ? "댓글" : "Comments"}: {post.comments.toLocaleString()}</span>
                           <span className="text-zinc-500">r/{post.subreddit}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"

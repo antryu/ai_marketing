@@ -26,7 +26,7 @@ interface RedditSearchResult {
 
 export async function POST(request: NextRequest) {
   try {
-    const { keyword } = await request.json()
+    const { keyword, language = 'ko' } = await request.json()
 
     if (!keyword) {
       return NextResponse.json(
@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Reddit JSON API (no authentication needed for public data)
-    // Search across all subreddits
-    const searchUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=top&t=month&limit=10`
+    // Search with language preference - English users get global results
+    const searchTerm = language === 'ko' ? `${keyword} (Korea OR 한국)` : keyword
+    const searchUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(searchTerm)}&sort=top&t=month&limit=20`
 
     const response = await fetch(searchUrl, {
       headers: {
@@ -61,11 +62,12 @@ export async function POST(request: NextRequest) {
           score: post.score,
           comments: post.num_comments,
           url: `https://reddit.com${post.permalink}`,
-          created: new Date(post.created_utc * 1000).toLocaleDateString(),
+          created: new Date(post.created_utc * 1000).toLocaleDateString(language === 'ko' ? 'ko-KR' : 'en-US'),
           preview: post.selftext ? post.selftext.substring(0, 200) : undefined,
         }
       })
-      .filter((post: RedditSearchResult) => post.score > 10) // Filter low engagement posts
+      .filter((post: RedditSearchResult) => post.score > 5) // Filter low engagement posts
+      .slice(0, 10) // Limit to top 10
 
     // Get related subreddits by analyzing which subreddits appear most
     const subredditCounts = posts.reduce((acc: Record<string, number>, post) => {

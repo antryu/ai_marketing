@@ -14,9 +14,61 @@ export async function POST(request: NextRequest) {
     }
 
     const searchTerm = keyword || industry
+    const bearerToken = process.env.TWITTER_BEARER_TOKEN
 
-    // Generate sample tweets based on keyword and language
-    // In production, use Twitter API v2 with elevated access
+    // Try real Twitter API first, fall back to sample data if not configured
+    if (bearerToken && bearerToken !== 'your_twitter_bearer_token') {
+      try {
+        // Use Twitter API v2 to search recent tweets
+        const searchQuery = `${searchTerm} -is:retweet lang:${language === 'ko' ? 'ko' : 'en'}`
+        const twitterApiUrl = `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(searchQuery)}&max_results=10&tweet.fields=created_at,public_metrics,author_id&expansions=author_id&user.fields=username,name`
+
+        const response = await fetch(twitterApiUrl, {
+          headers: {
+            'Authorization': `Bearer ${bearerToken}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+
+          // Parse real Twitter data
+          const users = data.includes?.users || []
+          const tweets = data.data?.map((tweet: any) => {
+            const author = users.find((u: any) => u.id === tweet.author_id)
+            return {
+              id: tweet.id,
+              text: tweet.text,
+              author: author?.username || 'Unknown',
+              likes: tweet.public_metrics?.like_count || 0,
+              retweets: tweet.public_metrics?.retweet_count || 0,
+              created: new Date(tweet.created_at).toLocaleDateString(language === 'ko' ? 'ko-KR' : 'en-US'),
+              url: `https://twitter.com/${author?.username}/status/${tweet.id}`
+            }
+          }) || []
+
+          const searchQuery2 = `${searchTerm} min_faves:100 lang:${language === 'ko' ? 'ko' : 'en'}`
+          const encodedQuery = encodeURIComponent(searchQuery2)
+          const twitterUrl = `https://twitter.com/search?q=${encodedQuery}&src=typed_query&f=top`
+
+          return NextResponse.json({
+            success: true,
+            data: {
+              keyword: searchTerm,
+              primaryUrl: twitterUrl,
+              primaryQuery: searchQuery2,
+              tweets: tweets.slice(0, 5),
+              notice: 'Real-time data from Twitter API v2'
+            },
+          })
+        }
+      } catch (apiError) {
+        console.error('Twitter API error, falling back to sample data:', apiError)
+      }
+    }
+
+    // Fallback: Generate sample tweets based on keyword and language
     const sampleTweets = language === 'ko' ? [
       {
         id: '1',
