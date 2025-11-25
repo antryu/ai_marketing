@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,7 @@ import { translations, TranslationKey } from "@/lib/translations"
 
 export default function ContentCreatePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { language } = useLanguage()
   const t = (key: TranslationKey) => translations[key][language]
   const [brands, setBrands] = useState<any[]>([])
@@ -46,6 +47,12 @@ export default function ContentCreatePage() {
   useEffect(() => {
     loadBrands()
     loadWriterPersonas()
+
+    // Load topic from URL parameter
+    const topicParam = searchParams.get('topic')
+    if (topicParam) {
+      setTopic(topicParam)
+    }
   }, [])
 
   const loadBrands = async () => {

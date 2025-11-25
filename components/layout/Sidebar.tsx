@@ -15,6 +15,7 @@ import {
   User,
   Building2,
   ChevronDown,
+  TrendingUp,
 } from "lucide-react"
 import { useBrand } from "@/contexts/BrandContext"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -36,6 +37,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     { name: t("navBrandSettings"), href: "/brand", icon: Building2, highlight: false },
     { name: t("navBrandVoice"), href: "/writer-personas", icon: User, highlight: false },
     { name: t("navTargetCustomers"), href: "/personas", icon: Target, highlight: false },
+    { name: t("navTrends"), href: "/trends", icon: TrendingUp, highlight: true },
     { name: t("navContentGeneration"), href: "/content/create", icon: Sparkles, highlight: false },
     { name: t("navContentList"), href: "/content", icon: FileText, highlight: false },
     { name: t("navCalendar"), href: "/calendar", icon: Calendar, highlight: false },

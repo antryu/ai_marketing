@@ -53,7 +53,6 @@ export const translations = {
   settings: { ko: "설정", en: "Settings" },
   brand: { ko: "브랜드 설정", en: "Brand Settings" },
   brandVoice: { ko: "브랜드 보이스", en: "Brand Voice" },
-  targetCustomers: { ko: "타겟 고객", en: "Target Customers" },
   contentGeneration: { ko: "콘텐츠 생성", en: "Content Generation" },
   contentList: { ko: "콘텐츠 목록", en: "Content List" },
   calendar: { ko: "캘린더", en: "Calendar" },

@@ -32,6 +32,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     if (pathname === "/brand") return { title: t("navBrandSettings"), subtitle: t("brandSettingsSubtitle") }
     if (pathname === "/writer-personas") return { title: t("navBrandVoice"), subtitle: t("brandVoiceSubtitle") }
     if (pathname === "/personas") return { title: t("navTargetCustomers"), subtitle: t("targetCustomersSubtitle") }
+    if (pathname === "/trends") return { title: t("navTrends"), subtitle: t("trendsSubtitle") }
     if (pathname?.startsWith("/content/create")) return { title: t("navContentGeneration"), subtitle: t("contentGenerationSubtitle") }
     if (pathname?.startsWith("/content")) return { title: t("contentListTitle"), subtitle: t("contentListSubtitle") }
     if (pathname === "/calendar") return { title: t("calendarTitle"), subtitle: t("calendarSubtitle") }
@@ -49,6 +50,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                            pathname === "/brand" ||
                            pathname === "/personas" ||
                            pathname === "/writer-personas" ||
+                           pathname === "/trends" ||
                            pathname === "/settings" ||
                            pathname === "/content/create" ||
                            pathname === "/content/bulk"

@@ -219,16 +219,8 @@ export default function TrendsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="h-8 w-8 text-amber-400" />
-            <h1 className="text-3xl font-light text-white">{t("trendsTitle")}</h1>
-          </div>
-          <p className="text-zinc-400">{t("trendsSubtitle")}</p>
-        </div>
 
         {/* Persona Selection - Only show if 2 or more personas exist */}
         {personas.length >= 2 && (
