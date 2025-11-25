@@ -4,50 +4,62 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { translations, TranslationKey } from "@/lib/translations"
 import { Button } from "@/components/ui/button"
 import { Settings as SettingsIcon, Link as LinkIcon, Users, Building2, Zap, CheckCircle2, XCircle, PenTool } from "lucide-react"
 import { toast } from "sonner"
 
-const platforms = [
+const getPlatforms = (language: string) => [
   {
     id: "thread",
     name: "Threads",
-    description: "Meta의 텍스트 기반 소셜 플랫폼",
+    description: language === "ko" ? "Meta의 텍스트 기반 소셜 플랫폼" : "Meta's text-based social platform",
     iconType: "svg",
     color: "purple",
-    features: ["한국 시장 1순위", "짧은 form 콘텐츠", "Instagram 연동"]
+    features: language === "ko"
+      ? ["한국 시장 1순위", "짧은 form 콘텐츠", "Instagram 연동"]
+      : ["Korea Market #1", "Short-form Content", "Instagram Integration"]
   },
   {
     id: "linkedin",
     name: "LinkedIn",
-    description: "전문가 네트워킹 플랫폼",
+    description: language === "ko" ? "전문가 네트워킹 플랫폼" : "Professional networking platform",
     iconType: "svg",
     color: "blue",
-    features: ["미국 시장 1순위", "B2B 마케팅", "긴 form 콘텐츠"]
+    features: language === "ko"
+      ? ["미국 시장 1순위", "B2B 마케팅", "긴 form 콘텐츠"]
+      : ["US Market #1", "B2B Marketing", "Long-form Content"]
   },
   {
     id: "instagram",
     name: "Instagram",
-    description: "비주얼 중심 소셜 미디어",
+    description: language === "ko" ? "비주얼 중심 소셜 미디어" : "Visual-focused social media",
     iconType: "svg",
     color: "pink",
-    features: ["이미지/영상 콘텐츠", "Reels", "Stories"]
+    features: language === "ko"
+      ? ["이미지/영상 콘텐츠", "Reels", "Stories"]
+      : ["Image/Video Content", "Reels", "Stories"]
   },
   {
     id: "twitter",
     name: "X (Twitter)",
-    description: "실시간 대화 플랫폼",
+    description: language === "ko" ? "실시간 대화 플랫폼" : "Real-time conversation platform",
     iconType: "svg",
     color: "sky",
-    features: ["실시간 트렌드", "짧은 메시지", "스레드"]
+    features: language === "ko"
+      ? ["실시간 트렌드", "짧은 메시지", "스레드"]
+      : ["Real-time Trends", "Short Messages", "Threads"]
   },
   {
     id: "youtube",
     name: "YouTube",
-    description: "영상 공유 플랫폼",
+    description: language === "ko" ? "영상 공유 플랫폼" : "Video sharing platform",
     iconType: "svg",
     color: "red",
-    features: ["Shorts", "긴 영상", "커뮤니티"]
+    features: language === "ko"
+      ? ["Shorts", "긴 영상", "커뮤니티"]
+      : ["Shorts", "Long Videos", "Community"]
   }
 ]
 
@@ -85,6 +97,9 @@ const PlatformIcon = ({ platformId, className = "w-10 h-10" }: { platformId: str
 }
 
 export default function SettingsPage() {
+  const { language } = useLanguage()
+  const t = (key: TranslationKey) => translations[key][language]
+
   const [connections, setConnections] = useState<any[]>([])
   const [selectedBrand, setSelectedBrand] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -126,12 +141,12 @@ export default function SettingsPage() {
   }
 
   const handleConnect = async (platformId: string) => {
-    toast.info("OAuth 연동은 곧 추가됩니다!")
+    toast.info(language === "ko" ? "OAuth 연동은 곧 추가됩니다!" : "OAuth integration coming soon!")
     // TODO: Implement OAuth flow
   }
 
   const handleDisconnect = async (platformId: string) => {
-    if (!confirm("정말 연결을 해제하시겠습니까?")) return
+    if (!confirm(language === "ko" ? "정말 연결을 해제하시겠습니까?" : "Are you sure you want to disconnect?")) return
 
     const supabase = createClient()
     const result = await (supabase as any)
@@ -143,71 +158,50 @@ export default function SettingsPage() {
     const { error } = result
 
     if (error) {
-      toast.error("연결 해제 실패")
+      toast.error(language === "ko" ? "연결 해제 실패" : "Failed to disconnect")
     } else {
-      toast.success("연결이 해제되었습니다")
+      toast.success(language === "ko" ? "연결이 해제되었습니다" : "Disconnected successfully")
       loadData()
     }
   }
+
+  const platforms = getPlatforms(language)
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-zinc-300 font-normal">로딩 중...</p>
+          <p className="text-zinc-300 font-normal">{language === "ko" ? "로딩 중..." : "Loading..."}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-12">
+    <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-12">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center">
-              <SettingsIcon className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-light tracking-wide text-white">설정</h1>
-              <p className="text-zinc-300 font-normal text-base tracking-wide">
-                제품 및 플랫폼 연결 관리
-              </p>
-            </div>
-          </div>
-
-          {/* 플랫폼 연동 바로가기 버튼 */}
-          <Button
-            onClick={() => window.location.href = '/settings/platforms'}
-            className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white"
-          >
-            <LinkIcon className="w-4 h-4 mr-2" />
-            플랫폼 연동 관리
-          </Button>
-        </div>
 
         {/* Brand Info Section */}
         {selectedBrand && (
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
             <div className="flex items-center gap-3 mb-6">
               <Building2 className="w-6 h-6 text-amber-400" />
-              <h2 className="text-2xl font-light text-white tracking-wide">제품 정보</h2>
+              <h2 className="text-2xl font-light text-white tracking-wide">{language === "ko" ? "제품 정보" : "Brand Information"}</h2>
             </div>
             <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">제품명</p>
+                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">{language === "ko" ? "제품명" : "Brand Name"}</p>
                 <p className="text-white font-normal text-lg">{selectedBrand.name}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">제품 유형</p>
+                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">{language === "ko" ? "제품 유형" : "Product Type"}</p>
                 <p className="text-white font-normal text-lg">{selectedBrand.product_type || "-"}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">설명</p>
+                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">{language === "ko" ? "설명" : "Description"}</p>
                 <p className="text-zinc-300 font-normal">{selectedBrand.description}</p>
               </div>
             </div>
@@ -218,7 +212,7 @@ export default function SettingsPage() {
         <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
           <div className="flex items-center gap-3 mb-6">
             <LinkIcon className="w-6 h-6 text-amber-400" />
-            <h2 className="text-2xl font-light text-white tracking-wide">플랫폼 연결</h2>
+            <h2 className="text-2xl font-light text-white tracking-wide">{language === "ko" ? "플랫폼 연결" : "Platform Connections"}</h2>
           </div>
           <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
@@ -284,7 +278,7 @@ export default function SettingsPage() {
                           className="w-full"
                         >
                           <XCircle className="w-4 h-4 mr-2" />
-                          연결 해제
+                          {language === "ko" ? "연결 해제" : "Disconnect"}
                         </Button>
                       ) : (
                         <Button
@@ -293,7 +287,7 @@ export default function SettingsPage() {
                           className="w-full group/btn"
                         >
                           <Zap className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-300" />
-                          연결하기
+                          {language === "ko" ? "연결하기" : "Connect"}
                         </Button>
                       )}
                     </div>
