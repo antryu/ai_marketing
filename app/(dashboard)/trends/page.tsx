@@ -260,10 +260,16 @@ export default function TrendsPage() {
               <Sparkles className="h-6 w-6 text-amber-400" />
               <div>
                 <h2 className="text-xl font-medium text-white">
-                  {suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}님을 위한 AI 추천 토픽
+                  {language === "ko"
+                    ? `${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}님을 위한 AI 추천 토픽`
+                    : `AI Recommended Topics for ${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}`
+                  }
                 </h2>
                 <p className="text-zinc-400 text-sm">
-                  {suggestions.industry} 업계 · {suggestions.personaName ? '타겟 고객 기반' : '브랜드 기반'} · 실시간 트렌드 자동 생성
+                  {language === "ko"
+                    ? `${suggestions.industry} 업계 · ${suggestions.personaName ? '타겟 고객 기반' : '브랜드 기반'} · 실시간 트렌드 자동 생성`
+                    : `${suggestions.industry} Industry · ${suggestions.personaName ? 'Target Customer Based' : 'Brand Based'} · Real-time Trend Generation`
+                  }
                 </p>
               </div>
             </div>
@@ -366,17 +372,20 @@ export default function TrendsPage() {
                         {query.query}
                       </h3>
                       <p className="text-zinc-400 text-sm mb-3">
-                        검색 트렌드 급상승 키워드 · Google에서 인기 검색어로 선정
+                        {language === "ko"
+                          ? "검색 트렌드 급상승 키워드 · Google에서 인기 검색어로 선정"
+                          : "Rising search trend keyword · Selected as popular search by Google"
+                        }
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-zinc-500">출처: Google Trends</span>
-                          <span className="text-amber-400 font-medium">🔥 인기도: {query.value}/100</span>
+                          <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: Google Trends</span>
+                          <span className="text-amber-400 font-medium">🔥 {language === "ko" ? "인기도" : "Popularity"}: {query.value}/100</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(query.query) }}>
                           <Sparkles className="h-4 w-4" />
-                          콘텐츠 생성
+                          {language === "ko" ? "콘텐츠 생성" : "Create Content"}
                         </button>
                       </div>
                     </div>
@@ -401,13 +410,13 @@ export default function TrendsPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-zinc-500">출처: @{tweet.author}</span>
+                          <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: @{tweet.author}</span>
                           <span className="text-blue-400 font-medium">❤️ {tweet.likes.toLocaleString()} · 🔄 {tweet.retweets.toLocaleString()}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(tweet.text) }}>
                           <Sparkles className="h-4 w-4" />
-                          콘텐츠 생성
+                          {language === "ko" ? "콘텐츠 생성" : "Create Content"}
                         </button>
                       </div>
                     </div>
@@ -430,17 +439,20 @@ export default function TrendsPage() {
                         {post.title}
                       </h3>
                       <p className="text-zinc-400 text-sm mb-3 line-clamp-2">
-                        {post.preview || `Reddit에서 ${post.score.toLocaleString()}명이 공감한 ${post.subreddit} 커뮤니티의 인기 토론 주제`}
+                        {post.preview || (language === "ko"
+                          ? `Reddit에서 ${post.score.toLocaleString()}명이 공감한 ${post.subreddit} 커뮤니티의 인기 토론 주제`
+                          : `Popular discussion topic in ${post.subreddit} community with ${post.score.toLocaleString()} upvotes on Reddit`
+                        )}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-zinc-500">출처: r/{post.subreddit}</span>
+                          <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: r/{post.subreddit}</span>
                           <span className="text-orange-400 font-medium">⬆️ {post.score.toLocaleString()} · 💬 {post.comments.toLocaleString()}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(post.title) }}>
                           <Sparkles className="h-4 w-4" />
-                          콘텐츠 생성
+                          {language === "ko" ? "콘텐츠 생성" : "Create Content"}
                         </button>
                       </div>
                     </div>
