@@ -153,22 +153,22 @@ export default function TrendsPage() {
         fetch("/api/trends/google", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword }),
+          body: JSON.stringify({ keyword, language }),
         }),
         fetch("/api/trends/twitter", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword }),
+          body: JSON.stringify({ keyword, language }),
         }),
         fetch("/api/trends/reddit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword }),
+          body: JSON.stringify({ keyword, language }),
         }),
         fetch("/api/trends/naver", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword }),
+          body: JSON.stringify({ keyword, language }),
         }),
       ])
 
