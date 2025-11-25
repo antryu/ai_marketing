@@ -238,46 +238,61 @@ async function fetchRealTimeTrends(
           }
         }
 
-        // Fetch Reddit trending posts with OAuth authentication (free tier: 100 QPM)
-        let redditData = null
-        if (process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET) {
-          try {
-            // Get Reddit access token using client credentials
-            const authString = Buffer.from(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`).toString('base64')
-            const authRes = await fetch('https://www.reddit.com/api/v1/access_token', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Basic ${authString}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'MarketingAutomation/1.0 by /u/YourRedditUsername'
-              },
-              body: 'grant_type=client_credentials'
+        // Fetch Reddit RSS feeds (no API key required)
+        let redditData: any[] = []
+        try {
+          // Fetch both hot and top weekly posts
+          const [hotRes, topRes] = await Promise.all([
+            fetch('https://www.reddit.com/r/all/hot/.rss?limit=25', {
+              headers: { 'User-Agent': 'Mozilla/5.0' }
+            }),
+            fetch('https://www.reddit.com/r/all/top/.rss?sort=top&t=week&limit=25', {
+              headers: { 'User-Agent': 'Mozilla/5.0' }
             })
+          ])
 
-            if (authRes.ok) {
-              const authData = await authRes.json()
-              const accessToken = authData.access_token
-
-              // Search Reddit with OAuth token
-              const redditRes = await fetch(
-                `https://oauth.reddit.com/search?q=${encodeURIComponent(keyword)}&sort=hot&t=week&limit=5&raw_json=1`,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'User-Agent': 'MarketingAutomation/1.0 by /u/YourRedditUsername'
-                  }
-                }
-              )
-
-              if (redditRes.ok) {
-                const json = await redditRes.json()
-                redditData = json.data?.children || []
+          const parseRedditRSS = (rssText: string) => {
+            // Extract titles from RSS XML using regex
+            const titleMatches = rssText.matchAll(/<title><!\[CDATA\[(.*?)\]\]><\/title>/g)
+            const titles: string[] = []
+            for (const match of titleMatches) {
+              const title = match[1]
+              // Skip the first title (it's the subreddit name)
+              if (!title.startsWith('r/')) {
+                titles.push(title)
               }
             }
-          } catch (e) {
-            console.error('Reddit API error:', e)
-            // Fail silently - Reddit is optional
+            return titles
           }
+
+          if (hotRes.ok) {
+            const hotText = await hotRes.text()
+            const hotTitles = parseRedditRSS(hotText)
+            redditData.push(...hotTitles.map(title => ({
+              title,
+              source: 'hot',
+              relevance: title.toLowerCase().includes(keyword.toLowerCase()) ? 'high' : 'medium'
+            })))
+          }
+
+          if (topRes.ok) {
+            const topText = await topRes.text()
+            const topTitles = parseRedditRSS(topText)
+            redditData.push(...topTitles.map(title => ({
+              title,
+              source: 'top_week',
+              relevance: title.toLowerCase().includes(keyword.toLowerCase()) ? 'high' : 'medium'
+            })))
+          }
+
+          // Filter for relevance to keyword (case-insensitive partial match)
+          redditData = redditData.filter(item =>
+            item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+            keyword.toLowerCase().split(' ').some((word: string) => item.title.toLowerCase().includes(word))
+          )
+        } catch (e) {
+          console.error('Reddit RSS error:', e)
+          // Fail silently - Reddit is optional
         }
 
         // Fetch Twitter/X trending topics for selected language
@@ -334,17 +349,15 @@ async function fetchRealTimeTrends(
         }
       }
 
-      // Reddit
+      // Reddit (parsed from RSS feeds)
       if (reddit && reddit.length > 0) {
-        const hotPosts = reddit.slice(0, 3)
-        const label = isKorean ? 'Reddit 인기 토론' : 'Reddit Hot Discussions'
-        const postTitles = hotPosts.map((post: any) => {
-          const title = post.data.title.substring(0, 60)
-          const score = post.data.score
-          const subreddit = post.data.subreddit
-          return `[r/${subreddit}] ${title} (👍${score})`
-        }).join(' | ')
-        trendContext += `${label}: ${postTitles}\n`
+        const topPosts = reddit.slice(0, 5)
+        const label = isKorean ? 'Reddit 인기 토론 (주간 Top + 실시간 Hot)' : 'Reddit Trending (Weekly Top + Hot)'
+        const postList = topPosts.map((post: any) => {
+          const sourceLabel = post.source === 'top_week' ? '📈주간인기' : '🔥실시간'
+          return `[${sourceLabel}] ${post.title}`
+        }).join('\n  • ')
+        trendContext += `${label}:\n  • ${postList}\n`
       }
 
       // Twitter/X
@@ -412,8 +425,12 @@ ${realTimeTrends}
 1. 각 주제는 구체적이고 실행 가능해야 합니다
 2. 타겟 고객의 고민과 목표를 직접적으로 해결하는 내용이어야 합니다
 3. **위의 실시간 트렌드 데이터를 반드시 반영**하여, 지금 한국에서 검색되고 화제가 되는 주제와 연결해야 합니다
+   - 네이버 검색 트렌드: 한국 검색 시장 1위 플랫폼 데이터
+   - Google 트렌드: 글로벌 관점의 한국 검색 트렌드
+   - Reddit 인기 토론: 글로벌 커뮤니티에서 주간 인기글(📈주간인기)과 실시간 핫 토픽(🔥실시간) 구분하여 반영
+   - Twitter/X: 한국어 실시간 소셜 미디어 트렌드
 4. 브랜드의 산업 특성과 타겟 고객의 특성을 고려해야 합니다
-5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (실시간 트렌드 근거 포함)
+5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (실시간 트렌드 근거를 **데이터 소스별로** 구분하여 명시)
 
 JSON 형식으로 응답해주세요:
 {
@@ -438,8 +455,11 @@ Requirements:
 1. Each topic must be specific and actionable
 2. Content must directly address target customer pain points and goals
 3. **Must incorporate the real-time trend data above** - connect with topics currently being searched and discussed in the US/global market
+   - Google Trends: US search trend data
+   - Reddit Trending: Distinguish between weekly top posts (📈Weekly Top) and real-time hot topics (🔥Hot) from global communities
+   - Twitter/X: Real-time English social media trends
 4. Consider brand's industry characteristics and target customer profile
-5. Provide specific reasons why each topic is effective (include real-time trend evidence)
+5. Provide specific reasons why each topic is effective (cite real-time trend evidence **by data source**)
 
 Respond in JSON format:
 {
