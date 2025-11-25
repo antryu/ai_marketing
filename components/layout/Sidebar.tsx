@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import {
   LayoutDashboard,
   FileText,
@@ -31,13 +32,30 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { selectedBrandId, setSelectedBrandId, brands, loading } = useBrand()
   const { language } = useLanguage()
   const t = (key: TranslationKey) => translations[key][language]
+  const [showTrendsNew, setShowTrendsNew] = useState(true)
+
+  // Check if user has visited trends page
+  useEffect(() => {
+    const hasVisitedTrends = localStorage.getItem('hasVisitedTrends')
+    if (hasVisitedTrends === 'true') {
+      setShowTrendsNew(false)
+    }
+  }, [])
+
+  // Mark trends as visited when user navigates to trends page
+  useEffect(() => {
+    if (pathname === '/trends') {
+      localStorage.setItem('hasVisitedTrends', 'true')
+      setShowTrendsNew(false)
+    }
+  }, [pathname])
 
   const navigation = [
     { name: t("navDashboard"), href: "/dashboard", icon: LayoutDashboard, highlight: false },
     { name: t("navBrandSettings"), href: "/brand", icon: Building2, highlight: false },
     { name: t("navBrandVoice"), href: "/writer-personas", icon: User, highlight: false },
     { name: t("navTargetCustomers"), href: "/personas", icon: Target, highlight: false },
-    { name: t("navTrends"), href: "/trends", icon: TrendingUp, highlight: true },
+    { name: t("navTrends"), href: "/trends", icon: TrendingUp, highlight: showTrendsNew },
     { name: t("navContentGeneration"), href: "/content/create", icon: Sparkles, highlight: false },
     { name: t("navContentList"), href: "/content", icon: FileText, highlight: false },
     { name: t("navCalendar"), href: "/calendar", icon: Calendar, highlight: false },
