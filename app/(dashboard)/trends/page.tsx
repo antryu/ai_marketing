@@ -230,8 +230,8 @@ export default function TrendsPage() {
           <p className="text-zinc-400">{t("trendsSubtitle")}</p>
         </div>
 
-        {/* Persona Selection */}
-        {personas.length > 0 && (
+        {/* Persona Selection - Only show if 2 or more personas exist */}
+        {personas.length >= 2 && (
           <Card className="p-6 bg-zinc-900 border-zinc-800 mb-8">
             <div className="flex items-center gap-4">
               <Target className="h-5 w-5 text-amber-400" />
