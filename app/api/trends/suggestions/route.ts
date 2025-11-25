@@ -11,6 +11,19 @@ interface Brand {
   created_at: string
 }
 
+interface Persona {
+  id: string
+  brand_id: string
+  name: string
+  description: string
+  age_range: string
+  gender: string
+  job_title: string[]
+  industry: string[]
+  pain_points: string[]
+  goals: string[]
+}
+
 // Industry-specific trending keywords
 const INDUSTRY_KEYWORDS: Record<string, string[]> = {
   '병원': ['병원 마케팅', '의료 광고', '환자 유치', '병원 SNS', '의료 콘텐츠'],
@@ -28,8 +41,10 @@ const INDUSTRY_KEYWORDS: Record<string, string[]> = {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
+    const { searchParams } = new URL(request.url)
+    const personaId = searchParams.get('personaId')
 
-    // Get user's brand information
+    // Get user authentication
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -39,41 +54,59 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get user's brand
-    const { data: brands } = await supabase
-      .from('brands')
-      .select('*')
-      .eq('user_id', user.id)
-      .limit(1)
-
     let industry = 'default'
     let brandName = '귀하'
+    let personaName = ''
+    let personaInfo = ''
 
-    if (brands && brands.length > 0) {
-      const brand = brands[0] as Brand
-      brandName = brand.name
+    if (personaId) {
+      // Get persona information
+      const { data: persona } = await supabase
+        .from('personas')
+        .select('*')
+        .eq('id', personaId)
+        .single()
 
-      // Detect industry from brand name or description
-      const text = `${brand.name} ${brand.description || ''}`.toLowerCase()
+      if (persona) {
+        const personaData = persona as Persona
+        personaName = personaData.name
+        personaInfo = `${personaData.age_range} ${personaData.gender}`
 
-      if (text.includes('병원') || text.includes('의료') || text.includes('클리닉')) {
-        industry = '병원'
-      } else if (text.includes('it') || text.includes('개발') || text.includes('소프트웨어')) {
-        industry = 'IT'
-      } else if (text.includes('스타트업') || text.includes('창업')) {
-        industry = '스타트업'
-      } else if (text.includes('쇼핑') || text.includes('이커머스') || text.includes('온라인')) {
-        industry = '이커머스'
-      } else if (text.includes('교육') || text.includes('학원') || text.includes('강의')) {
-        industry = '교육'
-      } else if (text.includes('부동산') || text.includes('아파트') || text.includes('주택')) {
-        industry = '부동산'
-      } else if (text.includes('음식') || text.includes('식당') || text.includes('카페')) {
-        industry = '음식점'
-      } else if (text.includes('뷰티') || text.includes('화장품') || text.includes('미용')) {
-        industry = '뷰티'
-      } else if (text.includes('패션') || text.includes('의류') || text.includes('옷')) {
-        industry = '패션'
+        // Detect industry from persona's industry array
+        if (personaData.industry && personaData.industry.length > 0) {
+          const personaIndustry = personaData.industry[0].toLowerCase()
+
+          if (personaIndustry.includes('병원') || personaIndustry.includes('의료') || personaIndustry.includes('클리닉')) {
+            industry = '병원'
+          } else if (personaIndustry.includes('it') || personaIndustry.includes('개발') || personaIndustry.includes('소프트웨어')) {
+            industry = 'IT'
+          } else if (personaIndustry.includes('스타트업') || personaIndustry.includes('창업')) {
+            industry = '스타트업'
+          } else if (personaIndustry.includes('쇼핑') || personaIndustry.includes('이커머스') || personaIndustry.includes('온라인')) {
+            industry = '이커머스'
+          } else if (personaIndustry.includes('교육') || personaIndustry.includes('학원') || personaIndustry.includes('강의')) {
+            industry = '교육'
+          } else if (personaIndustry.includes('부동산') || personaIndustry.includes('아파트') || personaIndustry.includes('주택')) {
+            industry = '부동산'
+          } else if (personaIndustry.includes('음식') || personaIndustry.includes('식당') || personaIndustry.includes('카페')) {
+            industry = '음식점'
+          } else if (personaIndustry.includes('뷰티') || personaIndustry.includes('화장품') || personaIndustry.includes('미용')) {
+            industry = '뷰티'
+          } else if (personaIndustry.includes('패션') || personaIndustry.includes('의류') || personaIndustry.includes('옷')) {
+            industry = '패션'
+          }
+        }
+
+        // Get brand name for the persona's brand
+        const { data: brand } = await supabase
+          .from('brands')
+          .select('name')
+          .eq('id', personaData.brand_id)
+          .single()
+
+        if (brand) {
+          brandName = brand.name
+        }
       }
     }
 
@@ -118,6 +151,8 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         brandName,
+        personaName,
+        personaInfo,
         industry,
         suggestions,
         updatedAt: new Date().toISOString(),
