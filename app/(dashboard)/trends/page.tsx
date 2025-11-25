@@ -309,6 +309,39 @@ export default function TrendsPage() {
           </Card>
         )}
 
+        {/* Data Source Information - Show after AI suggestions */}
+        {!loadingSuggestions && suggestions && (
+          <Card className="p-5 bg-gradient-to-r from-zinc-900 to-zinc-950 border-zinc-800 mb-8">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="h-5 w-5 text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-white font-medium mb-2">
+                  {language === "ko" ? "📊 트렌드 데이터 출처" : "📊 Trend Data Sources"}
+                </h3>
+                <div className="text-sm text-zinc-400 space-y-1.5">
+                  {language === "ko" ? (
+                    <>
+                      <p>• <span className="text-amber-400 font-medium">Google Trends (한국)</span>: 한국에서 검색량이 급상승하는 키워드와 관련 검색어</p>
+                      <p>• <span className="text-blue-400 font-medium">Twitter/X (한국)</span>: 한국어로 작성된 트윗 중 높은 참여도를 보이는 콘텐츠</p>
+                      <p>• <span className="text-orange-400 font-medium">Reddit (한국 관련)</span>: 한국 또는 관련 키워드가 포함된 글로벌 커뮤니티 토론</p>
+                      <p>• <span className="text-green-400 font-medium">Naver DataLab (한국)</span>: 네이버 검색 트렌드 데이터 (한국 전용)</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>• <span className="text-amber-400 font-medium">Google Trends (US)</span>: Rising keywords and related searches in the United States</p>
+                      <p>• <span className="text-blue-400 font-medium">Twitter/X (Global)</span>: High-engagement tweets in English from global users</p>
+                      <p>• <span className="text-orange-400 font-medium">Reddit (Global)</span>: Popular discussions from global communities</p>
+                      <p>• <span className="text-green-400 font-medium">Naver DataLab (Korea)</span>: Naver search trend data (Korea only)</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Search Input */}
         <Card className="p-6 bg-zinc-900 border-zinc-800 mb-8">
           <div className="flex gap-4">
@@ -351,37 +384,6 @@ export default function TrendsPage() {
 
         {trendData && (
           <div className="space-y-6">
-            {/* Data Source Information */}
-            <Card className="p-5 bg-gradient-to-r from-zinc-900 to-zinc-950 border-zinc-800">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
-                  <BarChart3 className="h-5 w-5 text-amber-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-medium mb-2">
-                    {language === "ko" ? "📊 트렌드 데이터 출처" : "📊 Trend Data Sources"}
-                  </h3>
-                  <div className="text-sm text-zinc-400 space-y-1.5">
-                    {language === "ko" ? (
-                      <>
-                        <p>• <span className="text-amber-400 font-medium">Google Trends (한국)</span>: 한국에서 검색량이 급상승하는 키워드와 관련 검색어</p>
-                        <p>• <span className="text-blue-400 font-medium">Twitter/X (한국)</span>: 한국어로 작성된 트윗 중 높은 참여도를 보이는 콘텐츠</p>
-                        <p>• <span className="text-orange-400 font-medium">Reddit (한국 관련)</span>: 한국 또는 관련 키워드가 포함된 글로벌 커뮤니티 토론</p>
-                        <p>• <span className="text-green-400 font-medium">Naver DataLab (한국)</span>: 네이버 검색 트렌드 데이터 (한국 전용)</p>
-                      </>
-                    ) : (
-                      <>
-                        <p>• <span className="text-amber-400 font-medium">Google Trends (US)</span>: Rising keywords and related searches in the United States</p>
-                        <p>• <span className="text-blue-400 font-medium">Twitter/X (Global)</span>: High-engagement tweets in English from global users</p>
-                        <p>• <span className="text-orange-400 font-medium">Reddit (Global)</span>: Popular discussions from global communities</p>
-                        <p>• <span className="text-green-400 font-medium">Naver DataLab (Korea)</span>: Naver search trend data (Korea only)</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-
             {/* Unified Trend Cards */}
             <div className="grid grid-cols-1 gap-4">
               {/* Google Trends Topics */}

@@ -418,7 +418,9 @@ export default function ContentCreatePage() {
                     <SelectValue placeholder={language === "ko" ? "브랜드 보이스 선택" : "Select Brand Voice"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="default">{t("defaultStyle")}</SelectItem>
+                    <SelectItem value="default">
+                      {language === "ko" ? "기본 스타일 (브랜드 보이스 미적용)" : "Default Style (No Brand Voice)"}
+                    </SelectItem>
                     {writerPersonas.map((persona) => (
                       <SelectItem key={persona.id} value={persona.id}>
                         {persona.name} {persona.is_default && "⭐"}
