@@ -95,12 +95,12 @@ export default function TrendsPage() {
     }
   }, [selectedBrandId])
 
-  // Load suggestions when persona changes
+  // Load suggestions when persona or language changes
   useEffect(() => {
     if (selectedPersonaId) {
       loadSuggestions()
     }
-  }, [selectedPersonaId])
+  }, [selectedPersonaId, language])
 
   const loadPersonas = async () => {
     try {
@@ -127,7 +127,7 @@ export default function TrendsPage() {
     if (!selectedPersonaId) return
 
     try {
-      const res = await fetch(`/api/trends/suggestions?personaId=${selectedPersonaId}`)
+      const res = await fetch(`/api/trends/suggestions?personaId=${selectedPersonaId}&language=${language}`)
       const data = await res.json()
       if (data.success) {
         setSuggestions(data.data)
@@ -298,15 +298,9 @@ export default function TrendsPage() {
                   <p className="text-zinc-500 text-sm mb-3 line-clamp-2">
                     {sug.reason}
                   </p>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-amber-400">
-                      🔥 {sug.metrics.googleTrends.searchVolume}/100
-                    </span>
-                    <span className="text-blue-400">
-                      ❤️ {formatMetric(sug.metrics.socialMedia.twitter.likes)}
-                    </span>
-                    <span className="text-orange-400">
-                      ⬆️ {formatMetric(sug.metrics.socialMedia.reddit.upvotes)}
+                  <div className="flex items-center gap-3 text-xs text-zinc-500">
+                    <span>
+                      {language === "ko" ? "추천 토픽" : "Recommended Topic"}
                     </span>
                   </div>
                 </button>
@@ -380,7 +374,7 @@ export default function TrendsPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
                           <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: Google Trends</span>
-                          <span className="text-amber-400 font-medium">🔥 {language === "ko" ? "인기도" : "Popularity"}: {query.value}/100</span>
+                          <span className="text-amber-400 font-medium">{language === "ko" ? "검색량" : "Search Volume"}: {query.value}/100</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(query.query) }}>
@@ -411,7 +405,7 @@ export default function TrendsPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
                           <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: @{tweet.author}</span>
-                          <span className="text-blue-400 font-medium">❤️ {tweet.likes.toLocaleString()} · 🔄 {tweet.retweets.toLocaleString()}</span>
+                          <span className="text-blue-400 font-medium">{language === "ko" ? "좋아요" : "Likes"}: {tweet.likes.toLocaleString()} · {language === "ko" ? "리트윗" : "Retweets"}: {tweet.retweets.toLocaleString()}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(tweet.text) }}>
@@ -447,7 +441,7 @@ export default function TrendsPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm">
                           <span className="text-zinc-500">{language === "ko" ? "출처" : "Source"}: r/{post.subreddit}</span>
-                          <span className="text-orange-400 font-medium">⬆️ {post.score.toLocaleString()} · 💬 {post.comments.toLocaleString()}</span>
+                          <span className="text-orange-400 font-medium">{language === "ko" ? "추천" : "Upvotes"}: {post.score.toLocaleString()} · {language === "ko" ? "댓글" : "Comments"}: {post.comments.toLocaleString()}</span>
                         </div>
                         <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
                           onClick={(e) => { e.stopPropagation(); createContentWithTopic(post.title) }}>

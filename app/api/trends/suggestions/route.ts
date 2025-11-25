@@ -25,7 +25,7 @@ interface Persona {
 }
 
 // Industry-specific trending keywords with specific, actionable topics
-const INDUSTRY_KEYWORDS: Record<string, string[]> = {
+const INDUSTRY_KEYWORDS_KO: Record<string, string[]> = {
   '병원': [
     '신규 환자 유치를 위한 네이버 블로그 최적화 전략',
     '의료법 준수하는 병원 SNS 콘텐츠 가이드',
@@ -98,11 +98,85 @@ const INDUSTRY_KEYWORDS: Record<string, string[]> = {
   ]
 }
 
+const INDUSTRY_KEYWORDS_EN: Record<string, string[]> = {
+  '병원': [
+    'Naver Blog Optimization Strategy for New Patient Acquisition',
+    'Hospital SNS Content Guide Complying with Medical Laws',
+    'How to Increase Hospital Credibility Through Review Management',
+    'How to Double Hospital Booking Rate Using KakaoTalk Channel',
+    'Medical Content Planning to Differentiate from Competing Hospitals',
+  ],
+  'IT': [
+    'Onboarding Strategy to Increase SaaS Premium Conversion Rate',
+    'How to Run a Tech Blog to Strengthen Developer Recruitment',
+    'LinkedIn Content Marketing for B2B Customer Acquisition',
+    'Building Product Trust with AI Technology Implementation Cases',
+    'Demo Day Preparation Strategy for Startup Investment',
+  ],
+  '스타트업': [
+    'How to Validate Product-Market Fit (PMF) for Early Startups',
+    'Quickly Launch MVP with Lean Startup Methodology',
+    'Pitch Deck Writing Guide to Convince Angel Investors',
+    'Growth Hacking Strategy to Increase Users 10x',
+    'Startup Branding: 3 Steps to Differentiated Positioning',
+  ],
+  '이커머스': [
+    'Product Detail Page Structure to Triple Online Store Conversion',
+    'Increase Sales by Entering KakaoTalk Gift Store',
+    'Review Marketing Strategy to Get 10x More Customer Reviews',
+    'How to Increase Inventory Turnover with Live Commerce',
+    'Size Guide Optimization to Reduce E-commerce Return Rate',
+  ],
+  '교육': [
+    'Curriculum Design to Double Online Course Completion Rate',
+    'Gamification Strategy to Increase EdTech Platform MAU',
+    'Education Content Marketing Cases to Gain Parent Trust',
+    'How to Increase Conversion from Free Trial to Paid Classes',
+    'Strategy to Reach 10K Subscribers on YouTube Education Channel',
+  ],
+  '부동산': [
+    'How to Close Direct Deals Without Real Estate Commission',
+    'Build Credibility with Apartment Investment ROI Analysis Content',
+    'Increase Property Views 10x with Naver Real Estate Optimization',
+    'Differentiated Real Estate Content with Reconstruction Info',
+    'Marketing Strategy for Studio Apartments for Single Households',
+  ],
+  '음식점': [
+    'How to Maintain Delivery App Review Rating Above 4.5',
+    'Create Word-of-Mouth with Instagram Aesthetic Food Photos',
+    'Reservation System Optimization to Reduce Weekend Wait Time',
+    'Menu Placement Strategy Using Menu Board Psychology',
+    'CRM Coupon Marketing to Create Loyal Customers',
+  ],
+  '뷰티': [
+    'Increase Product Awareness with Beauty Influencer Collaboration',
+    'Personalized Cosmetics Recommendation Content by Skin Concern',
+    'Global Marketing for K-Beauty Overseas Export',
+    'Gain Consumer Trust by Transparent Cosmetics Ingredient Disclosure',
+    'Product Usage Tutorial Viral with Beauty YouTube Shorts',
+  ],
+  '패션': [
+    'Strategy to Reduce Online Clothing Store Return Rate by 30%',
+    'Build Brand Identity with Fashion Lookbook Content',
+    'Increase Fashion Item Sales Conversion with Instagram Reels',
+    'Sustainable Fashion Brand Storytelling Methods',
+    'Flash Sale Strategy for Seasonal Clothing Inventory Clearance',
+  ],
+  'default': [
+    'Content Planning Method to Triple Social Media Engagement',
+    'Storytelling Strategy to Build Brand Awareness',
+    'How to Increase Organic Reach Without Advertising Cost',
+    'Community Management Strategy to Increase Customer Loyalty',
+    'Setting Measurable Digital Marketing KPIs for ROI Tracking',
+  ]
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const personaId = searchParams.get('personaId')
+    const language = searchParams.get('language') || 'ko'
 
     // Get user authentication
     const { data: { user } } = await supabase.auth.getUser()
@@ -115,7 +189,7 @@ export async function GET(request: NextRequest) {
     }
 
     let industry = 'default'
-    let brandName = '귀하'
+    let brandName = language === 'ko' ? '귀하' : 'You'
     let personaName = ''
     let personaInfo = ''
 
@@ -170,40 +244,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const INDUSTRY_KEYWORDS = language === 'ko' ? INDUSTRY_KEYWORDS_KO : INDUSTRY_KEYWORDS_EN
     const keywords = INDUSTRY_KEYWORDS[industry] || INDUSTRY_KEYWORDS.default
 
-    // Generate rich suggestions with mock engagement data
+    // Generate suggestions without mock data
     const suggestions = keywords.map((keyword, idx) => ({
       keyword,
       industry,
-      reason: generateReason(keyword, industry),
-      metrics: {
-        googleTrends: {
-          searchVolume: Math.floor(Math.random() * 100) + 1,
-          growthRate: Math.floor(Math.random() * 50) + 10,
-        },
-        socialMedia: {
-          twitter: {
-            mentions: Math.floor(Math.random() * 5000) + 500,
-            likes: Math.floor(Math.random() * 10000) + 1000,
-            retweets: Math.floor(Math.random() * 2000) + 200,
-          },
-          reddit: {
-            posts: Math.floor(Math.random() * 100) + 10,
-            upvotes: Math.floor(Math.random() * 5000) + 500,
-            comments: Math.floor(Math.random() * 500) + 50,
-          }
-        },
-        engagement: {
-          totalReach: formatNumber(Math.floor(Math.random() * 500000) + 50000),
-          engagementRate: (Math.random() * 5 + 2).toFixed(1) + '%',
-        }
-      },
-      sources: [
-        { name: 'Google Trends', value: Math.floor(Math.random() * 100) + 1 },
-        { name: 'Twitter/X', value: Math.floor(Math.random() * 10000) + 1000 },
-        { name: 'Reddit', value: Math.floor(Math.random() * 5000) + 500 },
-      ],
+      reason: generateReason(keyword, industry, language),
       priority: idx < 3 ? 'high' : idx < 6 ? 'medium' : 'low',
     }))
 
@@ -230,9 +278,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateReason(keyword: string, industry: string): string {
-  // Extract key action from keyword for more specific reason
-  const reasons = [
+function generateReason(keyword: string, industry: string, language: string): string {
+  const reasonsKo = [
     `타겟 고객의 실질적인 문제 해결에 집중한 실용적 주제로, 높은 콘텐츠 참여율이 예상됩니다`,
     `경쟁사 분석 결과 아직 많이 다루지 않은 차별화 가능한 토픽입니다`,
     `검색 의도가 명확해 구체적인 솔루션을 제공하면 고객 전환율이 높습니다`,
@@ -240,6 +287,15 @@ function generateReason(keyword: string, industry: string): string {
     `최근 ${industry} 업계의 공통 pain point를 해결하는 시의성 있는 콘텐츠입니다`,
   ]
 
+  const reasonsEn = [
+    `Practical topic focused on solving real customer problems, expected high content engagement`,
+    `Differentiated topic not widely covered by competitors yet based on competitive analysis`,
+    `Clear search intent leads to high customer conversion when providing specific solutions`,
+    `High viral potential with actionable strategies that generate shares and saves`,
+    `Timely content addressing common pain points in the ${industry} industry`,
+  ]
+
+  const reasons = language === 'ko' ? reasonsKo : reasonsEn
   return reasons[Math.floor(Math.random() * reasons.length)]
 }
 
