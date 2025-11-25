@@ -47,7 +47,6 @@ export default function ContentCreatePage() {
 
   useEffect(() => {
     loadBrands()
-    loadWriterPersonas()
 
     // Load topic from URL parameter
     const topicParam = searchParams.get('topic')
@@ -55,6 +54,13 @@ export default function ContentCreatePage() {
       setTopic(topicParam)
     }
   }, [])
+
+  // Load writer personas when selected brand changes
+  useEffect(() => {
+    if (selectedBrand) {
+      loadWriterPersonas()
+    }
+  }, [selectedBrand])
 
   const loadBrands = async () => {
     const supabase = createClient()
@@ -74,10 +80,13 @@ export default function ContentCreatePage() {
   }
 
   const loadWriterPersonas = async () => {
+    if (!selectedBrand) return
+
     const supabase = createClient()
     const result = await (supabase as any)
       .from("writer_personas")
       .select("*")
+      .eq("brand_id", selectedBrand)
       .order("is_default", { ascending: false })
       .order("usage_count", { ascending: false })
 
@@ -88,7 +97,13 @@ export default function ContentCreatePage() {
       const defaultPersona = data.find((p: any) => p.is_default)
       if (defaultPersona) {
         setSelectedWriterPersona(defaultPersona.id)
+      } else {
+        // Reset selection if no default
+        setSelectedWriterPersona("")
       }
+    } else {
+      setWriterPersonas([])
+      setSelectedWriterPersona("")
     }
   }
 
@@ -386,13 +401,13 @@ export default function ContentCreatePage() {
               </Select>
             </div>
 
-            {/* Writer Persona Selection */}
+            {/* Brand Voice Selection */}
             {contentType === "text" && writerPersonas.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>{t("writerPersona")}</Label>
+                  <Label>{language === "ko" ? "브랜드 보이스" : "Brand Voice"}</Label>
                   <a
-                    href="/settings/writer-persona"
+                    href="/writer-personas"
                     className="text-xs text-amber-400 hover:text-amber-300"
                   >
                     {t("manage")}
@@ -400,7 +415,7 @@ export default function ContentCreatePage() {
                 </div>
                 <Select value={selectedWriterPersona || "default"} onValueChange={(value) => setSelectedWriterPersona(value === "default" ? "" : value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder={t("writerPersonaSelect")} />
+                    <SelectValue placeholder={language === "ko" ? "브랜드 보이스 선택" : "Select Brand Voice"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="default">{t("defaultStyle")}</SelectItem>
