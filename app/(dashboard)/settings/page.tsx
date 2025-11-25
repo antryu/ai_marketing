@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { translations, TranslationKey } from "@/lib/translations"
 import { Button } from "@/components/ui/button"
-import { Settings as SettingsIcon, Link as LinkIcon, Users, Building2, Zap, CheckCircle2, XCircle, PenTool } from "lucide-react"
+import { Settings as SettingsIcon, Link as LinkIcon, Users, Building2, Zap, CheckCircle2, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
 const getPlatforms = (language: string) => [
@@ -300,50 +300,12 @@ export default function SettingsPage() {
           {/* Info Banner */}
           <div className="mt-8 p-4 bg-zinc-800/50 border border-zinc-700">
             <p className="text-sm text-zinc-400 font-normal">
-              💡 <strong className="text-zinc-300">Tip:</strong> 플랫폼을 연결하면 콘텐츠를 자동으로 발행할 수 있습니다.
-              각 플랫폼의 OAuth 인증이 필요합니다.
+              💡 <strong className="text-zinc-300">Tip:</strong>{" "}
+              {language === "ko"
+                ? "플랫폼을 연결하면 콘텐츠를 자동으로 발행할 수 있습니다. 각 플랫폼의 OAuth 인증이 필요합니다."
+                : "Connect platforms to automatically publish content. OAuth authentication is required for each platform."
+              }
             </p>
-          </div>
-        </div>
-
-        {/* Writer Persona Section */}
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <PenTool className="w-6 h-6 text-amber-400" />
-              <h2 className="text-2xl font-light text-white tracking-wide">작성자 페르소나</h2>
-            </div>
-            <a href="/settings/writer-persona">
-              <Button className="bg-amber-600 hover:bg-amber-700">
-                관리하기
-              </Button>
-            </a>
-          </div>
-          <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
-
-          <div className="space-y-4">
-            <p className="text-zinc-300 font-normal">
-              콘텐츠 작성 시 나만의 글쓰기 스타일과 전문성을 반영하세요.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-zinc-800/50 border border-zinc-700">
-                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">글쓰기 스타일</p>
-                <p className="text-white font-normal">전문적, 캐주얼, 기술적 등</p>
-              </div>
-              <div className="p-4 bg-zinc-800/50 border border-zinc-700">
-                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">언어 습관</p>
-                <p className="text-white font-normal">이모지, 문장 길이, 용어 사용</p>
-              </div>
-              <div className="p-4 bg-zinc-800/50 border border-zinc-700">
-                <p className="text-xs text-zinc-400 font-medium mb-2 tracking-wide uppercase">전문 분야</p>
-                <p className="text-white font-normal">기술, 마케팅, 창업 등</p>
-              </div>
-            </div>
-            <div className="p-4 bg-amber-900/10 border border-amber-400/30">
-              <p className="text-sm text-amber-200 font-normal">
-                💡 <strong className="text-amber-100">Tip:</strong> 작성자 페르소나를 설정하면 AI가 당신의 스타일로 콘텐츠를 생성합니다.
-              </p>
-            </div>
           </div>
         </div>
 
@@ -351,15 +313,22 @@ export default function SettingsPage() {
         <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
           <div className="flex items-center gap-3 mb-6">
             <Users className="w-6 h-6 text-amber-400" />
-            <h2 className="text-2xl font-light text-white tracking-wide">팀 관리</h2>
+            <h2 className="text-2xl font-light text-white tracking-wide">
+              {language === "ko" ? "팀 관리" : "Team Management"}
+            </h2>
           </div>
           <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
           <div className="text-center py-12 border border-dashed border-zinc-700">
             <Users className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400 font-normal mb-4">팀 협업 기능은 곧 추가됩니다</p>
+            <p className="text-zinc-400 font-normal mb-4">
+              {language === "ko" ? "팀 협업 기능은 곧 추가됩니다" : "Team collaboration features coming soon"}
+            </p>
             <p className="text-sm text-zinc-500 font-normal">
-              팀원을 초대하고 역할을 관리할 수 있습니다
+              {language === "ko"
+                ? "팀원을 초대하고 역할을 관리할 수 있습니다"
+                : "Invite team members and manage roles"
+              }
             </p>
           </div>
         </div>
