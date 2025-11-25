@@ -14,11 +14,6 @@ interface Brand {
   description: string
   product_type: string
   target_market: string[]
-  brand_voice: {
-    tone: string
-    style: string
-    values: string[]
-  }
   created_at: string
 }
 
@@ -35,11 +30,6 @@ export default function BrandPage() {
     description: "",
     product_type: "",
     target_market: [] as string[],
-    brand_voice: {
-      tone: "",
-      style: "",
-      values: [] as string[],
-    },
   })
 
   useEffect(() => {
@@ -68,7 +58,6 @@ export default function BrandPage() {
           description: brand.description || "",
           product_type: brand.product_type || "",
           target_market: brand.target_market || [],
-          brand_voice: brand.brand_voice || { tone: "", style: "", values: [] },
         })
       }
     } catch (error) {
@@ -168,11 +157,6 @@ export default function BrandPage() {
       description: "",
       product_type: "",
       target_market: [],
-      brand_voice: {
-        tone: "",
-        style: "",
-        values: [],
-      },
     })
   }
 
@@ -184,7 +168,6 @@ export default function BrandPage() {
         description: currentBrand.description || "",
         product_type: currentBrand.product_type || "",
         target_market: currentBrand.target_market || [],
-        brand_voice: currentBrand.brand_voice || { tone: "", style: "", values: [] },
       })
     }
   }
@@ -313,44 +296,6 @@ export default function BrandPage() {
                 <option value="company">{language === "en" ? "Company/Enterprise" : "회사/기업"}</option>
                 <option value="other">{language === "en" ? "Other" : "기타"}</option>
               </select>
-            </div>
-
-            {/* Brand Voice - Tone */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-200 tracking-wide">
-                {t("brandTone")}
-              </label>
-              <input
-                type="text"
-                value={formData.brand_voice.tone}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    brand_voice: { ...formData.brand_voice, tone: e.target.value },
-                  })
-                }
-                placeholder={t("brandTonePlaceholder")}
-                className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
-              />
-            </div>
-
-            {/* Brand Voice - Style */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-200 tracking-wide">
-                {t("brandStyle")}
-              </label>
-              <input
-                type="text"
-                value={formData.brand_voice.style}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    brand_voice: { ...formData.brand_voice, style: e.target.value },
-                  })
-                }
-                placeholder={t("brandStylePlaceholder")}
-                className="w-full h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
-              />
             </div>
 
           {/* Save Button */}
