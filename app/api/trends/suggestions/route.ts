@@ -1,12 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import Anthropic from '@anthropic-ai/sdk'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
+
+// Simple in-memory cache with 30-minute TTL
+interface CacheEntry {
+  data: any
+  timestamp: number
+}
+
+const suggestionCache = new Map<string, CacheEntry>()
+const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
+
+function getCachedSuggestions(key: string): any | null {
+  const entry = suggestionCache.get(key)
+  if (!entry) return null
+
+  const now = Date.now()
+  if (now - entry.timestamp > CACHE_TTL) {
+    suggestionCache.delete(key)
+    return null
+  }
+
+  return entry.data
+}
+
+function setCachedSuggestions(key: string, data: any): void {
+  suggestionCache.set(key, {
+    data,
+    timestamp: Date.now()
+  })
+}
 
 interface Brand {
   id: string
   name: string
   description?: string
+  product_type?: string
+  target_market?: string[]
   user_id: string
   created_at: string
 }
@@ -24,152 +57,7 @@ interface Persona {
   goals: string[]
 }
 
-// Industry-specific trending keywords with specific, actionable topics
-const INDUSTRY_KEYWORDS_KO: Record<string, string[]> = {
-  '병원': [
-    '신규 환자 유치를 위한 네이버 블로그 최적화 전략',
-    '의료법 준수하는 병원 SNS 콘텐츠 가이드',
-    '진료 후기 관리로 병원 신뢰도 높이는 법',
-    '병원 예약률 2배 높이는 카카오톡 채널 활용법',
-    '경쟁 병원과 차별화되는 의료 콘텐츠 기획',
-  ],
-  'IT': [
-    'SaaS 제품의 프리미엄 전환율 높이는 온보딩 전략',
-    '개발자 채용 경쟁력 강화하는 테크 블로그 운영법',
-    'B2B 고객 확보를 위한 링크드인 콘텐츠 마케팅',
-    'AI 기술 도입 사례로 제품 신뢰도 구축하기',
-    '스타트업 투자 유치를 위한 데모데이 준비 전략',
-  ],
-  '스타트업': [
-    '초기 스타트업의 제품-시장 적합성(PMF) 검증 방법',
-    '린스타트업 방식으로 빠르게 MVP 출시하기',
-    '엔젤 투자자 설득하는 피칭덱 작성 가이드',
-    '그로스해킹으로 사용자 10배 늘리는 실전 전략',
-    '스타트업 브랜딩: 차별화 포지셔닝 3단계',
-  ],
-  '이커머스': [
-    '온라인 쇼핑몰 전환율 3배 높이는 상세페이지 구성법',
-    '카카오톡 선물하기 입점으로 매출 늘리기',
-    '고객 리뷰 10배 많이 받는 리뷰 마케팅 전략',
-    '라이브커머스로 재고 소진율 높이는 방법',
-    '이커머스 반품률 줄이는 사이즈 가이드 최적화',
-  ],
-  '교육': [
-    '온라인 강의 수강 완료율 2배 높이는 커리큘럼 설계',
-    '에듀테크 플랫폼 MAU 늘리는 gamification 전략',
-    '학부모 신뢰 얻는 교육 콘텐츠 마케팅 사례',
-    '무료 체험 수업에서 유료 전환율 높이는 법',
-    'YouTube 교육 채널 구독자 1만 달성 전략',
-  ],
-  '부동산': [
-    '부동산 중개 수수료 없이 직거래 성사시키는 방법',
-    '아파트 투자 수익률 분석 콘텐츠로 신뢰도 구축',
-    '네이버 부동산 최적화로 매물 조회수 10배 늘리기',
-    '재건축·재개발 정보로 차별화된 부동산 콘텐츠',
-    '1인 가구 맞춤형 원룸 매물 마케팅 전략',
-  ],
-  '음식점': [
-    '배달앱 리뷰 평점 4.5점 이상 유지하는 방법',
-    '인스타그램 감성샷으로 맛집 입소문 만들기',
-    '주말 대기 시간 줄이는 예약 시스템 최적화',
-    '메뉴판 심리학: 주문율 높이는 메뉴 배치 전략',
-    '단골 고객 만드는 CRM 쿠폰 마케팅 활용법',
-  ],
-  '뷰티': [
-    '뷰티 인플루언서 협업으로 제품 인지도 높이기',
-    '피부 고민별 맞춤 화장품 추천 콘텐츠 전략',
-    'K-뷰티 해외 수출을 위한 글로벌 마케팅',
-    '화장품 성분 투명 공개로 소비자 신뢰 얻기',
-    '뷰티 유튜브 쇼츠로 제품 사용법 바이럴',
-  ],
-  '패션': [
-    '온라인 의류 쇼핑몰 반품률 30% 줄이는 전략',
-    '패션 룩북 콘텐츠로 브랜드 정체성 구축하기',
-    '인스타그램 릴스로 패션 아이템 판매 전환율 높이기',
-    '지속가능 패션 브랜드 스토리텔링 방법',
-    '시즌별 의류 재고 소진을 위한 플래시 세일 전략',
-  ],
-  'default': [
-    '소셜미디어 참여율 3배 높이는 콘텐츠 기획법',
-    '브랜드 인지도 구축을 위한 스토리텔링 전략',
-    '광고 비용 없이 유기적 도달률 높이는 방법',
-    '고객 충성도 높이는 커뮤니티 운영 전략',
-    'ROI 측정 가능한 디지털 마케팅 KPI 설정법',
-  ]
-}
-
-const INDUSTRY_KEYWORDS_EN: Record<string, string[]> = {
-  '병원': [
-    'Naver Blog Optimization Strategy for New Patient Acquisition',
-    'Hospital SNS Content Guide Complying with Medical Laws',
-    'How to Increase Hospital Credibility Through Review Management',
-    'How to Double Hospital Booking Rate Using KakaoTalk Channel',
-    'Medical Content Planning to Differentiate from Competing Hospitals',
-  ],
-  'IT': [
-    'Onboarding Strategy to Increase SaaS Premium Conversion Rate',
-    'How to Run a Tech Blog to Strengthen Developer Recruitment',
-    'LinkedIn Content Marketing for B2B Customer Acquisition',
-    'Building Product Trust with AI Technology Implementation Cases',
-    'Demo Day Preparation Strategy for Startup Investment',
-  ],
-  '스타트업': [
-    'How to Validate Product-Market Fit (PMF) for Early Startups',
-    'Quickly Launch MVP with Lean Startup Methodology',
-    'Pitch Deck Writing Guide to Convince Angel Investors',
-    'Growth Hacking Strategy to Increase Users 10x',
-    'Startup Branding: 3 Steps to Differentiated Positioning',
-  ],
-  '이커머스': [
-    'Product Detail Page Structure to Triple Online Store Conversion',
-    'Increase Sales by Entering KakaoTalk Gift Store',
-    'Review Marketing Strategy to Get 10x More Customer Reviews',
-    'How to Increase Inventory Turnover with Live Commerce',
-    'Size Guide Optimization to Reduce E-commerce Return Rate',
-  ],
-  '교육': [
-    'Curriculum Design to Double Online Course Completion Rate',
-    'Gamification Strategy to Increase EdTech Platform MAU',
-    'Education Content Marketing Cases to Gain Parent Trust',
-    'How to Increase Conversion from Free Trial to Paid Classes',
-    'Strategy to Reach 10K Subscribers on YouTube Education Channel',
-  ],
-  '부동산': [
-    'How to Close Direct Deals Without Real Estate Commission',
-    'Build Credibility with Apartment Investment ROI Analysis Content',
-    'Increase Property Views 10x with Naver Real Estate Optimization',
-    'Differentiated Real Estate Content with Reconstruction Info',
-    'Marketing Strategy for Studio Apartments for Single Households',
-  ],
-  '음식점': [
-    'How to Maintain Delivery App Review Rating Above 4.5',
-    'Create Word-of-Mouth with Instagram Aesthetic Food Photos',
-    'Reservation System Optimization to Reduce Weekend Wait Time',
-    'Menu Placement Strategy Using Menu Board Psychology',
-    'CRM Coupon Marketing to Create Loyal Customers',
-  ],
-  '뷰티': [
-    'Increase Product Awareness with Beauty Influencer Collaboration',
-    'Personalized Cosmetics Recommendation Content by Skin Concern',
-    'Global Marketing for K-Beauty Overseas Export',
-    'Gain Consumer Trust by Transparent Cosmetics Ingredient Disclosure',
-    'Product Usage Tutorial Viral with Beauty YouTube Shorts',
-  ],
-  '패션': [
-    'Strategy to Reduce Online Clothing Store Return Rate by 30%',
-    'Build Brand Identity with Fashion Lookbook Content',
-    'Increase Fashion Item Sales Conversion with Instagram Reels',
-    'Sustainable Fashion Brand Storytelling Methods',
-    'Flash Sale Strategy for Seasonal Clothing Inventory Clearance',
-  ],
-  'default': [
-    'Content Planning Method to Triple Social Media Engagement',
-    'Storytelling Strategy to Build Brand Awareness',
-    'How to Increase Organic Reach Without Advertising Cost',
-    'Community Management Strategy to Increase Customer Loyalty',
-    'Setting Measurable Digital Marketing KPIs for ROI Tracking',
-  ]
-}
+// Removed hardcoded INDUSTRY_KEYWORDS - now using AI generation
 
 export async function GET(request: NextRequest) {
   try {
@@ -177,6 +65,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const personaId = searchParams.get('personaId')
     const language = searchParams.get('language') || 'ko'
+    const forceRefresh = searchParams.get('refresh') === 'true'
 
     // Get user authentication
     const { data: { user } } = await supabase.auth.getUser()
@@ -188,8 +77,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let industry = 'default'
     let brandName = language === 'ko' ? '귀하' : 'You'
+    let brandData: Brand | null = null
+    let personaData: Persona | null = null
     let personaName = ''
     let personaInfo = ''
 
@@ -202,58 +92,56 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (persona) {
-        const personaData = persona as Persona
+        personaData = persona as Persona
         personaName = personaData.name
         personaInfo = `${personaData.age_range} ${personaData.gender}`
 
-        // Detect industry from persona's industry array
-        if (personaData.industry && personaData.industry.length > 0) {
-          const personaIndustry = personaData.industry[0].toLowerCase()
-
-          if (personaIndustry.includes('병원') || personaIndustry.includes('의료') || personaIndustry.includes('클리닉')) {
-            industry = '병원'
-          } else if (personaIndustry.includes('it') || personaIndustry.includes('개발') || personaIndustry.includes('소프트웨어')) {
-            industry = 'IT'
-          } else if (personaIndustry.includes('스타트업') || personaIndustry.includes('창업')) {
-            industry = '스타트업'
-          } else if (personaIndustry.includes('쇼핑') || personaIndustry.includes('이커머스') || personaIndustry.includes('온라인')) {
-            industry = '이커머스'
-          } else if (personaIndustry.includes('교육') || personaIndustry.includes('학원') || personaIndustry.includes('강의')) {
-            industry = '교육'
-          } else if (personaIndustry.includes('부동산') || personaIndustry.includes('아파트') || personaIndustry.includes('주택')) {
-            industry = '부동산'
-          } else if (personaIndustry.includes('음식') || personaIndustry.includes('식당') || personaIndustry.includes('카페')) {
-            industry = '음식점'
-          } else if (personaIndustry.includes('뷰티') || personaIndustry.includes('화장품') || personaIndustry.includes('미용')) {
-            industry = '뷰티'
-          } else if (personaIndustry.includes('패션') || personaIndustry.includes('의류') || personaIndustry.includes('옷')) {
-            industry = '패션'
-          }
-        }
-
-        // Get brand name for the persona's brand
+        // Get brand information for the persona's brand
         const { data: brand } = await supabase
           .from('brands')
-          .select('name')
+          .select('*')
           .eq('id', personaData.brand_id)
           .single()
 
         if (brand) {
-          brandName = (brand as Brand).name
+          brandData = brand as Brand
+          brandName = brandData.name
         }
       }
     }
 
-    const INDUSTRY_KEYWORDS = language === 'ko' ? INDUSTRY_KEYWORDS_KO : INDUSTRY_KEYWORDS_EN
-    const keywords = INDUSTRY_KEYWORDS[industry] || INDUSTRY_KEYWORDS.default
+    // Generate cache key based on brand and persona
+    const cacheKey = `${brandData?.id || 'default'}-${personaData?.id || 'default'}-${language}`
 
-    // Generate suggestions without mock data
-    const suggestions = keywords.map((keyword, idx) => ({
-      keyword,
-      industry,
-      reason: generateReason(keyword, industry, language),
-      priority: idx < 3 ? 'high' : idx < 6 ? 'medium' : 'low',
-    }))
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedData = getCachedSuggestions(cacheKey)
+      if (cachedData) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            brandName,
+            personaName,
+            personaInfo,
+            industry: personaData?.industry?.[0] || 'general',
+            suggestions: cachedData.suggestions,
+            updatedAt: cachedData.updatedAt,
+            aiGenerated: true,
+            cached: true,
+          },
+        })
+      }
+    }
+
+    // Generate AI-powered suggestions
+    const suggestions = await generateAISuggestions(brandData, personaData, language)
+
+    // Cache the result
+    const responseData = {
+      suggestions,
+      updatedAt: new Date().toISOString(),
+    }
+    setCachedSuggestions(cacheKey, responseData)
 
     return NextResponse.json({
       success: true,
@@ -261,9 +149,11 @@ export async function GET(request: NextRequest) {
         brandName,
         personaName,
         personaInfo,
-        industry,
+        industry: personaData?.industry?.[0] || 'general',
         suggestions,
-        updatedAt: new Date().toISOString(),
+        updatedAt: responseData.updatedAt,
+        aiGenerated: true,
+        cached: false,
       },
     })
   } catch (error) {
@@ -278,32 +168,350 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateReason(keyword: string, industry: string, language: string): string {
-  const reasonsKo = [
-    `타겟 고객의 실질적인 문제 해결에 집중한 실용적 주제로, 높은 콘텐츠 참여율이 예상됩니다`,
-    `경쟁사 분석 결과 아직 많이 다루지 않은 차별화 가능한 토픽입니다`,
-    `검색 의도가 명확해 구체적인 솔루션을 제공하면 고객 전환율이 높습니다`,
-    `실행 가능한 전략을 담아 공유와 저장이 많이 발생하는 바이럴 잠재력이 높은 주제입니다`,
-    `최근 ${industry} 업계의 공통 pain point를 해결하는 시의성 있는 콘텐츠입니다`,
-  ]
+async function fetchRealTimeTrends(
+  brand: Brand | null,
+  persona: Persona | null,
+  language: string
+): Promise<string> {
+  try {
+    // Determine market and language settings
+    const isKorean = language === 'ko'
+    const geo = isKorean ? 'KR' : 'US'
+    const langCode = isKorean ? 'ko' : 'en'
+    const tz = isKorean ? '-540' : '-300' // KST vs EST
 
-  const reasonsEn = [
-    `Practical topic focused on solving real customer problems, expected high content engagement`,
-    `Differentiated topic not widely covered by competitors yet based on competitive analysis`,
-    `Clear search intent leads to high customer conversion when providing specific solutions`,
-    `High viral potential with actionable strategies that generate shares and saves`,
-    `Timely content addressing common pain points in the ${industry} industry`,
-  ]
+    // Determine search keywords based on brand and persona
+    const searchKeywords: string[] = []
 
-  const reasons = language === 'ko' ? reasonsKo : reasonsEn
-  return reasons[Math.floor(Math.random() * reasons.length)]
-}
+    if (brand?.product_type) {
+      searchKeywords.push(brand.product_type)
+    }
+    if (persona?.industry && persona.industry.length > 0) {
+      searchKeywords.push(...persona.industry.slice(0, 2))
+    }
+    if (brand?.target_market && brand.target_market.length > 0) {
+      searchKeywords.push(...brand.target_market.slice(0, 1))
+    }
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M'
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K'
+    // Default to general marketing if no specific keywords
+    if (searchKeywords.length === 0) {
+      searchKeywords.push(isKorean ? '마케팅' : 'marketing', isKorean ? '콘텐츠' : 'content')
+    }
+
+    const trendPromises = searchKeywords.slice(0, 3).map(async (keyword) => {
+      try {
+        // Fetch Google Trends data for selected market
+        const googleTrendsUrl = `https://trends.google.com/trends/api/dailytrends?hl=${langCode}&tz=${tz}&geo=${geo}&ns=15`
+        const googleRes = await fetch(googleTrendsUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        })
+
+        // Fetch Naver DataLab trends (for Korean market only)
+        let naverTrends = null
+        if (isKorean) {
+          try {
+            const naverRes = await fetch('https://openapi.naver.com/v1/datalab/search', {
+              method: 'POST',
+              headers: {
+                'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID || '',
+                'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET || '',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, ''),
+                endDate: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+                timeUnit: 'date',
+                keywordGroups: [
+                  {
+                    groupName: keyword,
+                    keywords: [keyword]
+                  }
+                ]
+              })
+            })
+
+            if (naverRes.ok) {
+              naverTrends = await naverRes.json()
+            }
+          } catch (e) {
+            console.error('Naver DataLab error:', e)
+          }
+        }
+
+        // Fetch Reddit trending posts
+        const redditRes = await fetch(
+          `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=hot&t=week&limit=5`,
+          {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+          }
+        ).catch(() => null)
+
+        let redditData = null
+        if (redditRes?.ok) {
+          const json = await redditRes.json()
+          redditData = json.data?.children || []
+        }
+
+        // Fetch Twitter/X trending topics for selected language
+        const twitterRes = await fetch(
+          `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(keyword + ` lang:${langCode}`)}&max_results=10`,
+          {
+            headers: {
+              'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
+            },
+          }
+        ).catch(() => null)
+
+        return {
+          keyword,
+          googleTrends: googleRes.ok ? await googleRes.text() : null,
+          naverTrends,
+          reddit: redditData,
+          twitter: twitterRes?.ok ? await twitterRes.json() : null,
+        }
+      } catch (error) {
+        console.error(`Error fetching trends for ${keyword}:`, error)
+        return { keyword, googleTrends: null, naverTrends: null, reddit: null, twitter: null }
+      }
+    })
+
+    const results = await Promise.all(trendPromises)
+
+    // Format trend data for AI (in selected language)
+    let trendContext = isKorean ? '최근 트렌드 데이터:\n\n' : 'Recent Trend Data:\n\n'
+
+    results.forEach(({ keyword, googleTrends, naverTrends, reddit, twitter }) => {
+      trendContext += isKorean ? `[${keyword} 관련]\n` : `[Related to ${keyword}]\n`
+
+      // Naver DataLab (Korean market priority)
+      if (naverTrends && naverTrends.results && naverTrends.results.length > 0) {
+        const recentData = naverTrends.results[0].data.slice(-7) // Last 7 days
+        const avgRatio = recentData.reduce((sum: number, d: any) => sum + d.ratio, 0) / recentData.length
+        const trend = recentData[recentData.length - 1].ratio > avgRatio ? '상승' : '하락'
+        trendContext += `네이버 검색 트렌드: "${keyword}" 검색량 ${trend} 추세 (최근 7일 평균 검색량: ${avgRatio.toFixed(1)})\n`
+      }
+
+      // Google Trends
+      if (googleTrends) {
+        try {
+          const cleanJson = googleTrends.replace(/^\)\]\}'\n/, '')
+          const data = JSON.parse(cleanJson)
+          const topics = data.default?.trendingSearchesDays?.[0]?.trendingSearches || []
+          if (topics.length > 0) {
+            const label = isKorean ? 'Google 급상승 검색어' : 'Google Trending Searches'
+            trendContext += `${label}: ${topics.slice(0, 3).map((t: any) => t.title.query).join(', ')}\n`
+          }
+        } catch (e) {
+          // Skip if parsing fails
+        }
+      }
+
+      // Reddit
+      if (reddit && reddit.length > 0) {
+        const hotPosts = reddit.slice(0, 3)
+        const label = isKorean ? 'Reddit 인기 토론' : 'Reddit Hot Discussions'
+        const postTitles = hotPosts.map((post: any) => {
+          const title = post.data.title.substring(0, 60)
+          const score = post.data.score
+          const subreddit = post.data.subreddit
+          return `[r/${subreddit}] ${title} (👍${score})`
+        }).join(' | ')
+        trendContext += `${label}: ${postTitles}\n`
+      }
+
+      // Twitter/X
+      if (twitter?.data) {
+        const tweets = twitter.data.slice(0, 3)
+        if (tweets.length > 0) {
+          const label = isKorean ? 'Twitter 인기 주제' : 'Twitter Trending Topics'
+          trendContext += `${label}: ${tweets.map((t: any) => t.text.substring(0, 50)).join(' | ')}\n`
+        }
+      }
+
+      trendContext += '\n'
+    })
+
+    return trendContext
+  } catch (error) {
+    console.error('Error fetching real-time trends:', error)
+    return language === 'ko'
+      ? '실시간 트렌드 데이터를 가져올 수 없습니다.'
+      : 'Unable to fetch real-time trend data.'
   }
-  return num.toString()
 }
+
+async function generateAISuggestions(
+  brand: Brand | null,
+  persona: Persona | null,
+  language: string
+): Promise<Array<{ keyword: string; reason: string; priority: string }>> {
+  const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  })
+
+  // Fetch real-time trend data for selected market
+  const realTimeTrends = await fetchRealTimeTrends(brand, persona, language)
+
+  // Build context for AI
+  const brandContext = brand ? `
+브랜드: ${brand.name}
+${brand.description ? `설명: ${brand.description}` : ''}
+${brand.product_type ? `제품/서비스 유형: ${brand.product_type}` : ''}
+${brand.target_market?.length ? `타겟 시장: ${brand.target_market.join(', ')}` : ''}
+  `.trim() : '일반 브랜드'
+
+  const personaContext = persona ? `
+타겟 고객: ${persona.name}
+${persona.description ? `설명: ${persona.description}` : ''}
+연령대: ${persona.age_range}
+성별: ${persona.gender}
+${persona.job_title?.length ? `직업: ${persona.job_title.join(', ')}` : ''}
+${persona.industry?.length ? `산업: ${persona.industry.join(', ')}` : ''}
+${persona.pain_points?.length ? `고민/문제: ${persona.pain_points.join(', ')}` : ''}
+${persona.goals?.length ? `목표: ${persona.goals.join(', ')}` : ''}
+  `.trim() : '일반 타겟 고객'
+
+  const prompt = language === 'ko' ? `
+당신은 마케팅 트렌드 전문가입니다. 다음 정보를 바탕으로 현재 한국 시장에서 효과적인 콘텐츠 마케팅 주제 5개를 추천해주세요.
+
+${brandContext}
+
+${personaContext}
+
+${realTimeTrends}
+
+요구사항:
+1. 각 주제는 구체적이고 실행 가능해야 합니다
+2. 타겟 고객의 고민과 목표를 직접적으로 해결하는 내용이어야 합니다
+3. **위의 실시간 트렌드 데이터(네이버, 구글, Reddit, Twitter)를 반드시 반영**하여, 지금 한국에서 검색되고 화제가 되는 주제와 연결해야 합니다
+4. 브랜드의 산업 특성과 타겟 고객의 특성을 고려해야 합니다
+5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (네이버/구글/Reddit/Twitter 트렌드 근거 포함)
+
+JSON 형식으로 응답해주세요:
+{
+  "suggestions": [
+    {
+      "keyword": "구체적인 마케팅 주제 (예: 필라테스 스튜디오를 위한 인스타그램 릴스 활용법)",
+      "reason": "이 주제가 왜 효과적인지 구체적인 이유 (네이버/구글/Reddit/Twitter 실시간 트렌드, 타겟 고객, 브랜드 특성 언급)",
+      "priority": "high/medium/low"
+    }
+  ]
+}
+` : `
+You are a marketing trend expert. Based on the following information, recommend 5 effective content marketing topics for the current US/global market.
+
+${brandContext}
+
+${personaContext}
+
+${realTimeTrends}
+
+Requirements:
+1. Each topic must be specific and actionable
+2. Content must directly address target customer pain points and goals
+3. **Must incorporate the real-time trend data above (Google, Reddit, Twitter)** - connect with topics currently being searched and discussed in the US/global market
+4. Consider brand's industry characteristics and target customer profile
+5. Provide specific reasons why each topic is effective (include Google/Reddit/Twitter trend evidence)
+
+Respond in JSON format:
+{
+  "suggestions": [
+    {
+      "keyword": "Specific marketing topic (e.g., Instagram Reels Strategy for Pilates Studios)",
+      "reason": "Specific reason why this topic is effective (mention Google/Reddit/Twitter real-time trends, target audience, brand characteristics)",
+      "priority": "high/medium/low"
+    }
+  ]
+}
+`
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 2000,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    })
+
+    const content = message.content[0]
+    if (content.type === 'text') {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0])
+        return parsed.suggestions || []
+      }
+    }
+
+    // Fallback to default suggestions if AI fails
+    return getDefaultSuggestions(language)
+  } catch (error) {
+    console.error('AI generation error:', error)
+    return getDefaultSuggestions(language)
+  }
+}
+
+function getDefaultSuggestions(language: string): Array<{ keyword: string; reason: string; priority: string }> {
+  if (language === 'ko') {
+    return [
+      {
+        keyword: '소셜미디어 참여율 3배 높이는 콘텐츠 기획법',
+        reason: '타겟 고객의 실질적인 문제 해결에 집중한 실용적 주제로, 높은 콘텐츠 참여율이 예상됩니다',
+        priority: 'high'
+      },
+      {
+        keyword: '브랜드 인지도 구축을 위한 스토리텔링 전략',
+        reason: '경쟁사 분석 결과 아직 많이 다루지 않은 차별화 가능한 토픽입니다',
+        priority: 'high'
+      },
+      {
+        keyword: '광고 비용 없이 유기적 도달률 높이는 방법',
+        reason: '검색 의도가 명확해 구체적인 솔루션을 제공하면 고객 전환율이 높습니다',
+        priority: 'high'
+      },
+      {
+        keyword: '고객 충성도 높이는 커뮤니티 운영 전략',
+        reason: '실행 가능한 전략을 담아 공유와 저장이 많이 발생하는 바이럴 잠재력이 높은 주제입니다',
+        priority: 'medium'
+      },
+      {
+        keyword: 'ROI 측정 가능한 디지털 마케팅 KPI 설정법',
+        reason: '최근 업계의 공통 pain point를 해결하는 시의성 있는 콘텐츠입니다',
+        priority: 'medium'
+      }
+    ]
+  } else {
+    return [
+      {
+        keyword: 'Content Planning Method to Triple Social Media Engagement',
+        reason: 'Practical topic focused on solving real customer problems, expected high content engagement',
+        priority: 'high'
+      },
+      {
+        keyword: 'Storytelling Strategy to Build Brand Awareness',
+        reason: 'Differentiated topic not widely covered by competitors yet based on competitive analysis',
+        priority: 'high'
+      },
+      {
+        keyword: 'How to Increase Organic Reach Without Advertising Cost',
+        reason: 'Clear search intent leads to high customer conversion when providing specific solutions',
+        priority: 'high'
+      },
+      {
+        keyword: 'Community Management Strategy to Increase Customer Loyalty',
+        reason: 'High viral potential with actionable strategies that generate shares and saves',
+        priority: 'medium'
+      },
+      {
+        keyword: 'Setting Measurable Digital Marketing KPIs for ROI Tracking',
+        reason: 'Timely content addressing common pain points in the industry',
+        priority: 'medium'
+      }
+    ]
+  }
+}
+
+// Removed unused helper functions - now using AI generation
