@@ -286,6 +286,27 @@ export default function TrendsPage() {
           </Card>
         )}
 
+        {/* AI Suggestions Loading */}
+        {loadingSuggestions && (
+          <Card className="p-6 bg-gradient-to-br from-amber-400/10 via-zinc-900 to-zinc-900 border-amber-400/30 mb-8">
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-amber-400 mb-4"></div>
+              <h3 className="text-white text-lg font-medium mb-2">
+                {language === "ko"
+                  ? "AI가 맞춤 토픽을 생성하고 있습니다..."
+                  : "AI is generating personalized topics..."
+                }
+              </h3>
+              <p className="text-zinc-400 text-sm text-center max-w-md">
+                {language === "ko"
+                  ? "실시간 트렌드 데이터를 분석하고 있습니다. 최대 30초 정도 소요될 수 있습니다."
+                  : "Analyzing real-time trend data. This may take up to 30 seconds."
+                }
+              </p>
+            </div>
+          </Card>
+        )}
+
         {/* AI Suggestions */}
         {!loadingSuggestions && suggestions && (
           <Card className="p-6 bg-gradient-to-br from-amber-400/10 via-zinc-900 to-zinc-900 border-amber-400/30 mb-8">
