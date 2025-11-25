@@ -74,7 +74,7 @@ export default function DashboardPage() {
       count: brands.length,
     },
     {
-      title: t("targetCustomers"),
+      title: t("navTargetCustomers"),
       description: t("targetCustomersDesc"),
       icon: Target,
       href: "/personas",
