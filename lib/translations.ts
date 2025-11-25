@@ -525,7 +525,7 @@ export const translations = {
   trendsTitle: { ko: "트렌드 토픽 발굴", en: "Trend Topic Discovery" },
   trendsSubtitle: { ko: "인기 검색어와 트렌드를 분석하여 콘텐츠 아이디어를 얻으세요", en: "Analyze trending searches and topics for content ideas" },
   trendIndustry: { ko: "업종/키워드", en: "Industry/Keyword" },
-  industryPlaceholder: { ko: "예: 병원 마케팅, IT 스타트업", en: "e.g., Hospital marketing, IT Startup" },
+  trendIndustryPlaceholder: { ko: "예: 병원 마케팅, IT 스타트업", en: "e.g., Hospital marketing, IT Startup" },
   analyzeTrends: { ko: "트렌드 분석", en: "Analyze Trends" },
   analyzing: { ko: "분석 중...", en: "Analyzing..." },
   googleTrends: { ko: "Google 트렌드", en: "Google Trends" },
