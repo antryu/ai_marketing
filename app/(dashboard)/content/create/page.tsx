@@ -43,6 +43,7 @@ export default function ContentCreatePage() {
   const [loadingSeo, setLoadingSeo] = useState(false)
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([])
   const [manualKeyword, setManualKeyword] = useState("")
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadBrands()
@@ -231,6 +232,50 @@ export default function ContentCreatePage() {
 
   const removeKeyword = (keyword: string) => {
     setSelectedKeywords(prev => prev.filter(k => k !== keyword))
+  }
+
+  const handleSaveContent = async () => {
+    if (!generatedContent || !selectedBrand) {
+      toast.error(language === "ko" ? "콘텐츠와 브랜드를 선택해주세요" : "Please select content and brand")
+      return
+    }
+
+    setSaving(true)
+    try {
+      const supabase = createClient()
+
+      const { data, error } = await (supabase as any)
+        .from("contents")
+        .insert({
+          brand_id: selectedBrand,
+          writer_persona_id: selectedWriterPersona || null,
+          topic,
+          body: generatedContent,
+          content_type: "text",
+          ai_model: usedAiModel || "claude",
+          platform: platform,
+          seo_keywords: selectedKeywords,
+          status: "draft"
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      toast.success(language === "ko" ? "콘텐츠가 저장되었습니다!" : "Content saved successfully!")
+
+      // Reset form
+      setGeneratedContent("")
+      setTopic("")
+      setSelectedKeywords([])
+      setSeoSuggestions(null)
+
+    } catch (error: any) {
+      console.error("Save error:", error)
+      toast.error(error.message || (language === "ko" ? "저장 실패" : "Failed to save"))
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loadingBrands) {
@@ -793,13 +838,32 @@ export default function ContentCreatePage() {
                       </p>
                     )}
                   </div>
-                  <Button
-                    onClick={() => router.push('/content')}
-                    className="w-full bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    {t("goToContentList")}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={handleSaveContent}
+                      disabled={saving || !generatedContent}
+                      className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          {language === "ko" ? "저장 중..." : "Saving..."}
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4 mr-2" />
+                          {language === "ko" ? "저장" : "Save"}
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => router.push('/content')}
+                      className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      {language === "ko" ? "목록" : "List"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (

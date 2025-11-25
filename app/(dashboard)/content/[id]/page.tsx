@@ -172,6 +172,23 @@ export default function ContentDetailPage() {
                 </div>
               </div>
 
+              {/* SEO Keywords */}
+              {content.seo_keywords && content.seo_keywords.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-zinc-700">
+                  <h4 className="text-sm font-medium text-zinc-300 mb-2">🏷️ SEO 키워드</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {content.seo_keywords.map((keyword: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="text-xs px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {content.ai_model && (
                 <div className="mt-4 text-xs text-zinc-500 flex items-center justify-between">
                   <span>AI 모델: {content.ai_model}</span>

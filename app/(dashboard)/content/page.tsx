@@ -158,6 +158,25 @@ export default function ContentPage() {
                         {content.body}
                       </p>
 
+                      {/* SEO Keywords */}
+                      {content.seo_keywords && content.seo_keywords.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {content.seo_keywords.slice(0, 5).map((keyword: string, idx: number) => (
+                            <span
+                              key={idx}
+                              className="text-xs px-2 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                          {content.seo_keywords.length > 5 && (
+                            <span className="text-xs text-zinc-500">
+                              +{content.seo_keywords.length - 5}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-4 text-xs text-zinc-500 font-normal">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
