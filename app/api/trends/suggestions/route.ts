@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
           .single()
 
         if (brand) {
-          brandName = brand.name
+          brandName = (brand as Brand).name
         }
       }
     }
