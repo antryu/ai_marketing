@@ -238,19 +238,7 @@ async function fetchRealTimeTrends(
           }
         }
 
-        // Fetch Reddit trending posts
-        const redditRes = await fetch(
-          `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=hot&t=week&limit=5`,
-          {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-          }
-        ).catch(() => null)
-
-        let redditData = null
-        if (redditRes?.ok) {
-          const json = await redditRes.json()
-          redditData = json.data?.children || []
-        }
+        // Reddit API removed - now paid API with strict limitations
 
         // Fetch Twitter/X trending topics for selected language
         const twitterRes = await fetch(
@@ -266,12 +254,11 @@ async function fetchRealTimeTrends(
           keyword,
           googleTrends: googleRes.ok ? await googleRes.text() : null,
           naverTrends,
-          reddit: redditData,
           twitter: twitterRes?.ok ? await twitterRes.json() : null,
         }
       } catch (error) {
         console.error(`Error fetching trends for ${keyword}:`, error)
-        return { keyword, googleTrends: null, naverTrends: null, reddit: null, twitter: null }
+        return { keyword, googleTrends: null, naverTrends: null, twitter: null }
       }
     })
 
@@ -280,7 +267,7 @@ async function fetchRealTimeTrends(
     // Format trend data for AI (in selected language)
     let trendContext = isKorean ? '최근 트렌드 데이터:\n\n' : 'Recent Trend Data:\n\n'
 
-    results.forEach(({ keyword, googleTrends, naverTrends, reddit, twitter }) => {
+    results.forEach(({ keyword, googleTrends, naverTrends, twitter }) => {
       trendContext += isKorean ? `[${keyword} 관련]\n` : `[Related to ${keyword}]\n`
 
       // Naver DataLab (Korean market priority)
@@ -304,19 +291,6 @@ async function fetchRealTimeTrends(
         } catch (e) {
           // Skip if parsing fails
         }
-      }
-
-      // Reddit
-      if (reddit && reddit.length > 0) {
-        const hotPosts = reddit.slice(0, 3)
-        const label = isKorean ? 'Reddit 인기 토론' : 'Reddit Hot Discussions'
-        const postTitles = hotPosts.map((post: any) => {
-          const title = post.data.title.substring(0, 60)
-          const score = post.data.score
-          const subreddit = post.data.subreddit
-          return `[r/${subreddit}] ${title} (👍${score})`
-        }).join(' | ')
-        trendContext += `${label}: ${postTitles}\n`
       }
 
       // Twitter/X
@@ -383,16 +357,16 @@ ${realTimeTrends}
 요구사항:
 1. 각 주제는 구체적이고 실행 가능해야 합니다
 2. 타겟 고객의 고민과 목표를 직접적으로 해결하는 내용이어야 합니다
-3. **위의 실시간 트렌드 데이터(네이버, 구글, Reddit, Twitter)를 반드시 반영**하여, 지금 한국에서 검색되고 화제가 되는 주제와 연결해야 합니다
+3. **위의 실시간 트렌드 데이터를 반드시 반영**하여, 지금 한국에서 검색되고 화제가 되는 주제와 연결해야 합니다
 4. 브랜드의 산업 특성과 타겟 고객의 특성을 고려해야 합니다
-5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (네이버/구글/Reddit/Twitter 트렌드 근거 포함)
+5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (실시간 트렌드 근거 포함)
 
 JSON 형식으로 응답해주세요:
 {
   "suggestions": [
     {
       "keyword": "구체적인 마케팅 주제 (예: 필라테스 스튜디오를 위한 인스타그램 릴스 활용법)",
-      "reason": "이 주제가 왜 효과적인지 구체적인 이유 (네이버/구글/Reddit/Twitter 실시간 트렌드, 타겟 고객, 브랜드 특성 언급)",
+      "reason": "이 주제가 왜 효과적인지 구체적인 이유 (실시간 트렌드, 타겟 고객, 브랜드 특성 언급)",
       "priority": "high/medium/low"
     }
   ]
@@ -409,16 +383,16 @@ ${realTimeTrends}
 Requirements:
 1. Each topic must be specific and actionable
 2. Content must directly address target customer pain points and goals
-3. **Must incorporate the real-time trend data above (Google, Reddit, Twitter)** - connect with topics currently being searched and discussed in the US/global market
+3. **Must incorporate the real-time trend data above** - connect with topics currently being searched and discussed in the US/global market
 4. Consider brand's industry characteristics and target customer profile
-5. Provide specific reasons why each topic is effective (include Google/Reddit/Twitter trend evidence)
+5. Provide specific reasons why each topic is effective (include real-time trend evidence)
 
 Respond in JSON format:
 {
   "suggestions": [
     {
       "keyword": "Specific marketing topic (e.g., Instagram Reels Strategy for Pilates Studios)",
-      "reason": "Specific reason why this topic is effective (mention Google/Reddit/Twitter real-time trends, target audience, brand characteristics)",
+      "reason": "Specific reason why this topic is effective (mention real-time trends, target audience, brand characteristics)",
       "priority": "high/medium/low"
     }
   ]

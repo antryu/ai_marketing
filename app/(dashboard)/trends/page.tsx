@@ -323,17 +323,15 @@ export default function TrendsPage() {
                 <div className="text-sm text-zinc-400 space-y-1.5">
                   {language === "ko" ? (
                     <>
-                      <p className="text-zinc-300 font-medium mb-2">🇰🇷 한국 시장 트렌드 분석:</p>
+                      <p className="text-zinc-300 font-medium mb-2">🇰🇷 한국 시장 트렌드 분석 (3개 플랫폼):</p>
                       <p>• <span className="text-green-400 font-medium">Naver DataLab</span>: 네이버 검색 트렌드 (최우선) - 한국 검색 시장 점유율 1위</p>
                       <p>• <span className="text-amber-400 font-medium">Google Trends KR</span>: 한국에서 급상승하는 검색어와 관련 주제</p>
-                      <p>• <span className="text-orange-400 font-medium">Reddit</span>: 글로벌 커뮤니티 토론 (한국 관련 서브레딧 포함)</p>
                       <p>• <span className="text-blue-400 font-medium">Twitter/X 한국어</span>: 한국어 트윗 중 높은 참여도를 보이는 실시간 주제</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-zinc-300 font-medium mb-2">🌎 US/Global Market Trends:</p>
+                      <p className="text-zinc-300 font-medium mb-2">🌎 US/Global Market Trends (2 platforms):</p>
                       <p>• <span className="text-amber-400 font-medium">Google Trends US</span>: Rising keywords and related searches in the United States</p>
-                      <p>• <span className="text-orange-400 font-medium">Reddit</span>: Popular discussions from US/global communities</p>
                       <p>• <span className="text-blue-400 font-medium">Twitter/X English</span>: High-engagement English tweets from global users</p>
                     </>
                   )}
