@@ -113,10 +113,13 @@ export async function GET(request: NextRequest) {
     // Generate cache key based on brand and persona
     const cacheKey = `${brandData?.id || 'default'}-${personaData?.id || 'default'}-${language}`
 
+    console.log('🔑 Cache key:', cacheKey, { brandId: brandData?.id, personaId: personaData?.id, personaName })
+
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
       const cachedData = getCachedSuggestions(cacheKey)
       if (cachedData) {
+        console.log('💾 Returning cached suggestions for:', personaName)
         return NextResponse.json({
           success: true,
           data: {
@@ -132,6 +135,8 @@ export async function GET(request: NextRequest) {
         })
       }
     }
+
+    console.log('🤖 Generating new AI suggestions for:', personaName)
 
     // Generate AI-powered suggestions
     const suggestions = await generateAISuggestions(brandData, personaData, language)
@@ -238,62 +243,7 @@ async function fetchRealTimeTrends(
           }
         }
 
-        // Fetch Reddit RSS feeds (no API key required)
-        let redditData: any[] = []
-        try {
-          // Fetch both hot and top weekly posts
-          const [hotRes, topRes] = await Promise.all([
-            fetch('https://www.reddit.com/r/all/hot/.rss?limit=25', {
-              headers: { 'User-Agent': 'Mozilla/5.0' }
-            }),
-            fetch('https://www.reddit.com/r/all/top/.rss?sort=top&t=week&limit=25', {
-              headers: { 'User-Agent': 'Mozilla/5.0' }
-            })
-          ])
-
-          const parseRedditRSS = (rssText: string) => {
-            // Extract titles from RSS XML using regex
-            const titleMatches = rssText.matchAll(/<title><!\[CDATA\[(.*?)\]\]><\/title>/g)
-            const titles: string[] = []
-            for (const match of titleMatches) {
-              const title = match[1]
-              // Skip the first title (it's the subreddit name)
-              if (!title.startsWith('r/')) {
-                titles.push(title)
-              }
-            }
-            return titles
-          }
-
-          if (hotRes.ok) {
-            const hotText = await hotRes.text()
-            const hotTitles = parseRedditRSS(hotText)
-            redditData.push(...hotTitles.map(title => ({
-              title,
-              source: 'hot',
-              relevance: title.toLowerCase().includes(keyword.toLowerCase()) ? 'high' : 'medium'
-            })))
-          }
-
-          if (topRes.ok) {
-            const topText = await topRes.text()
-            const topTitles = parseRedditRSS(topText)
-            redditData.push(...topTitles.map(title => ({
-              title,
-              source: 'top_week',
-              relevance: title.toLowerCase().includes(keyword.toLowerCase()) ? 'high' : 'medium'
-            })))
-          }
-
-          // Filter for relevance to keyword (case-insensitive partial match)
-          redditData = redditData.filter(item =>
-            item.title.toLowerCase().includes(keyword.toLowerCase()) ||
-            keyword.toLowerCase().split(' ').some((word: string) => item.title.toLowerCase().includes(word))
-          )
-        } catch (e) {
-          console.error('Reddit RSS error:', e)
-          // Fail silently - Reddit is optional
-        }
+        // Reddit RSS removed for performance - was causing 20+ second delays
 
         // Fetch Twitter/X trending topics for selected language
         const twitterRes = await fetch(
@@ -309,12 +259,11 @@ async function fetchRealTimeTrends(
           keyword,
           googleTrends: googleRes.ok ? await googleRes.text() : null,
           naverTrends,
-          reddit: redditData,
           twitter: twitterRes?.ok ? await twitterRes.json() : null,
         }
       } catch (error) {
         console.error(`Error fetching trends for ${keyword}:`, error)
-        return { keyword, googleTrends: null, naverTrends: null, reddit: null, twitter: null }
+        return { keyword, googleTrends: null, naverTrends: null, twitter: null }
       }
     })
 
@@ -323,7 +272,7 @@ async function fetchRealTimeTrends(
     // Format trend data for AI (in selected language)
     let trendContext = isKorean ? '최근 트렌드 데이터:\n\n' : 'Recent Trend Data:\n\n'
 
-    results.forEach(({ keyword, googleTrends, naverTrends, reddit, twitter }) => {
+    results.forEach(({ keyword, googleTrends, naverTrends, twitter }) => {
       trendContext += isKorean ? `[${keyword} 관련]\n` : `[Related to ${keyword}]\n`
 
       // Naver DataLab (Korean market priority)
@@ -347,17 +296,6 @@ async function fetchRealTimeTrends(
         } catch (e) {
           // Skip if parsing fails
         }
-      }
-
-      // Reddit (parsed from RSS feeds)
-      if (reddit && reddit.length > 0) {
-        const topPosts = reddit.slice(0, 5)
-        const label = isKorean ? 'Reddit 인기 토론 (주간 Top + 실시간 Hot)' : 'Reddit Trending (Weekly Top + Hot)'
-        const postList = topPosts.map((post: any) => {
-          const sourceLabel = post.source === 'top_week' ? '📈주간인기' : '🔥실시간'
-          return `[${sourceLabel}] ${post.title}`
-        }).join('\n  • ')
-        trendContext += `${label}:\n  • ${postList}\n`
       }
 
       // Twitter/X
@@ -427,10 +365,9 @@ ${realTimeTrends}
 3. **위의 실시간 트렌드 데이터를 반드시 반영**하여, 지금 한국에서 검색되고 화제가 되는 주제와 연결해야 합니다
    - 네이버 검색 트렌드: 한국 검색 시장 1위 플랫폼 데이터
    - Google 트렌드: 글로벌 관점의 한국 검색 트렌드
-   - Reddit 인기 토론: 글로벌 커뮤니티에서 주간 인기글(📈주간인기)과 실시간 핫 토픽(🔥실시간) 구분하여 반영
    - Twitter/X: 한국어 실시간 소셜 미디어 트렌드
 4. 브랜드의 산업 특성과 타겟 고객의 특성을 고려해야 합니다
-5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (실시간 트렌드 근거를 **데이터 소스별로** 구분하여 명시)
+5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (실시간 트렌드 근거 포함)
 
 JSON 형식으로 응답해주세요:
 {
@@ -456,10 +393,9 @@ Requirements:
 2. Content must directly address target customer pain points and goals
 3. **Must incorporate the real-time trend data above** - connect with topics currently being searched and discussed in the US/global market
    - Google Trends: US search trend data
-   - Reddit Trending: Distinguish between weekly top posts (📈Weekly Top) and real-time hot topics (🔥Hot) from global communities
    - Twitter/X: Real-time English social media trends
 4. Consider brand's industry characteristics and target customer profile
-5. Provide specific reasons why each topic is effective (cite real-time trend evidence **by data source**)
+5. Provide specific reasons why each topic is effective (cite real-time trend evidence)
 
 Respond in JSON format:
 {
@@ -475,7 +411,7 @@ Respond in JSON format:
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
+      model: 'claude-3-opus-20240229',
       max_tokens: 2000,
       messages: [
         {
