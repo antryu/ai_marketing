@@ -519,6 +519,48 @@ export const translations = {
 
   // Toast
   stripeComingSoon: { ko: "플랜 결제 기능은 Stripe 연동 후 사용 가능합니다", en: "plan payment will be available after Stripe integration" },
+
+  // Trends Page
+  navTrends: { ko: "트렌드 토픽", en: "Trend Topics" },
+  trendsTitle: { ko: "트렌드 토픽 발굴", en: "Trend Topic Discovery" },
+  trendsSubtitle: { ko: "인기 검색어와 트렌드를 분석하여 콘텐츠 아이디어를 얻으세요", en: "Analyze trending searches and topics for content ideas" },
+  industry: { ko: "업종/키워드", en: "Industry/Keyword" },
+  industryPlaceholder: { ko: "예: 병원 마케팅, IT 스타트업", en: "e.g., Hospital marketing, IT Startup" },
+  analyzeTrends: { ko: "트렌드 분석", en: "Analyze Trends" },
+  analyzing: { ko: "분석 중...", en: "Analyzing..." },
+  googleTrends: { ko: "Google 트렌드", en: "Google Trends" },
+  naverDataLab: { ko: "네이버 데이터랩", en: "Naver DataLab" },
+  twitterTrends: { ko: "X(Twitter) 인기글", en: "X(Twitter) Trending" },
+  redditTrends: { ko: "Reddit 인기글", en: "Reddit Trending" },
+  topPosts: { ko: "인기 포스트", en: "Top Posts" },
+  subreddit: { ko: "서브레딧", en: "Subreddit" },
+  upvotes: { ko: "업보트", en: "Upvotes" },
+  comments: { ko: "댓글", en: "Comments" },
+  viewOnReddit: { ko: "Reddit에서 보기", en: "View on Reddit" },
+  relatedKeywords: { ko: "관련 검색어", en: "Related Keywords" },
+  searchVolume: { ko: "검색량", en: "Search Volume" },
+  trendChart: { ko: "트렌드 차트", en: "Trend Chart" },
+  last30Days: { ko: "최근 30일", en: "Last 30 days" },
+  viewOnTwitter: { ko: "X에서 인기글 보기", en: "View Popular Posts on X" },
+  createContentWithTopic: { ko: "이 주제로 콘텐츠 만들기", en: "Create Content with This Topic" },
+  noTrendsData: { ko: "트렌드 데이터가 없습니다", en: "No trend data available" },
+  enterKeywordToAnalyze: { ko: "키워드를 입력하고 트렌드를 분석하세요", en: "Enter a keyword and analyze trends" },
+  trendsError: { ko: "트렌드 데이터를 불러오는데 실패했습니다", en: "Failed to load trend data" },
+  keywordRequired: { ko: "키워드를 입력해주세요", en: "Please enter a keyword" },
+
+  // SEO Optimization
+  seoOptimization: { ko: "🏷️ SEO 최적화", en: "🏷️ SEO Optimization" },
+  suggestedKeywords: { ko: "💡 추천 키워드", en: "💡 Suggested Keywords" },
+  suggestedHashtags: { ko: "🔍 추천 해시태그", en: "🔍 Suggested Hashtags" },
+  relatedSearches: { ko: "🎯 연관 검색어", en: "🎯 Related Searches" },
+  clickToSelect: { ko: "(클릭하여 선택)", en: "(Click to select)" },
+  manualAdd: { ko: "➕ 직접 추가", en: "➕ Manual Add" },
+  addKeyword: { ko: "추가", en: "Add" },
+  selectedKeywords: { ko: "선택된 키워드", en: "Selected Keywords" },
+  loadingSeoSuggestions: { ko: "키워드 분석 중...", en: "Analyzing keywords..." },
+  generateSeoSuggestions: { ko: "SEO 키워드 분석", en: "Generate SEO Keywords" },
+  seoSuggestionsDesc: { ko: "생성된 콘텐츠를 기반으로 최적의 키워드를 추천합니다", en: "Recommend optimal keywords based on generated content" },
+  noSeoSuggestions: { ko: "콘텐츠를 먼저 생성해주세요", en: "Please generate content first" },
 }
 
 export type TranslationKey = keyof typeof translations

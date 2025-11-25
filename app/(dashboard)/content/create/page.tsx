@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Zap, Video, FileText } from "lucide-react"
+import { Sparkles, Zap, Video, FileText, Tag, X } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -38,6 +38,10 @@ export default function ContentCreatePage() {
   const [comparison, setComparison] = useState<any>(null)
   const [ollamaModel, setOllamaModel] = useState("claude")
   const [usedAiModel, setUsedAiModel] = useState("")
+  const [seoSuggestions, setSeoSuggestions] = useState<any>(null)
+  const [loadingSeo, setLoadingSeo] = useState(false)
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([])
+  const [manualKeyword, setManualKeyword] = useState("")
 
   useEffect(() => {
     loadBrands()
@@ -167,6 +171,59 @@ export default function ContentCreatePage() {
 
   const handlePublish = async () => {
     toast.success(t("publishSoon"))
+  }
+
+  const generateSeoSuggestions = async () => {
+    if (!generatedContent) {
+      toast.error(t("noSeoSuggestions"))
+      return
+    }
+
+    setLoadingSeo(true)
+    try {
+      const response = await fetch("/api/content/suggest-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: generatedContent,
+          topic,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate SEO suggestions")
+      }
+
+      setSeoSuggestions(data.data)
+      toast.success(language === "ko" ? "SEO 키워드 분석 완료!" : "SEO keywords analyzed!")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || t("errorOccurred"))
+    } finally {
+      setLoadingSeo(false)
+    }
+  }
+
+  const toggleKeyword = (keyword: string) => {
+    setSelectedKeywords(prev =>
+      prev.includes(keyword)
+        ? prev.filter(k => k !== keyword)
+        : [...prev, keyword]
+    )
+  }
+
+  const addManualKeyword = () => {
+    const trimmed = manualKeyword.trim()
+    if (trimmed && !selectedKeywords.includes(trimmed)) {
+      setSelectedKeywords(prev => [...prev, trimmed])
+      setManualKeyword("")
+    }
+  }
+
+  const removeKeyword = (keyword: string) => {
+    setSelectedKeywords(prev => prev.filter(k => k !== keyword))
   }
 
   if (loadingBrands) {
@@ -567,6 +624,155 @@ export default function ContentCreatePage() {
                   <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
                     <ReactMarkdown>{generatedContent}</ReactMarkdown>
                   </div>
+                </div>
+
+                {/* SEO Optimization Section */}
+                <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-lg p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                      <Tag className="w-5 h-5 text-amber-400" />
+                      {t("seoOptimization")}
+                    </h3>
+                    <Button
+                      onClick={generateSeoSuggestions}
+                      disabled={loadingSeo}
+                      size="sm"
+                      className="bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
+                    >
+                      {loadingSeo ? t("loadingSeoSuggestions") : t("generateSeoSuggestions")}
+                    </Button>
+                  </div>
+
+                  <p className="text-sm text-zinc-400">
+                    {t("seoSuggestionsDesc")}
+                  </p>
+
+                  {seoSuggestions && (
+                    <div className="space-y-4">
+                      {/* Suggested Keywords */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-zinc-300">
+                          {t("suggestedKeywords")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {seoSuggestions.keywords?.map((keyword: string, idx: number) => (
+                            <button
+                              key={`keyword-${idx}`}
+                              onClick={() => toggleKeyword(keyword)}
+                              className={`
+                                px-3 py-1.5 rounded text-sm transition-all
+                                ${selectedKeywords.includes(keyword)
+                                  ? "bg-amber-500/20 border border-amber-500 text-amber-400"
+                                  : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-amber-500/50"
+                                }
+                              `}
+                            >
+                              {keyword}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Suggested Hashtags */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-zinc-300">
+                          {t("suggestedHashtags")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {seoSuggestions.hashtags?.map((hashtag: string, idx: number) => (
+                            <button
+                              key={`hashtag-${idx}`}
+                              onClick={() => toggleKeyword(hashtag)}
+                              className={`
+                                px-3 py-1.5 rounded text-sm transition-all
+                                ${selectedKeywords.includes(hashtag)
+                                  ? "bg-blue-500/20 border border-blue-500 text-blue-400"
+                                  : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-blue-500/50"
+                                }
+                              `}
+                            >
+                              {hashtag}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Related Searches */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-zinc-300">
+                          {t("relatedSearches")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {seoSuggestions.relatedSearches?.map((search: string, idx: number) => (
+                            <button
+                              key={`search-${idx}`}
+                              onClick={() => toggleKeyword(search)}
+                              className={`
+                                px-3 py-1.5 rounded text-sm transition-all
+                                ${selectedKeywords.includes(search)
+                                  ? "bg-green-500/20 border border-green-500 text-green-400"
+                                  : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-green-500/50"
+                                }
+                              `}
+                            >
+                              {search}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual Add */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-zinc-300">{t("manualAdd")}</h4>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={language === "ko" ? "키워드 입력..." : "Enter keyword..."}
+                        value={manualKeyword}
+                        onChange={(e) => setManualKeyword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            addManualKeyword()
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={addManualKeyword}
+                        size="sm"
+                        className="bg-zinc-700 hover:bg-zinc-600"
+                      >
+                        {t("addKeyword")}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Selected Keywords Display */}
+                  {selectedKeywords.length > 0 && (
+                    <div className="space-y-2 pt-4 border-t border-zinc-700">
+                      <h4 className="text-sm font-medium text-amber-400">
+                        {t("selectedKeywords")} ({selectedKeywords.length})
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedKeywords.map((keyword, idx) => (
+                          <div
+                            key={`selected-${idx}`}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded text-sm text-amber-300"
+                          >
+                            <span>{keyword}</span>
+                            <button
+                              onClick={() => removeKeyword(keyword)}
+                              className="hover:text-amber-100 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
