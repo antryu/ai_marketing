@@ -264,7 +264,7 @@ export default function ContentCreatePage() {
         .from("contents")
         .insert({
           brand_id: selectedBrand,
-          persona_id: selectedWriterPersona || null,
+          writer_persona_id: selectedWriterPersona || null,
           topic,
           body: generatedContent,
           content_type: "text",
