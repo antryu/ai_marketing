@@ -9,7 +9,7 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, topic } = await request.json()
+    const { content, topic, language = 'ko' } = await request.json()
 
     if (!content) {
       return NextResponse.json(
@@ -18,7 +18,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const prompt = `다음 콘텐츠를 분석하여 SEO 최적화를 위한 키워드, 해시태그, 연관 검색어를 추천해주세요.
+    const isKorean = language === 'ko'
+
+    const prompt = isKorean
+      ? `다음 콘텐츠를 분석하여 SEO 최적화를 위한 키워드, 해시태그, 연관 검색어를 추천해주세요.
 
 콘텐츠 주제: ${topic || '제공되지 않음'}
 
@@ -38,6 +41,26 @@ ${content}
 2. 해시태그는 # 포함하여 SNS에서 사용 가능한 태그 5-10개
 3. 연관 검색어는 사용자가 검색할 만한 구체적인 문구 5-10개
 4. 모든 항목은 한글로 작성`
+      : `Analyze the following content and recommend keywords, hashtags, and related searches for SEO optimization.
+
+Content Topic: ${topic || 'Not provided'}
+
+Content:
+${content}
+
+Provide only JSON response in the following format. Return only JSON without any explanation:
+
+{
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"],
+  "relatedSearches": ["related search1", "related search2", "related search3", "related search4", "related search5"]
+}
+
+Rules:
+1. Keywords should be 1-3 word phrases that are core to the content (5-10 items)
+2. Hashtags should include # and be suitable for social media (5-10 items)
+3. Related searches should be specific phrases users might search for (5-10 items)
+4. All items must be in English`
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-haiku-20241022',

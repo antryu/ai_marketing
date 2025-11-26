@@ -210,6 +210,7 @@ export default function ContentCreatePage() {
         body: JSON.stringify({
           content: generatedContent,
           topic,
+          language,
         }),
       })
 
