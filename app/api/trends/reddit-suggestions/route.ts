@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // Language-specific subreddits
     const subreddits = language === 'ko'
-      ? ['korea', 'hanguk', 'korean', 'Seoul']  // Korean subreddits
+      ? ['korea', 'hanguk', 'all', 'popular']  // Korean subreddits + global trends
       : ['all', 'popular']  // English subreddits
 
     // Fetch both hot and top weekly posts from language-specific subreddits
