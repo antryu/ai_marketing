@@ -871,32 +871,23 @@ export default function ContentCreatePage() {
                       </p>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      onClick={handleSaveContent}
-                      disabled={saving || !generatedContent}
-                      className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {saving ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                          {language === "ko" ? "저장 중..." : "Saving..."}
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="w-4 h-4 mr-2" />
-                          {language === "ko" ? "저장" : "Save"}
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => router.push('/content')}
-                      className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      {language === "ko" ? "목록" : "List"}
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={handleSaveContent}
+                    disabled={saving || !generatedContent}
+                    className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        {language === "ko" ? "저장 중..." : "Saving..."}
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "저장" : "Save"}
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             ) : (
