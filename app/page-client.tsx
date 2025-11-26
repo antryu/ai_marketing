@@ -22,7 +22,7 @@ export function LandingPageClient() {
                 <Zap className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />
               </div>
               <span className="text-base md:text-xl font-light tracking-wide text-white">
-                AI <span className="text-amber-400">Marketing</span>
+                My <span className="text-amber-400">Marketing Wise</span>
               </span>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
@@ -54,7 +54,7 @@ export function LandingPageClient() {
             <div className="flex justify-center mb-8 md:mb-12">
               <div className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 bg-gradient-to-r from-zinc-800 to-zinc-700 border border-zinc-700">
                 <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
-                <span className="text-xs md:text-sm font-medium tracking-widest text-zinc-200">AI Marketing Automation</span>
+                <span className="text-xs md:text-sm font-medium tracking-widest text-zinc-200">My Marketing Wise</span>
               </div>
             </div>
 
@@ -207,7 +207,7 @@ export function LandingPageClient() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-light tracking-wide text-white">
-                  AI Marketing
+                  My Marketing Wise
                 </span>
                 <span className="text-zinc-700">|</span>
                 <span className="text-sm text-zinc-500 font-light">

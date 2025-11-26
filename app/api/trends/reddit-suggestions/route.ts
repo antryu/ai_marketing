@@ -50,17 +50,25 @@ export async function GET(request: NextRequest) {
 
     console.log('🔥 Fetching Reddit RSS feeds...')
 
-    // Fetch both hot and top weekly posts
-    const [hotRes, topRes] = await Promise.all([
-      fetch('https://www.reddit.com/r/all/hot/.rss?limit=15', {
+    // Language-specific subreddits
+    const subreddits = language === 'ko'
+      ? ['korea', 'hanguk', 'korean', 'Seoul']  // Korean subreddits
+      : ['all', 'popular']  // English subreddits
+
+    // Fetch both hot and top weekly posts from language-specific subreddits
+    const fetchPromises = subreddits.flatMap(subreddit => [
+      fetch(`https://www.reddit.com/r/${subreddit}/hot/.rss?limit=10`, {
         headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal: AbortSignal.timeout(10000) // 10s timeout
+        signal: AbortSignal.timeout(10000)
       }).catch(() => null),
-      fetch('https://www.reddit.com/r/all/top/.rss?sort=top&t=week&limit=15', {
+      fetch(`https://www.reddit.com/r/${subreddit}/top/.rss?sort=top&t=week&limit=10`, {
         headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal: AbortSignal.timeout(10000) // 10s timeout
+        signal: AbortSignal.timeout(10000)
       }).catch(() => null)
     ])
+
+    const responses = await Promise.all(fetchPromises)
+    const [hotRes, topRes] = responses.filter(r => r !== null).slice(0, 2)
 
     const parseRedditRSS = (rssText: string) => {
       // Extract titles from Atom XML using regex
@@ -83,34 +91,35 @@ export async function GET(request: NextRequest) {
 
     let redditData: any[] = []
 
-    if (hotRes && hotRes.ok) {
-      const hotText = await hotRes.text()
-      const hotTitles = parseRedditRSS(hotText)
-      redditData.push(...hotTitles.slice(0, 5).map(title => ({
-        title,
-        source: 'hot',
-        icon: '🔥'
-      })))
+    // Process all responses and collect posts
+    for (let i = 0; i < responses.length; i++) {
+      const res = responses[i]
+      if (res && res.ok) {
+        const text = await res.text()
+        const titles = parseRedditRSS(text)
+        const isHot = i % 2 === 0  // Even indices are hot, odd are top
+
+        redditData.push(...titles.map(title => ({
+          title,
+          source: isHot ? 'hot' : 'top_week',
+          icon: isHot ? '🔥' : '📈'
+        })))
+      }
     }
 
-    if (topRes && topRes.ok) {
-      const topText = await topRes.text()
-      const topTitles = parseRedditRSS(topText)
-      redditData.push(...topTitles.slice(0, 5).map(title => ({
-        title,
-        source: 'top_week',
-        icon: '📈'
-      })))
-    }
+    // Remove duplicates and limit to 10 posts
+    const uniquePosts = Array.from(
+      new Map(redditData.map(post => [post.title, post])).values()
+    ).slice(0, 10)
 
     // Cache the result
-    setCachedReddit(cacheKey, redditData)
+    setCachedReddit(cacheKey, uniquePosts)
 
-    console.log(`✅ Reddit RSS fetched: ${redditData.length} posts`)
+    console.log(`✅ Reddit RSS fetched: ${uniquePosts.length} posts (${language === 'ko' ? 'Korean subreddits' : 'English subreddits'})`)
 
     return NextResponse.json({
       success: true,
-      data: redditData,
+      data: uniquePosts,
       cached: false
     })
   } catch (error) {

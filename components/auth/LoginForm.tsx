@@ -73,7 +73,7 @@ export function LoginForm() {
               <Zap className="w-5 h-5 text-amber-400" />
             </div>
             <span className="text-xl font-light tracking-wide text-white">
-              AI <span className="text-amber-400">Marketing</span>
+              My <span className="text-amber-400">Marketing Wise</span>
             </span>
           </Link>
         </div>
