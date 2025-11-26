@@ -282,7 +282,18 @@ export default function ContentCreatePage() {
 
       if (error) throw error
 
-      toast.success(language === "ko" ? "콘텐츠가 저장되었습니다!" : "Content saved successfully!")
+      // Show success message with action button
+      toast.success(
+        language === "ko" ? "콘텐츠가 저장되었습니다!" : "Content saved successfully!",
+        {
+          description: language === "ko" ? "콘텐츠 목록에서 확인하세요" : "Check it in your content list",
+          action: {
+            label: language === "ko" ? "목록 보기" : "View List",
+            onClick: () => router.push("/content")
+          },
+          duration: 5000
+        }
+      )
 
       // Reset form
       setGeneratedContent("")
