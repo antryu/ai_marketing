@@ -260,17 +260,21 @@ export default function ContentCreatePage() {
     try {
       const supabase = createClient()
 
-      const { data, error } = await (supabase as any)
+      const { data, error} = await (supabase as any)
         .from("contents")
         .insert({
           brand_id: selectedBrand,
-          writer_persona_id: selectedWriterPersona || null,
+          persona_id: selectedWriterPersona || null,
           topic,
           body: generatedContent,
           content_type: "text",
           ai_model: usedAiModel || "claude",
-          platform: platform,
-          seo_keywords: selectedKeywords,
+          platform_variations: {
+            [platform]: {
+              text: generatedContent,
+              seo_keywords: selectedKeywords
+            }
+          },
           status: "draft"
         })
         .select()
