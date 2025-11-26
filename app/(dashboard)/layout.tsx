@@ -5,7 +5,7 @@ import { BrandProvider } from "@/contexts/BrandContext"
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: "대시보드 - AI 마케팅 자동화",
+  title: "대시보드 - My Marketing Wise",
   description: "AI 기반 마케팅 자동화 플랫폼",
 }
 

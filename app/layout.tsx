@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: "AI 마케팅 자동화 플랫폼",
+  title: "My Marketing Wise",
   description: "Thread와 LinkedIn을 위한 AI 기반 콘텐츠 자동화 솔루션",
   viewport: {
     width: "device-width",
