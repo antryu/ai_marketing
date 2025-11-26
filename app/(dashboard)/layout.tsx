@@ -1,13 +1,7 @@
-import type { Metadata } from "next"
 import { MainLayout } from "@/components/layout/MainLayout"
 import { BrandProvider } from "@/contexts/BrandContext"
 
 export const dynamic = 'force-dynamic'
-
-export const metadata: Metadata = {
-  title: "대시보드 - My Marketing Wise",
-  description: "AI 기반 마케팅 자동화 플랫폼",
-}
 
 export default function DashboardLayout({
   children,
