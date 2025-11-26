@@ -269,10 +269,10 @@ export default function ContentCreatePage() {
           body: generatedContent,
           content_type: "text",
           ai_model: usedAiModel || "claude",
+          seo_keywords: selectedKeywords,
           platform_variations: {
             [platform]: {
-              text: generatedContent,
-              seo_keywords: selectedKeywords
+              text: generatedContent
             }
           },
           status: "draft"
