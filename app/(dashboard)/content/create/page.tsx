@@ -507,10 +507,13 @@ export default function ContentCreatePage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="claude">🟣 Claude (Haiku) - {language === "ko" ? "추천" : "Recommended"}</SelectItem>
-                          <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B (Ollama)</SelectItem>
-                          <SelectItem value="gemma2:2b">💎 Gemma2 2B ({language === "ko" ? "초경량 ⚡" : "Ultra-light ⚡"})</SelectItem>
+                          <SelectItem value="qwen2.5:7b" disabled>⭐ Qwen 2.5 7B (Ollama) - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
+                          <SelectItem value="gemma2:2b" disabled>💎 Gemma2 2B - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-amber-400/80 mt-1">
+                        ⚠️ {language === "ko" ? "Ollama 모델은 Vercel 서버에서 작동하지 않습니다. 로컬 환경에서만 사용 가능합니다." : "Ollama models don't work on Vercel servers. Available only in local environment."}
+                      </p>
                     </>
                   )}
 
@@ -518,18 +521,17 @@ export default function ContentCreatePage() {
                   {compareMode && (
                     <>
                       <Label>{t("compareOllamaModel")}</Label>
-                      <Select value={ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel} onValueChange={setOllamaModel}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B ({language === "ko" ? "추천" : "Recommended"})</SelectItem>
-                          <SelectItem value="gemma2:2b">💎 Gemma2 2B ({language === "ko" ? "초경량 ⚡" : "Ultra-light ⚡"})</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-zinc-500">
-                        {t("compareDescription")}
-                      </p>
+                      <div className="p-4 bg-zinc-800/50 border border-amber-500/30 rounded space-y-2">
+                        <p className="text-sm text-amber-400 font-medium flex items-center gap-2">
+                          ⚠️ {language === "ko" ? "비교 모드 사용 불가" : "Comparison Mode Unavailable"}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          {language === "ko"
+                            ? "Ollama 모델은 Vercel 서버에서 작동하지 않습니다. 로컬 환경에서만 사용 가능합니다."
+                            : "Ollama models don't work on Vercel servers. Available only in local environment."
+                          }
+                        </p>
+                      </div>
                     </>
                   )}
                 </>
@@ -543,10 +545,13 @@ export default function ContentCreatePage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="claude">🟣 Claude (Anthropic)</SelectItem>
-                      <SelectItem value="qwen2.5:7b">⭐ Qwen 2.5 7B</SelectItem>
-                      <SelectItem value="gemma2:2b">💎 Gemma2 2B</SelectItem>
+                      <SelectItem value="qwen2.5:7b" disabled>⭐ Qwen 2.5 7B - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
+                      <SelectItem value="gemma2:2b" disabled>💎 Gemma2 2B - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-amber-400/80 mt-1">
+                    ⚠️ {language === "ko" ? "Ollama 모델은 Vercel 서버에서 작동하지 않습니다. 로컬 환경에서만 사용 가능합니다." : "Ollama models don't work on Vercel servers. Available only in local environment."}
+                  </p>
                 </>
               )}
             </div>
