@@ -109,13 +109,22 @@ export function PlatformPreview({ variations }: PlatformPreviewProps) {
     )
   }
 
+  // 제일 긴 콘텐츠를 가진 플랫폼을 기본으로 선택
+  const longestPlatform = platforms.reduce((longest, current) => {
+    const longestLength = processedVariations[longest]?.text?.length || 0
+    const currentLength = processedVariations[current]?.text?.length || 0
+    return currentLength > longestLength ? current : longest
+  }, platforms[0])
+
+  console.log("🔍 Longest platform:", longestPlatform, "with", processedVariations[longestPlatform]?.text?.length, "characters")
+
   return (
     <Card className="bg-zinc-900 border-zinc-800">
       <CardHeader>
         <CardTitle className="text-lg">플랫폼별 미리보기</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue={platforms[0]} className="w-full">
+        <Tabs defaultValue={longestPlatform} className="w-full">
           <TabsList className={`grid w-full bg-zinc-800 gap-1 p-1 ${
             platforms.length === 1 ? 'grid-cols-1' :
             platforms.length === 2 ? 'grid-cols-2' :
