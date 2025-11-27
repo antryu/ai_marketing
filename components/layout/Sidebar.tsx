@@ -35,19 +35,10 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { selectedBrandId, setSelectedBrandId, brands, loading } = useBrand()
   const { language } = useLanguage()
-  const [mounted, setMounted] = useState(false)
+  const { theme, toggleTheme } = useTheme()
+  const t = (key: TranslationKey) => translations[key][language]
   const [showTrendsNew, setShowTrendsNew] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-
-  // Wait for hydration before using theme
-  const themeContext = mounted ? useTheme() : null
-  const theme = themeContext?.theme || 'light'
-  const toggleTheme = themeContext?.toggleTheme || (() => {})
-  const t = (key: TranslationKey) => translations[key][language]
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   // Check if user has visited trends page
   useEffect(() => {

@@ -11,17 +11,8 @@ import { translations } from "@/lib/translations"
 
 export function LandingPageClient() {
   const { language } = useLanguage()
-  const [mounted, setMounted] = useState(false)
-
-  // Wait for hydration before using theme
-  const themeContext = mounted ? useTheme() : null
-  const theme = themeContext?.theme || 'light'
-  const toggleTheme = themeContext?.toggleTheme || (() => {})
+  const { theme, toggleTheme } = useTheme()
   const t = (key: keyof typeof translations) => translations[key][language]
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 transition-colors duration-300">
