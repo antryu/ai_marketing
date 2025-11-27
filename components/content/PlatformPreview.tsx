@@ -116,7 +116,7 @@ export function PlatformPreview({ variations }: PlatformPreviewProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue={platforms[0]} className="w-full">
-          <TabsList className={`grid w-full bg-zinc-800 ${
+          <TabsList className={`grid w-full bg-zinc-800 gap-1 p-1 ${
             platforms.length === 1 ? 'grid-cols-1' :
             platforms.length === 2 ? 'grid-cols-2' :
             platforms.length === 3 ? 'grid-cols-3' :
@@ -125,9 +125,13 @@ export function PlatformPreview({ variations }: PlatformPreviewProps) {
             'grid-cols-6'
           }`}>
             {platforms.map((platform) => (
-              <TabsTrigger key={platform} value={platform} className="flex items-center gap-2">
-                <PlatformIcon platformId={platform} className="w-4 h-4" />
-                {getPlatformLabel(platform)}
+              <TabsTrigger
+                key={platform}
+                value={platform}
+                className="flex flex-col items-center justify-center gap-1 py-3 px-2 data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 data-[state=active]:border data-[state=active]:border-amber-500/50"
+              >
+                <PlatformIcon platformId={platform} className="w-5 h-5" />
+                <span className="text-xs font-medium whitespace-nowrap">{getPlatformLabel(platform)}</span>
               </TabsTrigger>
             ))}
           </TabsList>

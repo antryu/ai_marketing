@@ -200,10 +200,11 @@ export default function ContentPage() {
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button
                       onClick={() => router.push(`/content/${content.id}`)}
-                      className="w-9 h-9 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-amber-400/50 flex items-center justify-center transition-all duration-300"
+                      className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 rounded"
                       title={t("viewDetails")}
                     >
-                      <Eye className="w-4 h-4 text-zinc-400 hover:text-amber-400" />
+                      <Eye className="w-4 h-4 text-zinc-400 group-hover:text-amber-400" />
+                      <span className="text-sm font-medium text-zinc-400 group-hover:text-amber-400">{language === "ko" ? "미리보기" : "Preview"}</span>
                     </button>
                     <button
                       onClick={() => handleDelete(content.id)}
