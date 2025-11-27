@@ -332,6 +332,38 @@ export interface Database {
           created_at?: string
         }
       }
+      subscribers: {
+        Row: {
+          id: string
+          user_id: string
+          email: string
+          name: string | null
+          status: string | null
+          subscribed_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          email: string
+          name?: string | null
+          status?: string | null
+          subscribed_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          email?: string
+          name?: string | null
+          status?: string | null
+          subscribed_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }
