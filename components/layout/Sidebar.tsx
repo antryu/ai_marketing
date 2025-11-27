@@ -94,19 +94,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   }
 
   return (
-    <div className={`w-72 bg-gradient-to-b from-zinc-50 via-zinc-100/50 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 border-r border-zinc-300/50 dark:border-zinc-800 flex flex-col z-50 transition-all duration-300 ${
+    <div className={`w-64 bg-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 dark:bg-gradient-to-b border-r border-gray-200 dark:border-zinc-800 flex flex-col z-50 transition-all duration-200 ${
       isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
     } fixed top-0 left-0 h-screen overflow-hidden`}>
-      <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-transparent via-amber-400/20 to-transparent"></div>
+      <div className="absolute top-0 right-0 w-px h-full bg-transparent dark:bg-gradient-to-b dark:from-transparent dark:via-amber-400/20 dark:to-transparent"></div>
 
-      <div className="h-20 px-8 flex items-center border-b border-zinc-300/50 dark:border-zinc-800 flex-shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-4 group">
-          <div className="w-10 h-10 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center border border-amber-200/50 dark:border-zinc-700 group-hover:border-amber-400/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-amber-400/20">
-            <Zap className="h-5 w-5 text-amber-500 dark:text-amber-400 group-hover:scale-110 transition-transform duration-300" />
+      <div className="h-16 px-6 flex items-center border-b border-gray-200 dark:border-zinc-800 flex-shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 bg-blue-600 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-700 rounded-lg flex items-center justify-center dark:border dark:border-zinc-700 group-hover:bg-blue-700 dark:group-hover:border-amber-400/50 transition-all duration-200 dark:group-hover:shadow-lg dark:group-hover:shadow-amber-400/20">
+            <Zap className="h-4 w-4 text-white dark:text-amber-400 dark:group-hover:scale-110 dark:transition-transform dark:duration-300" />
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="font-light text-base text-zinc-900 dark:text-white tracking-wide block group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis">My Marketing Wise</span>
-          </div>
+          <span className="text-base font-semibold text-gray-900 dark:text-white dark:font-light dark:tracking-wide dark:group-hover:text-amber-400 transition-colors duration-200">Marketing Wise</span>
         </Link>
       </div>
 
@@ -114,12 +112,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       <div className="flex-1 overflow-y-auto">
         {/* Brand Selector */}
         {!loading && brands.length > 0 && (
-          <div className="px-6 py-4 border-b border-zinc-300/50 dark:border-zinc-800">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
             <div className="relative">
               <select
                 value={selectedBrandId || ""}
                 onChange={(e) => setSelectedBrandId(e.target.value)}
-                className="w-full h-10 bg-white dark:bg-zinc-900/50 border border-zinc-300/50 dark:border-zinc-700 pl-3 pr-8 text-zinc-700 dark:text-white text-sm rounded appearance-none focus:border-amber-400/50 focus:outline-none transition-colors cursor-pointer"
+                className="w-full h-9 bg-gray-50 dark:bg-zinc-900/50 border border-gray-300 dark:border-zinc-700 pl-3 pr-8 text-gray-700 dark:text-white text-sm rounded-md appearance-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:focus:border-amber-400/50 dark:focus:ring-0 focus:outline-none transition-colors cursor-pointer"
               >
                 {brands.map((brand) => (
                   <option key={brand.id} value={brand.id}>
@@ -127,7 +125,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-zinc-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-zinc-400 pointer-events-none" />
             </div>
           </div>
         )}
@@ -162,24 +160,24 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               key={item.name}
               href={item.href}
               onClick={handleLinkClick}
-              className={`group relative flex items-center gap-4 px-4 py-4 text-sm font-normal tracking-wide transition-all duration-300 ${
+              className={`group relative flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
                 isActive
-                  ? "text-zinc-900 dark:text-white bg-gradient-to-r from-amber-100/50 dark:from-zinc-800 to-transparent border-l-2 border-amber-500 dark:border-amber-400"
+                  ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
                   : isHighlight
-                  ? "text-zinc-900 dark:text-white bg-gradient-to-r from-amber-500/10 to-transparent border-l-2 border-amber-500 hover:bg-amber-500/20 hover:border-amber-400 hover:translate-x-1"
-                  : "text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-amber-50/50 dark:hover:bg-zinc-900/50 border-l-2 border-transparent hover:border-amber-300/50 dark:hover:border-zinc-700 hover:translate-x-1"
+                  ? "text-blue-600 dark:text-white hover:bg-blue-50 dark:bg-gradient-to-r dark:from-amber-500/10 dark:to-transparent dark:border-l-2 dark:border-amber-500 dark:hover:bg-amber-500/20 dark:hover:border-amber-400 dark:hover:translate-x-1"
+                  : "text-gray-700 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
               }`}
             >
-              <item.icon className={`h-5 w-5 transition-all duration-300 ${
-                isActive ? "text-amber-500 dark:text-amber-400" : isHighlight ? "text-amber-500 dark:text-amber-400 group-hover:scale-110" : "group-hover:text-amber-500 dark:group-hover:text-amber-400 group-hover:scale-110"
+              <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
+                isActive ? "text-gray-900 dark:text-amber-400" : isHighlight ? "text-blue-600 dark:text-amber-400 dark:group-hover:scale-110" : "text-gray-500 dark:text-gray-400 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
               }`} />
-              <span className="transition-all duration-300">{item.name}</span>
+              <span className="flex-1 dark:transition-all dark:duration-300">{item.name}</span>
               {isHighlight && !isActive && (
-                <span className="ml-auto text-xs bg-amber-500 text-white px-2 py-0.5 rounded font-medium">NEW</span>
+                <span className="text-xs bg-blue-600 dark:bg-amber-500 text-white px-2 py-0.5 rounded-full dark:rounded font-medium">NEW</span>
               )}
 
               {isActive && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-transparent via-amber-500 dark:via-amber-400 to-transparent animate-pulse"></div>
+                <div className="hidden dark:block absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-transparent via-amber-400 to-transparent animate-pulse"></div>
               )}
             </Link>
           )
@@ -187,8 +185,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       </nav>
 
       {/* Bottom Navigation */}
-      <div className="border-t border-zinc-300/50 dark:border-zinc-800">
-        <nav className="p-6 space-y-1">
+      <div className="border-t border-gray-200 dark:border-zinc-800">
+        <nav className="px-3 py-4 space-y-0.5 dark:p-6 dark:space-y-1">
           {bottomNavigation.map((item) => {
             let isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
 
@@ -197,19 +195,19 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 onClick={handleLinkClick}
-                className={`group relative flex items-center gap-4 px-4 py-4 text-sm font-normal tracking-wide transition-all duration-300 ${
+                className={`group relative flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
                   isActive
-                    ? "text-zinc-900 dark:text-white bg-gradient-to-r from-amber-100/50 dark:from-zinc-800 to-transparent border-l-2 border-amber-500 dark:border-amber-400"
-                    : "text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-amber-50/50 dark:hover:bg-zinc-900/50 border-l-2 border-transparent hover:border-amber-300/50 dark:hover:border-zinc-700 hover:translate-x-1"
+                    ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
+                    : "text-gray-700 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
                 }`}
               >
-                <item.icon className={`h-5 w-5 transition-all duration-300 ${
-                  isActive ? "text-amber-500 dark:text-amber-400" : "group-hover:text-amber-500 dark:group-hover:text-amber-400 group-hover:scale-110"
+                <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
+                  isActive ? "text-gray-900 dark:text-amber-400" : "text-gray-500 dark:text-gray-400 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
                 }`} />
-                <span className="transition-all duration-300">{item.name}</span>
+                <span className="flex-1 dark:transition-all dark:duration-300">{item.name}</span>
 
                 {isActive && (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-transparent via-amber-500 dark:via-amber-400 to-transparent animate-pulse"></div>
+                  <div className="hidden dark:block absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-transparent via-amber-400 to-transparent animate-pulse"></div>
                 )}
               </Link>
             )
@@ -217,19 +215,19 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="p-8 border-t border-zinc-300/50 dark:border-zinc-800">
+      <div className="px-4 py-4 border-t border-gray-200 dark:border-zinc-800 dark:p-8">
         {/* 다크모드 토글 버튼 */}
         <button
           onClick={toggleTheme}
-          className="w-full mb-6 flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 dark:bg-zinc-800/50 hover:bg-amber-100/50 dark:hover:bg-zinc-700/50 transition-all duration-300 group"
+          className="w-full mb-4 dark:mb-6 flex items-center gap-3 px-3 py-2 dark:px-4 dark:py-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 hover:bg-gray-100 dark:hover:bg-zinc-700/50 transition-all duration-200 dark:duration-300 group"
         >
           {theme === 'light' ? (
-            <Moon className="h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors" />
+            <Moon className="h-5 w-5 text-gray-600 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-amber-400 transition-colors" />
           ) : (
-            <Sun className="h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors" />
+            <Sun className="h-5 w-5 text-gray-600 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-amber-400 transition-colors" />
           )}
-          <span className="text-sm text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200 transition-colors">
-            {theme === 'light' ? (language === 'ko' ? '다크모드' : 'Dark Mode') : (language === 'ko' ? '라이트모드' : 'Light Mode')}
+          <span className="text-sm font-medium text-gray-700 dark:text-zinc-400 dark:font-normal group-hover:text-gray-900 dark:group-hover:text-zinc-200 transition-colors">
+            {theme === 'light' ? (language === 'ko' ? '다크 모드' : 'Dark Mode') : (language === 'ko' ? '라이트 모드' : 'Light Mode')}
           </span>
         </button>
 
