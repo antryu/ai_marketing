@@ -96,10 +96,10 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   return (
     <div className={`w-72 bg-gradient-to-b from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col z-50 transition-all duration-300 ${
       isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-    } fixed top-0 left-0 h-screen`}>
+    } fixed top-0 left-0 h-screen overflow-hidden`}>
       <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-transparent via-amber-400/20 to-transparent"></div>
 
-      <div className="h-20 px-8 flex items-center border-b border-zinc-200 dark:border-zinc-800">
+      <div className="h-20 px-8 flex items-center border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
         <Link href="/dashboard" className="flex items-center gap-4 group">
           <div className="w-10 h-10 bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center border border-zinc-300 dark:border-zinc-700 group-hover:border-amber-400/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-amber-400/20">
             <Zap className="h-5 w-5 text-amber-500 dark:text-amber-400 group-hover:scale-110 transition-transform duration-300" />
@@ -110,27 +110,29 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Brand Selector */}
-      {!loading && brands.length > 0 && (
-        <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="relative">
-            <select
-              value={selectedBrandId || ""}
-              onChange={(e) => setSelectedBrandId(e.target.value)}
-              className="w-full h-10 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-700 pl-3 pr-8 text-zinc-900 dark:text-white text-sm rounded appearance-none focus:border-amber-400/50 focus:outline-none transition-colors cursor-pointer"
-            >
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-zinc-400 pointer-events-none" />
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Brand Selector */}
+        {!loading && brands.length > 0 && (
+          <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="relative">
+              <select
+                value={selectedBrandId || ""}
+                onChange={(e) => setSelectedBrandId(e.target.value)}
+                className="w-full h-10 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-700 pl-3 pr-8 text-zinc-900 dark:text-white text-sm rounded appearance-none focus:border-amber-400/50 focus:outline-none transition-colors cursor-pointer"
+              >
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-zinc-400 pointer-events-none" />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <nav className="flex-1 p-6 space-y-1">
+        <nav className="p-6 space-y-1">
         {navigation.map((item, index) => {
           // 정확한 경로 매칭
           let isActive = false
@@ -215,28 +217,29 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="p-8 border-t border-zinc-800 dark:border-zinc-700">
+      <div className="p-8 border-t border-zinc-200 dark:border-zinc-800">
         {/* 다크모드 토글 버튼 */}
         <button
           onClick={toggleTheme}
-          className="w-full mb-6 flex items-center gap-3 px-4 py-3 rounded-lg bg-zinc-800/50 dark:bg-zinc-700/50 hover:bg-zinc-700/50 dark:hover:bg-zinc-600/50 transition-all duration-300 group"
+          className="w-full mb-6 flex items-center gap-3 px-4 py-3 rounded-lg bg-zinc-200/50 dark:bg-zinc-800/50 hover:bg-zinc-300/50 dark:hover:bg-zinc-700/50 transition-all duration-300 group"
         >
           {theme === 'light' ? (
-            <Moon className="h-5 w-5 text-zinc-400 group-hover:text-amber-400 transition-colors" />
+            <Moon className="h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors" />
           ) : (
-            <Sun className="h-5 w-5 text-zinc-400 group-hover:text-amber-400 transition-colors" />
+            <Sun className="h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors" />
           )}
-          <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors">
+          <span className="text-sm text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200 transition-colors">
             {theme === 'light' ? (language === 'ko' ? '다크모드' : 'Dark Mode') : (language === 'ko' ? '라이트모드' : 'Light Mode')}
           </span>
         </button>
 
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
-          <div className="text-xs text-zinc-400 font-normal tracking-wide">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-normal tracking-wide">
             {t("mvpStage")}
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
