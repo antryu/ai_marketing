@@ -33,7 +33,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Main content - full width on mobile, with margin for sidebar on desktop */}
       <div className="min-h-screen flex flex-col lg:ml-72">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto p-6 md:p-10 lg:p-12 xl:p-16">
           {children}
         </main>
       </div>
