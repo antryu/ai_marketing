@@ -1,31 +1,44 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Zap, Target, TrendingUp, Sparkles, CheckCircle2 } from "lucide-react"
+import { ArrowRight, Zap, Target, TrendingUp, Sparkles, CheckCircle2, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useTheme } from "@/contexts/ThemeContext"
 import { LanguageToggle } from "@/components/LanguageToggle"
 import { translations } from "@/lib/translations"
 
 export function LandingPageClient() {
   const { language } = useLanguage()
+  const { theme, toggleTheme } = useTheme()
   const t = (key: keyof typeof translations) => translations[key][language]
 
   return (
-    <div className="min-h-screen bg-zinc-950 dark:bg-zinc-950">
+    <div className="min-h-screen bg-white dark:bg-zinc-950 transition-colors duration-300">
       {/* Navigation Bar - Mobile Optimized */}
-      <nav className="sticky top-0 w-full z-50 bg-zinc-950/95 backdrop-blur-lg border-b border-zinc-800">
+      <nav className="sticky top-0 w-full z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-lg border-b border-zinc-200 dark:border-zinc-800 transition-colors duration-300">
         <div className="container mx-auto px-4 md:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 md:h-20">
             <div className="flex items-center gap-2 md:gap-4">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center border border-zinc-700">
-                <Zap className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center border border-zinc-300 dark:border-zinc-700 transition-colors duration-300">
+                <Zap className="w-4 h-4 md:w-5 md:h-5 text-amber-500 dark:text-amber-400" />
               </div>
-              <span className="text-base md:text-xl font-light tracking-wide text-white">
-                My <span className="text-amber-400">Marketing Wise</span>
+              <span className="text-base md:text-xl font-light tracking-wide text-zinc-900 dark:text-white transition-colors duration-300">
+                My <span className="text-amber-500 dark:text-amber-400">Marketing Wise</span>
               </span>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-zinc-800/50 transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === 'light' ? (
+                  <Moon className="h-5 w-5 text-zinc-400 hover:text-amber-400 transition-colors" />
+                ) : (
+                  <Sun className="h-5 w-5 text-zinc-400 hover:text-amber-400 transition-colors" />
+                )}
+              </button>
               <LanguageToggle />
               <Link href="/login">
                 <Button variant="ghost" className="text-xs md:text-sm font-light tracking-wide px-2 md:px-4">{t('login')}</Button>
