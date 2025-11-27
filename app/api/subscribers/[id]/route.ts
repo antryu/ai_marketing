@@ -53,7 +53,7 @@ export async function PATCH(
     const body = await request.json()
     const { email, name, status } = body
 
-    const updates: any = {}
+    const updates: Record<string, any> = {}
     if (email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(email)) {
