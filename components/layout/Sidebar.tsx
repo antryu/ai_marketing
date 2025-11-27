@@ -94,17 +94,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   }
 
   return (
-    <div className={`w-64 bg-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 dark:bg-gradient-to-b border-r border-gray-200/80 dark:border-zinc-800 shadow-sm flex flex-col z-50 transition-all duration-200 ${
+    <div className={`w-64 bg-slate-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 dark:bg-gradient-to-b border-r border-slate-200 dark:border-zinc-800 flex flex-col z-50 transition-all duration-200 ${
       isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
     } fixed top-0 left-0 h-screen overflow-hidden`}>
       <div className="absolute top-0 right-0 w-px h-full bg-transparent dark:bg-gradient-to-b dark:from-transparent dark:via-amber-400/20 dark:to-transparent"></div>
 
-      <div className="h-16 px-6 flex items-center border-b border-gray-200/80 dark:border-zinc-800 flex-shrink-0">
+      <div className="h-16 px-6 flex items-center border-b border-slate-200 dark:border-zinc-800 flex-shrink-0">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-700 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-700 rounded-lg flex items-center justify-center shadow-md dark:border dark:border-zinc-700 group-hover:shadow-lg group-hover:from-blue-700 group-hover:to-blue-800 dark:group-hover:border-amber-400/50 transition-all duration-200 dark:group-hover:shadow-amber-400/20">
+          <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-indigo-600 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-700 rounded-lg flex items-center justify-center dark:border dark:border-zinc-700 group-hover:from-indigo-600 group-hover:to-indigo-700 dark:group-hover:border-amber-400/50 transition-all duration-200 dark:group-hover:shadow-amber-400/20">
             <Zap className="h-5 w-5 text-white dark:text-amber-400 dark:group-hover:scale-110 dark:transition-transform dark:duration-300" />
           </div>
-          <span className="text-base font-bold text-gray-900 dark:text-white dark:font-light dark:tracking-wide dark:group-hover:text-amber-400 transition-colors duration-200">Marketing Wise</span>
+          <span className="text-base font-semibold text-slate-800 dark:text-white dark:font-light dark:tracking-wide dark:group-hover:text-amber-400 transition-colors duration-200">Marketing Wise</span>
         </Link>
       </div>
 
@@ -112,12 +112,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       <div className="flex-1 overflow-y-auto">
         {/* Brand Selector */}
         {!loading && brands.length > 0 && (
-          <div className="px-4 py-3 border-b border-gray-200/80 dark:border-zinc-800">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800">
             <div className="relative">
               <select
                 value={selectedBrandId || ""}
                 onChange={(e) => setSelectedBrandId(e.target.value)}
-                className="w-full h-10 bg-white dark:bg-zinc-900/50 border-2 border-gray-200 dark:border-zinc-700 pl-3 pr-8 text-gray-900 dark:text-white text-sm font-medium rounded-lg appearance-none hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:border-amber-400/50 dark:focus:ring-0 focus:outline-none transition-all cursor-pointer shadow-sm"
+                className="w-full h-10 bg-white dark:bg-zinc-900/50 border border-slate-300 dark:border-zinc-700 pl-3 pr-8 text-slate-700 dark:text-white text-sm font-medium rounded-lg appearance-none hover:border-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:border-amber-400/50 dark:focus:ring-0 focus:outline-none transition-all cursor-pointer"
               >
                 {brands.map((brand) => (
                   <option key={brand.id} value={brand.id}>
@@ -125,7 +125,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-zinc-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-400 pointer-events-none" />
             </div>
           </div>
         )}
@@ -160,20 +160,20 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               key={item.name}
               href={item.href}
               onClick={handleLinkClick}
-              className={`group relative flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
+              className={`group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
                 isActive
-                  ? "text-blue-700 dark:text-white bg-blue-50 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400 shadow-sm"
+                  ? "text-indigo-700 dark:text-white bg-indigo-50 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
                   : isHighlight
-                  ? "text-blue-600 dark:text-white hover:bg-blue-50 hover:text-blue-700 dark:bg-gradient-to-r dark:from-amber-500/10 dark:to-transparent dark:border-l-2 dark:border-amber-500 dark:hover:bg-amber-500/20 dark:hover:border-amber-400 dark:hover:translate-x-1"
-                  : "text-gray-700 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
+                  ? "text-indigo-600 dark:text-white hover:bg-indigo-50 hover:text-indigo-700 dark:bg-gradient-to-r dark:from-amber-500/10 dark:to-transparent dark:border-l-2 dark:border-amber-500 dark:hover:bg-amber-500/20 dark:hover:border-amber-400 dark:hover:translate-x-1"
+                  : "text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
               }`}
             >
               <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
-                isActive ? "text-blue-600 dark:text-amber-400" : isHighlight ? "text-blue-600 dark:text-amber-400 dark:group-hover:scale-110" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
+                isActive ? "text-indigo-600 dark:text-amber-400" : isHighlight ? "text-indigo-600 dark:text-amber-400 dark:group-hover:scale-110" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
               }`} />
               <span className="flex-1 dark:transition-all dark:duration-300">{item.name}</span>
               {isHighlight && !isActive && (
-                <span className="text-[10px] bg-blue-600 dark:bg-amber-500 text-white px-2 py-1 rounded-full dark:rounded font-bold uppercase tracking-wide">NEW</span>
+                <span className="text-[10px] bg-indigo-600 dark:bg-amber-500 text-white px-2 py-1 rounded-full dark:rounded font-bold uppercase tracking-wide">NEW</span>
               )}
 
               {isActive && (
@@ -185,7 +185,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       </nav>
 
       {/* Bottom Navigation */}
-      <div className="border-t border-gray-200/80 dark:border-zinc-800">
+      <div className="border-t border-slate-200 dark:border-zinc-800">
         <nav className="px-3 py-4 space-y-0.5 dark:p-6 dark:space-y-1">
           {bottomNavigation.map((item) => {
             let isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
@@ -195,14 +195,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 onClick={handleLinkClick}
-                className={`group relative flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
+                className={`group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
                   isActive
-                    ? "text-blue-700 dark:text-white bg-blue-50 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400 shadow-sm"
-                    : "text-gray-700 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
+                    ? "text-indigo-700 dark:text-white bg-indigo-50 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
+                    : "text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
                 }`}
               >
                 <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
-                  isActive ? "text-blue-600 dark:text-amber-400" : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
+                  isActive ? "text-indigo-600 dark:text-amber-400" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
                 }`} />
                 <span className="flex-1 dark:transition-all dark:duration-300">{item.name}</span>
 
@@ -215,18 +215,18 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="px-4 py-4 border-t border-gray-200/80 dark:border-zinc-800 dark:p-8">
+      <div className="px-4 py-4 border-t border-slate-200 dark:border-zinc-800 dark:p-8">
         {/* 다크모드 토글 버튼 */}
         <button
           onClick={toggleTheme}
-          className="w-full mb-4 dark:mb-6 flex items-center gap-3 px-3 py-2.5 dark:px-4 dark:py-3 rounded-lg bg-gray-100 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 transition-all duration-200 dark:duration-300 group border border-gray-200 dark:border-transparent hover:border-gray-300"
+          className="w-full mb-4 dark:mb-6 flex items-center gap-3 px-3 py-2.5 dark:px-4 dark:py-3 rounded-lg bg-slate-100 dark:bg-zinc-800/50 hover:bg-slate-200 dark:hover:bg-zinc-700/50 transition-all duration-200 dark:duration-300 group"
         >
           {theme === 'light' ? (
-            <Moon className="h-5 w-5 text-gray-700 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-amber-400 transition-colors" />
+            <Moon className="h-5 w-5 text-slate-600 dark:text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-amber-400 transition-colors" />
           ) : (
-            <Sun className="h-5 w-5 text-gray-700 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-amber-400 transition-colors" />
+            <Sun className="h-5 w-5 text-slate-600 dark:text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-amber-400 transition-colors" />
           )}
-          <span className="text-sm font-semibold text-gray-800 dark:text-zinc-400 dark:font-normal group-hover:text-gray-900 dark:group-hover:text-zinc-200 transition-colors">
+          <span className="text-sm font-medium text-slate-700 dark:text-zinc-400 dark:font-normal group-hover:text-slate-900 dark:group-hover:text-zinc-200 transition-colors">
             {theme === 'light' ? (language === 'ko' ? '다크 모드' : 'Dark Mode') : (language === 'ko' ? '라이트 모드' : 'Light Mode')}
           </span>
         </button>
