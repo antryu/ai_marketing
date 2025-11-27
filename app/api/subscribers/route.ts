@@ -12,12 +12,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 구독자 목록 가져오기
-    const { data: subscribers, error } = await supabase
+    // Admin은 모든 구독자 조회, 일반 사용자는 본인 구독자만 조회
+    const isAdmin = user.email === 'seongpilryu@gmail.com'
+
+    let query = supabase
       .from('subscribers')
       .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id)
+    }
+
+    const { data: subscribers, error } = await query.order('created_at', { ascending: false })
 
     if (error) {
       console.error('Failed to fetch subscribers:', error)

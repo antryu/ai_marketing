@@ -16,12 +16,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 구독자 삭제 (RLS로 자동으로 본인 것만 삭제됨)
-    const { error } = await supabase
+    // Admin은 모든 구독자 삭제 가능, 일반 사용자는 본인 구독자만 삭제
+    const isAdmin = user.email === 'seongpilryu@gmail.com'
+
+    let query = supabase
       .from('subscribers')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id)
+
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id)
+    }
+
+    const { error } = await query
 
     if (error) {
       console.error('Failed to delete subscriber:', error)
