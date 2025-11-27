@@ -69,10 +69,15 @@ export async function PATCH(
       updates.status = status
     }
 
+    // 업데이트할 내용이 없으면 에러
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
+
     // 구독자 정보 수정
     const { data: subscriber, error } = await supabase
       .from('subscribers')
-      .update(updates)
+      .update(updates as any)
       .eq('id', id)
       .eq('user_id', user.id)
       .select()
