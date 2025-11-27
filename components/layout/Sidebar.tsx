@@ -17,6 +17,7 @@ import {
   Building2,
   ChevronDown,
   TrendingUp,
+  Users,
 } from "lucide-react"
 import { useBrand } from "@/contexts/BrandContext"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -33,6 +34,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { language } = useLanguage()
   const t = (key: TranslationKey) => translations[key][language]
   const [showTrendsNew, setShowTrendsNew] = useState(true)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
 
   // Check if user has visited trends page
   useEffect(() => {
@@ -50,6 +52,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     }
   }, [pathname])
 
+  // Get user email
+  useEffect(() => {
+    async function getUserEmail() {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserEmail(user?.email || null)
+    }
+    getUserEmail()
+  }, [])
+
   const navigation = [
     { name: t("navDashboard"), href: "/dashboard", icon: LayoutDashboard, highlight: false },
     { name: t("navBrandSettings"), href: "/brand", icon: Building2, highlight: false },
@@ -63,6 +76,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   ]
 
   const bottomNavigation = [
+    ...(userEmail === 'seongpilryu@gmail.com' ? [
+      { name: language === "ko" ? "구독자" : "Subscribers", href: "/subscribers", icon: Users, highlight: false }
+    ] : []),
     { name: t("navPricing"), href: "/pricing", icon: CreditCard, highlight: false },
     { name: t("navSettings"), href: "/settings", icon: Settings, highlight: false },
   ]

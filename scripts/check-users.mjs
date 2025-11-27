@@ -1,88 +1,34 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const supabaseUrl = 'https://sepnrqzjccjrtssvytow.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlcG5ycXpqY2NqcnRzc3Z5dG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxOTk4MDUsImV4cCI6MjA3ODc3NTgwNX0.9bSgdRlnjBQtAMNqoUAjIk8ZVd8WbzgQiLM-l-mu_dw'
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+dotenv.config({ path: join(__dirname, '../.env.local') });
 
-async function checkUsers() {
-  console.log('👥 Checking users (auth.users)...\n')
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Try to get current authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.log('Current authenticated user:', user ? user.email : 'Not authenticated')
-  console.log('')
+const { data: profiles, error } = await supabase
+  .from('profiles')
+  .select('*')
+  .order('created_at', { ascending: false });
 
-  // Check profiles table
-  console.log('📊 Checking profiles table...\n')
-  const { data: profiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(20)
-
-  if (profilesError) {
-    console.error('❌ Profiles Error:', profilesError.message)
-  } else if (profiles && profiles.length > 0) {
-    console.log(`✅ Found ${profiles.length} profile(s):\n`)
-    profiles.forEach((profile, index) => {
-      console.log(`[${index + 1}] Profile:`)
-      console.log(`    ID: ${profile.id}`)
-      console.log(`    Email: ${profile.email || 'N/A'}`)
-      console.log(`    Full Name: ${profile.full_name || 'N/A'}`)
-      console.log(`    Plan: ${profile.plan || 'N/A'}`)
-      console.log(`    Created: ${new Date(profile.created_at).toLocaleString('ko-KR')}`)
-      console.log('')
-    })
-  } else {
-    console.log('ℹ️  No profiles found')
-  }
-
-  // Check brands table
-  console.log('\n🏢 Checking brands table...\n')
-  const { data: brands, error: brandsError } = await supabase
-    .from('brands')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  if (brandsError) {
-    console.error('❌ Brands Error:', brandsError.message)
-  } else if (brands && brands.length > 0) {
-    console.log(`✅ Found ${brands.length} brand(s):\n`)
-    brands.forEach((brand, index) => {
-      console.log(`[${index + 1}] ${brand.name}`)
-      console.log(`    User ID: ${brand.user_id}`)
-      console.log(`    Created: ${new Date(brand.created_at).toLocaleString('ko-KR')}`)
-      console.log('')
-    })
-  } else {
-    console.log('ℹ️  No brands found')
-  }
-
-  // Check content table
-  console.log('\n📝 Checking content table...\n')
-  const { data: contents, error: contentsError } = await supabase
-    .from('content')
-    .select('id, title, platform, status, created_at')
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  if (contentsError) {
-    console.error('❌ Content Error:', contentsError.message)
-  } else if (contents && contents.length > 0) {
-    console.log(`✅ Found ${contents.length} content(s):\n`)
-    contents.forEach((content, index) => {
-      console.log(`[${index + 1}] ${content.title || 'Untitled'}`)
-      console.log(`    Platform: ${content.platform}`)
-      console.log(`    Status: ${content.status}`)
-      console.log(`    Created: ${new Date(content.created_at).toLocaleString('ko-KR')}`)
-      console.log('')
-    })
-  } else {
-    console.log('ℹ️  No content found')
-  }
+if (error) {
+  console.error('Error:', error);
+  process.exit(1);
 }
 
-checkUsers()
+console.log('\n=== 로그인한 사용자 목록 ===\n');
+console.log('총 ' + profiles.length + '명\n');
+
+profiles.forEach((profile, idx) => {
+  console.log((idx + 1) + '. ' + profile.email);
+  if (profile.full_name) console.log('   이름: ' + profile.full_name);
+  console.log('   가입: ' + new Date(profile.created_at).toLocaleString('ko-KR'));
+  console.log('');
+});
