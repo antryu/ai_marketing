@@ -101,7 +101,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       <div className="h-16 px-6 flex items-center border-b border-slate-200 dark:border-zinc-800 flex-shrink-0">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-indigo-600 dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-700 rounded-lg flex items-center justify-center dark:border dark:border-zinc-700 group-hover:from-indigo-600 group-hover:to-indigo-700 dark:group-hover:border-amber-400/50 transition-all duration-200 dark:group-hover:shadow-amber-400/20">
+          <div className="w-9 h-9 bg-transparent dark:bg-gradient-to-br dark:from-zinc-800 dark:to-zinc-700 rounded-lg flex items-center justify-center dark:border dark:border-zinc-700 hover:bg-slate-100 dark:group-hover:border-amber-400/50 transition-all duration-200 dark:group-hover:shadow-amber-400/20">
             <Zap className="h-5 w-5 text-white dark:text-amber-400 dark:group-hover:scale-110 dark:transition-transform dark:duration-300" />
           </div>
           <span className="text-base font-semibold text-slate-800 dark:text-white dark:font-light dark:tracking-wide dark:group-hover:text-amber-400 transition-colors duration-200">Marketing Wise</span>
