@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowRight, Zap, Target, TrendingUp, Sparkles, CheckCircle2, Moon, Sun, Instagram, Twitter, Linkedin, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,11 +9,45 @@ import { useLanguage } from "@/contexts/LanguageContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { LanguageToggle } from "@/components/LanguageToggle"
 import { translations } from "@/lib/translations"
+import { createClient } from "@/lib/supabase/client"
 
 export function LandingPageClient() {
   const { language } = useLanguage()
   const { theme, toggleTheme } = useTheme()
+  const router = useRouter()
   const t = (key: keyof typeof translations) => translations[key][language]
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        setIsLoggedIn(true)
+        // 로그인되어 있으면 대시보드로 리디렉션
+        router.push('/dashboard')
+      } else {
+        setIsLoggedIn(false)
+      }
+      setLoading(false)
+    }
+
+    checkAuth()
+  }, [])
+
+  // 로딩 중이거나 로그인되어 있으면 빈 화면 표시 (리디렉션 중)
+  if (loading || isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-600 dark:border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-700 dark:text-zinc-300">{loading ? 'Loading...' : 'Redirecting...'}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 transition-colors duration-300">
