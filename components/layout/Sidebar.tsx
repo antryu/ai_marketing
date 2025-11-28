@@ -162,14 +162,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               onClick={handleLinkClick}
               className={`group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
                 isActive
-                  ? "text-indigo-700 dark:text-white bg-indigo-50 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
+                  ? "text-white bg-indigo-600 border-l-4 border-indigo-700 dark:text-white dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
                   : isHighlight
                   ? "text-indigo-600 dark:text-white hover:bg-indigo-50 hover:text-indigo-700 dark:bg-gradient-to-r dark:from-amber-500/10 dark:to-transparent dark:border-l-2 dark:border-amber-500 dark:hover:bg-amber-500/20 dark:hover:border-amber-400 dark:hover:translate-x-1"
                   : "text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
               }`}
             >
               <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
-                isActive ? "text-indigo-600 dark:text-amber-400" : isHighlight ? "text-indigo-600 dark:text-amber-400 dark:group-hover:scale-110" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
+                isActive ? "text-white dark:text-amber-400" : isHighlight ? "text-indigo-600 dark:text-amber-400 dark:group-hover:scale-110" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
               }`} />
               <span className="flex-1 dark:transition-all dark:duration-300">{item.name}</span>
               {isHighlight && !isActive && (
@@ -197,12 +197,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 onClick={handleLinkClick}
                 className={`group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded-none ${
                   isActive
-                    ? "text-indigo-700 dark:text-white bg-indigo-50 dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
+                    ? "text-white bg-indigo-600 border-l-4 border-indigo-700 dark:text-white dark:bg-gradient-to-r dark:from-zinc-800 dark:to-transparent dark:border-l-2 dark:border-amber-400"
                     : "text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
                 }`}
               >
                 <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
-                  isActive ? "text-indigo-600 dark:text-amber-400" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
+                  isActive ? "text-white dark:text-amber-400" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
                 }`} />
                 <span className="flex-1 dark:transition-all dark:duration-300">{item.name}</span>
 
@@ -217,23 +217,21 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       <div className="px-4 py-4 border-t border-slate-200 dark:border-zinc-800 dark:p-8">
         {/* 다크모드 토글 버튼 */}
-        <button
-          onClick={toggleTheme}
-          className="w-full mb-4 dark:mb-6 flex items-center gap-3 px-3 py-2.5 dark:px-4 dark:py-3 rounded-lg bg-slate-100 dark:bg-zinc-800/50 hover:bg-slate-200 dark:hover:bg-zinc-700/50 transition-all duration-200 dark:duration-300 group"
-        >
-          {theme === 'light' ? (
-            <Moon className="h-5 w-5 text-slate-600 dark:text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-amber-400 transition-colors" />
-          ) : (
-            <Sun className="h-5 w-5 text-slate-600 dark:text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-amber-400 transition-colors" />
-          )}
-          <span className="text-sm font-medium text-slate-700 dark:text-zinc-400 dark:font-normal group-hover:text-slate-900 dark:group-hover:text-zinc-200 transition-colors">
-            {theme === 'light' ? (language === 'ko' ? '다크 모드' : 'Dark Mode') : (language === 'ko' ? '라이트 모드' : 'Light Mode')}
-          </span>
-        </button>
+        {theme === 'light' && (
+          <button
+            onClick={toggleTheme}
+            className="w-full mb-4 flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 transition-all duration-200 group"
+          >
+            <Moon className="h-5 w-5 text-slate-600 group-hover:text-indigo-600 transition-colors" />
+            <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
+              {language === 'ko' ? '다크 모드' : 'Dark Mode'}
+            </span>
+          </button>
+        )}
 
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-normal tracking-wide">
+          <div className="w-2 h-2 rounded-full bg-amber-400 dark:bg-amber-400 animate-pulse"></div>
+          <div className="text-xs text-slate-600 dark:text-zinc-400 font-medium dark:font-normal tracking-wide">
             {t("mvpStage")}
           </div>
         </div>

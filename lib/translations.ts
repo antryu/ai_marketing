@@ -8,8 +8,8 @@ export const translations = {
   heroTitle1: { ko: "AI가 만드는", en: "AI-Powered" },
   heroTitle2: { ko: "스마트 마케팅", en: "Smart Marketing" },
   heroSubtitle: {
-    ko: "제품 정보만 입력하면 AI가 타겟 고객을 분석하고, Thread와 LinkedIn에 최적화된 콘텐츠를 자동으로 생성합니다",
-    en: "Simply enter your product information and AI will analyze your target audience and automatically generate content optimized for Threads and LinkedIn"
+    ko: "제품 정보만 입력하면 AI가 타겟 고객을 분석하고, Thread, LinkedIn, Instagram, Twitter, 네이버, 티스토리 등 6개 플랫폼에 최적화된 콘텐츠를 자동으로 생성합니다",
+    en: "Simply enter your product information and AI will analyze your target audience and automatically generate content optimized for Threads, LinkedIn, Instagram, Twitter, Naver, and Tistory"
   },
 
   // Stats
@@ -27,10 +27,10 @@ export const translations = {
     en: "Enter product information and AI automatically generates target customer personas. Analyze customer needs, interests, and purchase patterns for accurate targeting."
   },
 
-  feature2Title: { ko: "플랫폼별 최적화", en: "Platform Optimization" },
+  feature2Title: { ko: "6개 플랫폼 최적화", en: "6-Platform Optimization" },
   feature2Desc: {
-    ko: "Thread, LinkedIn 등 각 플랫폼에 최적화된 콘텐츠를 자동으로 생성합니다. 플랫폼별 특성에 맞는 길이, 톤, 형식으로 콘텐츠가 조정됩니다.",
-    en: "Automatically generates content optimized for each platform like Threads and LinkedIn. Content is adjusted for length, tone, and format to match platform characteristics."
+    ko: "Thread, LinkedIn, Instagram, Twitter, 네이버, 티스토리 등 6개 플랫폼에 최적화된 콘텐츠를 자동으로 생성합니다. 플랫폼별 특성에 맞는 길이, 톤, 형식으로 콘텐츠가 조정됩니다.",
+    en: "Automatically generates content optimized for 6 platforms: Threads, LinkedIn, Instagram, Twitter, Naver, and Tistory. Content is adjusted for length, tone, and format to match each platform's characteristics."
   },
 
   feature3Title: { ko: "성과 추적", en: "Performance Tracking" },
