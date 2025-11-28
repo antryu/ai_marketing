@@ -163,7 +163,7 @@ ${targetPlatform === 'linkedin' ? '5. 전문성과 인사이트 강조' : ''}
 지금 바로 한국어로만 콘텐츠를 작성하세요!`
 
     const response = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
+      model: "claude-opus-4-20250514",
       max_tokens: settings.maxTokens,
       temperature: 0.7,
       messages: [

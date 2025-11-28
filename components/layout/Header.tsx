@@ -103,6 +103,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               <p className="font-normal text-white text-sm tracking-wide">{t("myAccount")}</p>
             </div>
             <button
+              onClick={() => router.push("/profile")}
               className="w-full px-4 py-3 flex items-center gap-3 text-zinc-300 hover:text-white hover:bg-zinc-800/50 font-normal text-sm tracking-wide transition-all duration-300 group/item"
             >
               <User className="w-4 h-4 text-amber-400 group-hover/item:scale-110 transition-transform duration-300" />

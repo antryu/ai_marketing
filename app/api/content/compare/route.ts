@@ -29,7 +29,7 @@ async function generateWithOllama(prompt: string, model: string = "qwen2.5:14b-i
 // Claude API 호출 함수
 async function generateWithClaude(prompt: string) {
   const response = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+    model: "claude-opus-4-20250514",
     max_tokens: 1000,
     temperature: 0.7,
     messages: [{ role: "user", content: prompt }]
@@ -155,7 +155,7 @@ ${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n
           topic,
           body: claudeContent,
           content_type: "text",
-          ai_model: "claude-3-haiku-20240307",
+          ai_model: "claude-opus-4-20250514",
           platform_variations: {
             [platform]: {
               text: claudeContent,
@@ -204,7 +204,7 @@ ${typedBrand.personas?.map((p: any) => `- ${p.name}: ${p.description}`).join("\n
           content: claudeContent,
           contentId: claudeContentId,
           error: claudeError,
-          model: "claude-3-haiku-20240307"
+          model: "claude-opus-4-20250514"
         },
         ollama: {
           content: ollamaContent,

@@ -50,10 +50,8 @@ export async function GET(request: NextRequest) {
 
     console.log('🔥 Fetching Reddit RSS feeds...')
 
-    // Language-specific subreddits
-    const subreddits = language === 'ko'
-      ? ['korea', 'hanguk', 'all', 'popular']  // Korean subreddits + global trends
-      : ['all', 'popular']  // English subreddits
+    // Global subreddits only
+    const subreddits = ['all', 'popular']  // Global trends for all languages
 
     // Fetch both hot and top weekly posts from language-specific subreddits
     const fetchPromises = subreddits.flatMap(subreddit => [

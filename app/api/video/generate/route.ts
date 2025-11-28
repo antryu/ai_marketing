@@ -197,7 +197,7 @@ async function generateVideoScenes(params: VideoGenerationParams & { aiModel?: s
   } else {
     // Claude로 생성
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-opus-4-20250514',
       max_tokens: 2000,
       temperature: 0.8,
       messages: [

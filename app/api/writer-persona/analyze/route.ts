@@ -104,7 +104,7 @@ ${text}
     } else {
       // Claude로 분석
       const response = await anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-opus-4-20250514',
         max_tokens: 1500,
         temperature: 0.3,
         messages: [
@@ -133,7 +133,7 @@ ${text}
     return NextResponse.json({
       success: true,
       analysis,
-      aiModel: aiModel || 'claude-3-haiku-20240307'
+      aiModel: aiModel || 'claude-opus-4-20250514'
     })
 
   } catch (error: any) {

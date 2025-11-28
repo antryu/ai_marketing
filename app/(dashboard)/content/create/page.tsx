@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Zap, Video, FileText, Tag, X } from "lucide-react"
+import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -30,7 +30,7 @@ export default function ContentCreatePage() {
   const [platform, setPlatform] = useState("all")
   const [tone, setTone] = useState("professional")
   const [length, setLength] = useState("medium")
-  const [contentType, setContentType] = useState<"text" | "video">("text")
+  const [contentType, setContentType] = useState<"text" | "image" | "video">("text")
   const [generatedContent, setGeneratedContent] = useState("")
   const [videoProject, setVideoProject] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -125,13 +125,16 @@ export default function ContentCreatePage() {
       if (contentType === "text") {
         const endpoint = compareMode ? "/api/content/compare" : "/api/content/generate"
 
+        // "all" 플랫폼인 경우 네이버 블로그 기준으로 생성
+        const targetPlatform = platform === "all" ? "naver" : platform
+
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             topic,
             brandId: selectedBrand,
-            platform,
+            platform: targetPlatform,
             tone,
             length,
             writerPersonaId: selectedWriterPersona || null,
@@ -161,13 +164,16 @@ export default function ContentCreatePage() {
         }
       } else {
         // Video generation
+        // "all" 플랫폼인 경우 네이버 블로그 기준으로 생성
+        const targetPlatform = platform === "all" ? "naver" : platform
+
         const response = await fetch("/api/video/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             topic,
             brandId: selectedBrand,
-            platform,
+            platform: targetPlatform,
             duration: 15,
             style: tone,
             aiModel: ollamaModel
@@ -250,6 +256,37 @@ export default function ContentCreatePage() {
     setSelectedKeywords(prev => prev.filter(k => k !== keyword))
   }
 
+  const handleDownloadContent = () => {
+    if (!generatedContent && !videoProject) {
+      toast.error(language === "ko" ? "다운로드할 콘텐츠가 없습니다" : "No content to download")
+      return
+    }
+
+    try {
+      if (contentType === "text") {
+        // Download as markdown file
+        const blob = new Blob([generatedContent], { type: 'text/markdown' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${topic || 'content'}-${Date.now()}.md`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        toast.success(language === "ko" ? "텍스트 파일 다운로드 완료" : "Text file downloaded")
+      } else if (contentType === "image") {
+        // Future: Download generated image
+        toast.info(language === "ko" ? "이미지 다운로드 기능 준비중" : "Image download coming soon")
+      } else if (contentType === "video") {
+        // Future: Download generated video
+        toast.info(language === "ko" ? "비디오 다운로드 기능 준비중" : "Video download coming soon")
+      }
+    } catch (error) {
+      toast.error(language === "ko" ? "다운로드 실패" : "Download failed")
+    }
+  }
+
   const handleSaveContent = async () => {
     if (!generatedContent || !selectedBrand) {
       toast.error(language === "ko" ? "콘텐츠와 브랜드를 선택해주세요" : "Please select content and brand")
@@ -259,6 +296,9 @@ export default function ContentCreatePage() {
     setSaving(true)
     try {
       const supabase = createClient()
+
+      // "all" 플랫폼인 경우 네이버 블로그로 저장
+      const savePlatform = platform === "all" ? "naver" : platform
 
       const { data, error} = await (supabase as any)
         .from("contents")
@@ -271,7 +311,7 @@ export default function ContentCreatePage() {
           ai_model: usedAiModel || "claude",
           seo_keywords: selectedKeywords,
           platform_variations: {
-            [platform]: {
+            [savePlatform]: {
               text: generatedContent
             }
           },
@@ -370,11 +410,11 @@ export default function ContentCreatePage() {
             {/* Content Type Selection */}
             <div className="space-y-2">
               <Label>{t("contentType")}</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setContentType("text")}
                   className={`
-                    flex items-center justify-center gap-2 p-4 rounded border transition-all
+                    flex flex-col items-center justify-center gap-2 p-4 rounded border transition-all
                     ${contentType === "text"
                       ? "bg-amber-500/20 border-amber-500 text-amber-400"
                       : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
@@ -382,20 +422,41 @@ export default function ContentCreatePage() {
                   `}
                 >
                   <FileText className="w-5 h-5" />
-                  <span className="font-medium">{t("text")}</span>
+                  <span className="font-medium text-sm">{t("text")}</span>
+                </button>
+                <button
+                  onClick={() => setContentType("image")}
+                  className={`
+                    relative flex flex-col items-center justify-center gap-2 p-4 rounded border transition-all
+                    ${contentType === "image"
+                      ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                      : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                    }
+                  `}
+                  disabled
+                >
+                  <Image className="w-5 h-5" />
+                  <span className="font-medium text-sm">{language === "ko" ? "이미지" : "Image"}</span>
+                  <span className="absolute top-1 right-1 text-[10px] bg-zinc-700 text-zinc-400 px-2 py-0.5 rounded">
+                    {language === "ko" ? "준비중" : "Soon"}
+                  </span>
                 </button>
                 <button
                   onClick={() => setContentType("video")}
                   className={`
-                    flex items-center justify-center gap-2 p-4 rounded border transition-all
+                    relative flex flex-col items-center justify-center gap-2 p-4 rounded border transition-all
                     ${contentType === "video"
                       ? "bg-amber-500/20 border-amber-500 text-amber-400"
                       : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
                     }
                   `}
+                  disabled
                 >
                   <Video className="w-5 h-5" />
-                  <span className="font-medium">{t("video")}</span>
+                  <span className="font-medium text-sm">{t("video")}</span>
+                  <span className="absolute top-1 right-1 text-[10px] bg-zinc-700 text-zinc-400 px-2 py-0.5 rounded">
+                    {language === "ko" ? "준비중" : "Soon"}
+                  </span>
                 </button>
               </div>
             </div>
@@ -501,19 +562,14 @@ export default function ContentCreatePage() {
                   {!compareMode && (
                     <>
                       <Label>{t("aiModel")}</Label>
-                      <Select value={ollamaModel} onValueChange={setOllamaModel}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="claude">🟣 Claude (Haiku) - {language === "ko" ? "추천" : "Recommended"}</SelectItem>
-                          <SelectItem value="qwen2.5:7b" disabled>⭐ Qwen 2.5 7B (Ollama) - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
-                          <SelectItem value="gemma2:2b" disabled>💎 Gemma2 2B - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-amber-400/80 mt-1">
-                        ⚠️ {language === "ko" ? "Ollama 모델은 Vercel 서버에서 작동하지 않습니다. 로컬 환경에서만 사용 가능합니다." : "Ollama models don't work on Vercel servers. Available only in local environment."}
-                      </p>
+                      <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded">
+                        <p className="text-sm text-white font-medium flex items-center gap-2">
+                          🟣 Claude
+                        </p>
+                        <p className="text-xs text-zinc-400 mt-1">
+                          {language === "ko" ? "Anthropic의 Claude Opus 4.5 모델을 사용합니다" : "Powered by Anthropic's Claude Opus 4.5"}
+                        </p>
+                      </div>
                     </>
                   )}
 
@@ -539,19 +595,14 @@ export default function ContentCreatePage() {
               {contentType === "video" && (
                 <>
                   <Label>{t("aiModel")}</Label>
-                  <Select value={ollamaModel} onValueChange={setOllamaModel}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="claude">🟣 Claude (Anthropic)</SelectItem>
-                      <SelectItem value="qwen2.5:7b" disabled>⭐ Qwen 2.5 7B - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
-                      <SelectItem value="gemma2:2b" disabled>💎 Gemma2 2B - {language === "ko" ? "로컬 전용" : "Local Only"} ⚠️</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-amber-400/80 mt-1">
-                    ⚠️ {language === "ko" ? "Ollama 모델은 Vercel 서버에서 작동하지 않습니다. 로컬 환경에서만 사용 가능합니다." : "Ollama models don't work on Vercel servers. Available only in local environment."}
-                  </p>
+                  <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded">
+                    <p className="text-sm text-white font-medium flex items-center gap-2">
+                      🟣 Claude
+                    </p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      {language === "ko" ? "Anthropic의 Claude Opus 4.5 모델을 사용합니다" : "Powered by Anthropic's Claude Opus 4.5"}
+                    </p>
+                  </div>
                 </>
               )}
             </div>
@@ -866,33 +917,36 @@ export default function ContentCreatePage() {
                 </div>
 
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-zinc-400 font-normal">
-                      {t("markdownTip")}
-                    </p>
-                    {usedAiModel && (
-                      <p className="text-xs text-amber-400 font-medium">
-                        🤖 {usedAiModel}
-                      </p>
-                    )}
+                  <p className="text-xs text-zinc-400 font-normal">
+                    {t("markdownTip")}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={handleDownloadContent}
+                      disabled={!generatedContent && !videoProject}
+                      className="w-full bg-zinc-700 hover:bg-zinc-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      {language === "ko" ? "다운로드" : "Download"}
+                    </Button>
+                    <Button
+                      onClick={handleSaveContent}
+                      disabled={saving || !generatedContent}
+                      className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          {language === "ko" ? "저장 중..." : "Saving..."}
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4 mr-2" />
+                          {language === "ko" ? "저장" : "Save"}
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    onClick={handleSaveContent}
-                    disabled={saving || !generatedContent}
-                    className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {saving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        {language === "ko" ? "저장 중..." : "Saving..."}
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        {language === "ko" ? "저장" : "Save"}
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
             ) : (

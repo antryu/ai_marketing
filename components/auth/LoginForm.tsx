@@ -112,10 +112,15 @@ export function LoginForm() {
 
             {/* Password Input */}
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium tracking-wide text-zinc-200 flex items-center gap-2">
-                <Lock className="w-4 h-4 text-amber-400" />
-                {t("password")}
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium tracking-wide text-zinc-200 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-400" />
+                  {t("password")}
+                </label>
+                <Link href="/forgot-password" className="text-xs text-amber-400 hover:text-amber-300 transition-colors duration-300">
+                  {language === "en" ? "Forgot?" : "비밀번호 찾기"}
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"

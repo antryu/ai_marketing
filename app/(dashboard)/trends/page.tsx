@@ -172,8 +172,10 @@ export default function TrendsPage() {
     }
   }
 
-  const analyzeTrends = async () => {
-    if (!keyword.trim()) {
+  const analyzeTrends = async (searchKeyword?: string) => {
+    const targetKeyword = searchKeyword || keyword
+
+    if (!targetKeyword.trim()) {
       toast.error(t("keywordRequired"))
       return
     }
@@ -186,22 +188,22 @@ export default function TrendsPage() {
         fetch("/api/trends/google", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword, language }),
+          body: JSON.stringify({ keyword: targetKeyword, language }),
         }),
         fetch("/api/trends/twitter", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword, language }),
+          body: JSON.stringify({ keyword: targetKeyword, language }),
         }),
         fetch("/api/trends/reddit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword, language }),
+          body: JSON.stringify({ keyword: targetKeyword, language }),
         }),
         fetch("/api/trends/naver", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword, language }),
+          body: JSON.stringify({ keyword: targetKeyword, language }),
         }),
       ])
 
@@ -255,36 +257,69 @@ export default function TrendsPage() {
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
 
-        {/* Persona Selection - Only show if 2 or more personas exist */}
-        {personas.length >= 2 && (
-          <Card className="p-6 bg-zinc-900 border-zinc-800 mb-8">
-            <div className="flex items-center gap-4">
-              <Target className="h-5 w-5 text-amber-400" />
+        {/* Persona Selection + Data Sources - Side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+          {/* Persona Selection - Only show if 2 or more personas exist */}
+          {personas.length >= 2 && (
+            <Card className="p-6 bg-zinc-900 border-zinc-800">
+              <div className="flex items-center gap-4">
+                <Target className="h-5 w-5 text-amber-400" />
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-zinc-300 mb-2 block">
+                    {language === "ko" ? "타겟 고객 선택" : "Select Target Customer"}
+                  </label>
+                  <Select value={selectedPersonaId} onValueChange={setSelectedPersonaId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {personas.map((persona) => (
+                        <SelectItem key={persona.id} value={persona.id}>
+                          {persona.name} ({persona.age_range} · {persona.gender})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedPersonaId && personas.find(p => p.id === selectedPersonaId) && (
+                    <p className="text-xs text-zinc-500 mt-2">
+                      {personas.find(p => p.id === selectedPersonaId)?.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Data Source Information */}
+          <Card className="p-6 bg-gradient-to-r from-zinc-900 to-zinc-950 border-zinc-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="h-5 w-5 text-amber-400" />
+              </div>
               <div className="flex-1">
-                <label className="text-sm font-medium text-zinc-300 mb-2 block">
-                  {language === "ko" ? "타겟 고객 선택" : "Select Target Customer"}
-                </label>
-                <Select value={selectedPersonaId} onValueChange={setSelectedPersonaId}>
-                  <SelectTrigger className="w-full md:w-96">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {personas.map((persona) => (
-                      <SelectItem key={persona.id} value={persona.id}>
-                        {persona.name} ({persona.age_range} · {persona.gender})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedPersonaId && personas.find(p => p.id === selectedPersonaId) && (
-                  <p className="text-xs text-zinc-500 mt-2">
-                    {personas.find(p => p.id === selectedPersonaId)?.description}
-                  </p>
-                )}
+                <h3 className="text-white font-medium mb-2">
+                  {language === "ko" ? "트렌드 데이터 출처" : "Trend Data Sources"}
+                </h3>
+                <div className="text-xs text-zinc-400 space-y-1">
+                  {language === "ko" ? (
+                    <>
+                      <p className="text-zinc-300 font-medium mb-1.5">한국 시장 트렌드 분석:</p>
+                      <p>• <span className="text-green-400 font-medium">Naver DataLab</span>: 네이버 검색 트렌드 (최우선)</p>
+                      <p>• <span className="text-amber-400 font-medium">Google Trends KR</span>: 급상승 검색어</p>
+                      <p>• <span className="text-blue-400 font-medium">Twitter/X 한국어</span>: 실시간 소셜 트렌드</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-zinc-300 font-medium mb-1.5">US/Global Market Trends:</p>
+                      <p>• <span className="text-amber-400 font-medium">Google Trends US</span>: Rising keywords</p>
+                      <p>• <span className="text-blue-400 font-medium">Twitter/X English</span>: Social trends</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
-        )}
+        </div>
 
         {/* AI Suggestions Loading */}
         {loadingSuggestions && (
@@ -335,7 +370,7 @@ export default function TrendsPage() {
                   onClick={() => {
                     setKeyword(sug.keyword)
                     setTrendData(null)
-                    analyzeTrends()
+                    analyzeTrends(sug.keyword)
                   }}
                   className="p-4 bg-zinc-950 rounded border border-zinc-800 hover:border-amber-400/50 transition-all text-left group"
                 >
@@ -367,103 +402,57 @@ export default function TrendsPage() {
           </Card>
         )}
 
-        {/* Reddit Trending Topics - Separate box with loading state */}
+        {/* Reddit Trending Topics */}
         {!loadingSuggestions && suggestions && (
-          <Card className="p-6 bg-gradient-to-br from-orange-400/10 via-zinc-900 to-zinc-900 border-orange-400/30 mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-orange-400/10 flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="h-5 w-5 text-orange-400" />
+          <Card className="p-4 bg-gradient-to-br from-orange-400/10 via-zinc-900 to-zinc-900 border-orange-400/30 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-orange-400/10 flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-4 w-4 text-orange-400" />
               </div>
               <div>
-                <h2 className="text-xl font-medium text-white">
+                <h2 className="text-lg font-medium text-white">
                   {language === "ko"
                     ? "🌍 Reddit 글로벌 트렌드"
                     : "🌍 Reddit Global Trends"
                   }
                 </h2>
-                <p className="text-zinc-400 text-sm">
-                  {language === "ko"
-                    ? "주간 인기 + 실시간 Hot 토픽 (별도 로딩)"
-                    : "Weekly Top + Real-time Hot Topics (Loading separately)"
-                  }
-                </p>
               </div>
             </div>
 
             {loadingReddit ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400 mb-4"></div>
-                <p className="text-zinc-400">
+              <div className="flex items-center justify-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400 mr-3"></div>
+                <p className="text-zinc-400 text-sm">
                   {language === "ko"
-                    ? "Reddit 트렌드 데이터 로딩 중..."
-                    : "Loading Reddit trend data..."
+                    ? "로딩 중..."
+                    : "Loading..."
                   }
                 </p>
               </div>
             ) : redditTrends.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {redditTrends.map((post: any, idx: number) => (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {redditTrends.slice(0, 8).map((post: any, idx: number) => (
                   <div
                     key={idx}
-                    className="p-4 bg-zinc-950 rounded border border-zinc-800 hover:border-orange-400/50 transition-all"
+                    className="p-2 bg-zinc-950 rounded border border-zinc-800 hover:border-orange-400/50 transition-all"
                   >
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-lg">{post.icon}</span>
-                      <h3 className="text-white font-medium text-sm flex-1 line-clamp-2">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-sm">{post.icon}</span>
+                      <h3 className="text-white font-medium text-xs flex-1 line-clamp-2">
                         {post.title}
                       </h3>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-zinc-500">
-                      <span>
-                        {post.source === 'hot'
-                          ? (language === "ko" ? "실시간 Hot" : "Hot Now")
-                          : (language === "ko" ? "주간 Top" : "Weekly Top")
-                        }
-                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-zinc-500">
+              <div className="text-center py-4 text-zinc-500 text-sm">
                 {language === "ko"
                   ? "Reddit 데이터를 불러올 수 없습니다"
                   : "Unable to load Reddit data"
                 }
               </div>
             )}
-          </Card>
-        )}
-
-        {/* Data Source Information - Show after AI suggestions */}
-        {!loadingSuggestions && suggestions && (
-          <Card className="p-5 bg-gradient-to-r from-zinc-900 to-zinc-950 border-zinc-800 mb-8">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
-                <BarChart3 className="h-5 w-5 text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-white font-medium mb-2">
-                  {language === "ko" ? "📊 트렌드 데이터 출처" : "📊 Trend Data Sources"}
-                </h3>
-                <div className="text-sm text-zinc-400 space-y-1.5">
-                  {language === "ko" ? (
-                    <>
-                      <p className="text-zinc-300 font-medium mb-2">🇰🇷 한국 시장 트렌드 분석 (3개 플랫폼):</p>
-                      <p>• <span className="text-green-400 font-medium">Naver DataLab</span>: 네이버 검색 트렌드 (최우선) - 한국 검색 시장 점유율 1위</p>
-                      <p>• <span className="text-amber-400 font-medium">Google Trends KR</span>: 한국에서 급상승하는 검색어와 관련 주제</p>
-                      <p>• <span className="text-blue-400 font-medium">Twitter/X 한국어</span>: 한국어 트윗 중 높은 참여도를 보이는 실시간 주제</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-zinc-300 font-medium mb-2">🌎 US/Global Market Trends (2 platforms):</p>
-                      <p>• <span className="text-amber-400 font-medium">Google Trends US</span>: Rising keywords and related searches in the United States</p>
-                      <p>• <span className="text-blue-400 font-medium">Twitter/X English</span>: High-engagement English tweets from global users</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
           </Card>
         )}
 

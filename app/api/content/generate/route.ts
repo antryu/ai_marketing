@@ -163,12 +163,11 @@ ${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona
     // Type assertion for brand
     const typedBrand = brand as any
 
-    // Always generate Naver blog format first (longest content)
-    // Other platforms will be generated on-demand when viewing
-    const platformKey = 'naver'
-    const settings = platformSettings.naver
+    // Use the platform specified in the request
+    const platformKey = platform || 'naver'
+    const settings = platformSettings[platformKey as keyof typeof platformSettings] || platformSettings.naver
 
-    console.log(`\n=== 네이버 블로그 콘텐츠 생성 시작 ===`)
+    console.log(`\n=== ${platformKey} 콘텐츠 생성 시작 ===`)
     console.log(`설정: 최대 ${settings.maxLength}자, 스타일: ${settings.style}`)
 
     // Ollama 모델 사용 여부 확인
@@ -403,7 +402,7 @@ Start writing in Korean NOW!`}
     } else {
       // Claude로 생성 - 네이버 블로그 max_tokens 사용
       const response = await anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
+        model: "claude-opus-4-20250514",
         max_tokens: settings.maxTokens,
         temperature: 0.7,
         messages: [
@@ -428,13 +427,13 @@ Start writing in Korean NOW!`}
       .replace(/```\n?/g, '')
       .trim()
 
-    console.log(`✅ 네이버 블로그 콘텐츠 생성 완료:`)
+    console.log(`✅ ${platformKey} 콘텐츠 생성 완료:`)
     console.log(`   - 길이: ${generatedContent.length}자`)
     console.log(`   - 미리보기: ${generatedContent.substring(0, 100)}...`)
 
-    // Store only Naver blog content initially
+    // Store content for the specified platform
     const platformVariations: Record<string, { text: string; tone: string; length: string }> = {
-      naver: {
+      [platformKey]: {
         text: generatedContent,
         tone,
         length
@@ -450,7 +449,7 @@ Start writing in Korean NOW!`}
         topic,
         body: generatedContent,
         content_type: "text",
-        ai_model: aiModel || "claude-3-haiku-20240307",
+        ai_model: aiModel || "claude-opus-4-20250514",
         platform_variations: platformVariations,
         status: "draft"
       })
