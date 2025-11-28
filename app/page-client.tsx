@@ -145,12 +145,12 @@ export function LandingPageClient() {
                   <span className="text-xs md:text-sm font-semibold text-slate-700 dark:text-zinc-400">Instagram</span>
                 </div>
 
-                {/* Twitter/X */}
+                {/* X (Twitter) */}
                 <div className="flex flex-col items-center gap-3 group">
                   <div className="w-16 h-16 md:w-20 md:h-20 bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 rounded-2xl flex items-center justify-center shadow-md dark:shadow-none group-hover:border-indigo-600 dark:group-hover:border-amber-400 group-hover:scale-110 transition-all duration-300">
-                    <Twitter className="w-8 h-8 md:w-10 md:h-10 text-slate-700 dark:text-zinc-300 group-hover:text-indigo-600 dark:group-hover:text-amber-400 transition-colors" />
+                    <span className="text-2xl md:text-3xl font-black text-slate-700 dark:text-zinc-300 group-hover:text-indigo-600 dark:group-hover:text-amber-400 transition-colors">𝕏</span>
                   </div>
-                  <span className="text-xs md:text-sm font-semibold text-slate-700 dark:text-zinc-400">Twitter</span>
+                  <span className="text-xs md:text-sm font-semibold text-slate-700 dark:text-zinc-400">X (Twitter)</span>
                 </div>
 
                 {/* Naver */}
