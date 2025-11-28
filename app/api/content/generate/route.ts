@@ -80,47 +80,55 @@ export async function POST(request: Request) {
       writerPersona = result.data
     }
 
+    // Length multipliers based on user selection
+    const lengthMultipliers = {
+      short: 0.7,
+      medium: 1.0,
+      long: 1.3
+    }
+    const multiplier = lengthMultipliers[length as keyof typeof lengthMultipliers] || 1.0
+
     // Platform-specific content generation
     const platformSettings = {
       thread: {
-        maxLength: 500,
-        minLength: 400,
-        maxTokens: 800,
+        maxLength: Math.round(500 * multiplier),
+        minLength: Math.round(400 * multiplier),
+        maxTokens: Math.round(800 * multiplier),
         style: "감성적, 스토리텔링, 완전한 반말체 (존댓말 절대 사용 금지, 친구에게 말하듯 편하고 캐주얼한 톤)",
         format: "짧은 form"
       },
       linkedin: {
-        maxLength: 1500,
-        minLength: 1200,
-        maxTokens: 2400,
+        maxLength: Math.round(1500 * multiplier),
+        minLength: Math.round(1200 * multiplier),
+        maxTokens: Math.round(2400 * multiplier),
         style: "전문적, 데이터 중심, ROI 중심",
         format: "긴 form"
       },
       instagram: {
-        maxLength: 300,
-        minLength: 200,
-        maxTokens: 500,
+        maxLength: Math.round(300 * multiplier),
+        minLength: Math.round(200 * multiplier),
+        maxTokens: Math.round(500 * multiplier),
         style: "비주얼 중심, 감성적",
         format: "캡션"
       },
       twitter: {
-        maxLength: 280,
-        minLength: 200,
-        maxTokens: 450,
+        maxLength: Math.min(280, Math.round(280 * multiplier)), // Twitter는 최대 280자 제한
+        minLength: Math.round(200 * multiplier),
+        maxTokens: Math.round(450 * multiplier),
         style: "간결하고 임팩트 있는",
         format: "짧은 form"
       },
       naver: {
-        maxLength: 2500,
-        minLength: 2000,
-        maxTokens: 4000,
+        maxLength: Math.round(2500 * multiplier),
+        minLength: Math.round(2000 * multiplier),
+        maxTokens: Math.round(4000 * multiplier),
         style: "친근하고 상세한, 한국 독자 맞춤, 실용적 정보 제공, SEO 최적화",
         format: "블로그 포스트"
       },
       tistory: {
-        maxLength: 2000,
-        minLength: 1600,
-        maxTokens: 3200,
+        maxLength: Math.round(2000 * multiplier),
+        minLength: Math.round(1600 * multiplier),
+        maxTokens: Math.round(3200 * multiplier),
         style: "체계적이고 구조화된, 단계별 가이드, 기술적 디테일 포함",
         format: "블로그 포스트"
       }
@@ -155,25 +163,17 @@ ${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona
     // Type assertion for brand
     const typedBrand = brand as any
 
-    // Determine which platforms to generate content for
-    const platformsToGenerate = platform === 'all'
-      ? ['thread', 'linkedin', 'twitter', 'instagram', 'naver', 'tistory']
-      : [platform]
+    // Always generate Naver blog format first (longest content)
+    // Other platforms will be generated on-demand when viewing
+    const platformKey = 'naver'
+    const settings = platformSettings.naver
 
-    const platformVariations: Record<string, { text: string; tone: string; length: string }> = {}
+    console.log(`\n=== 네이버 블로그 콘텐츠 생성 시작 ===`)
+    console.log(`설정: 최대 ${settings.maxLength}자, 스타일: ${settings.style}`)
 
     // Ollama 모델 사용 여부 확인
     const ollamaModels = ['qwen2.5:7b', 'phi3:3.8b', 'llama3.2:3b', 'gemma2:2b']
     const useOllama = aiModel && ollamaModels.includes(aiModel)
-
-    // Generate content for each platform
-    console.log(`\n=== 플랫폼 생성 시작 ===`)
-    console.log(`총 ${platformsToGenerate.length}개 플랫폼 생성 예정:`, platformsToGenerate)
-
-    for (const platformKey of platformsToGenerate) {
-      console.log(`\n--- ${platformKey} 콘텐츠 생성 중 ---`)
-      const settings = platformSettings[platformKey as keyof typeof platformSettings]
-      console.log(`설정: 최대 ${settings.maxLength}자, 스타일: ${settings.style}`)
 
       const prompt = `${language === "en"
         ? `You are a professional marketing content writer.
@@ -401,58 +401,51 @@ WARNING: Using English or other languages will FAIL this task!
 Start writing in Korean NOW!`}
 `
 
-      let generatedContent: string
+    let generatedContent: string
 
-      if (useOllama) {
-        // Ollama로 생성
-        generatedContent = await generateWithOllama(prompt, aiModel)
-      } else {
-        // Claude로 생성 - 플랫폼별 max_tokens 동적 설정
-        const response = await anthropic.messages.create({
-          model: "claude-3-haiku-20240307",
-          max_tokens: settings.maxTokens,
-          temperature: 0.7,
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ]
-        })
+    if (useOllama) {
+      // Ollama로 생성
+      generatedContent = await generateWithOllama(prompt, aiModel)
+    } else {
+      // Claude로 생성 - 네이버 블로그 max_tokens 사용
+      const response = await anthropic.messages.create({
+        model: "claude-3-haiku-20240307",
+        max_tokens: settings.maxTokens,
+        temperature: 0.7,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      })
 
-        const responseContent = response.content[0]
-        if (responseContent.type !== 'text') {
-          throw new Error('Unexpected response type from Claude')
-        }
-
-        generatedContent = responseContent.text
+      const responseContent = response.content[0]
+      if (responseContent.type !== 'text') {
+        throw new Error('Unexpected response type from Claude')
       }
 
-      // 마크다운 코드 블록 제거
-      generatedContent = generatedContent
-        .replace(/```markdown\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim()
+      generatedContent = responseContent.text
+    }
 
-      platformVariations[platformKey] = {
+    // 마크다운 코드 블록 제거
+    generatedContent = generatedContent
+      .replace(/```markdown\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+
+    console.log(`✅ 네이버 블로그 콘텐츠 생성 완료:`)
+    console.log(`   - 길이: ${generatedContent.length}자`)
+    console.log(`   - 미리보기: ${generatedContent.substring(0, 100)}...`)
+
+    // Store only Naver blog content initially
+    const platformVariations: Record<string, { text: string; tone: string; length: string }> = {
+      naver: {
         text: generatedContent,
         tone,
         length
       }
-
-      console.log(`✅ ${platformKey} 생성 완료:`)
-      console.log(`   - 길이: ${generatedContent.length}자`)
-      console.log(`   - 미리보기: ${generatedContent.substring(0, 100)}...`)
     }
-
-    console.log(`\n=== 모든 플랫폼 생성 완료 ===`)
-    console.log(`생성된 플랫폼 수: ${Object.keys(platformVariations).length}`)
-    console.log(`플랫폼 키:`, Object.keys(platformVariations))
-
-    // Use the appropriate platform's content as the body
-    const generatedContent = platform === 'all'
-      ? platformVariations['thread'].text  // Use thread version as main body when generating all
-      : platformVariations[platform].text
 
     // Save to database
     const contentResult = await (supabase as any)

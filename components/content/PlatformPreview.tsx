@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ReactMarkdown from "react-markdown"
+import { toast } from "sonner"
 
 interface PlatformVariation {
   text: string
@@ -12,7 +14,9 @@ interface PlatformVariation {
 }
 
 interface PlatformPreviewProps {
+  contentId: string
   variations: Record<string, PlatformVariation>
+  language?: string
 }
 
 const PlatformIcon = ({ platformId, className = "w-6 h-6" }: { platformId: string; className?: string }) => {
@@ -76,169 +80,213 @@ const getPlatformLabel = (platformId: string): string => {
   return labels[platformId] || platformId
 }
 
-export function PlatformPreview({ variations }: PlatformPreviewProps) {
-  // 디버깅: variations 데이터 확인
-  console.log("🔍 PlatformPreview variations:", variations)
-  console.log("🔍 Variations keys:", Object.keys(variations))
-  console.log("🔍 Variations type:", typeof variations)
+export function PlatformPreview({ contentId, variations, language = "ko" }: PlatformPreviewProps) {
+  // 레거시 데이터 처리: "all" 키를 "naver" 키로 변환
+  const processedVariations = (() => {
+    if (variations.all && !variations.naver) {
+      console.log("⚠️ 레거시 'all' 키 감지 - naver로 변환합니다")
+      return {
+        ...variations,
+        naver: variations.all
+      }
+    }
+    return variations
+  })()
 
-  // "all" 키로 저장된 레거시 데이터 처리
-  let processedVariations = variations
-  if (variations.all && Object.keys(variations).length === 1) {
-    console.log("⚠️ 레거시 'all' 키 감지 - 플랫폼별로 복제합니다")
-    processedVariations = {
-      thread: variations.all,
-      linkedin: variations.all,
-      twitter: variations.all,
-      instagram: variations.all,
-      naver: variations.all,
-      tistory: variations.all,
+  const [platformVariations, setPlatformVariations] = useState(processedVariations)
+  const [loadingPlatforms, setLoadingPlatforms] = useState<Record<string, boolean>>({})
+
+  // 디버깅: variations 데이터 확인
+  console.log("🔍 PlatformPreview variations:", processedVariations)
+  console.log("🔍 Variations keys:", Object.keys(processedVariations))
+
+  // All available platforms
+  const allPlatforms = ['thread', 'linkedin', 'twitter', 'instagram', 'naver', 'tistory']
+
+  const handlePlatformClick = async (platform: string) => {
+    // 이미 해당 플랫폼 콘텐츠가 있으면 스킵
+    if (platformVariations[platform]) {
+      return
+    }
+
+    setLoadingPlatforms(prev => ({ ...prev, [platform]: true }))
+
+    try {
+      const response = await fetch('/api/content/transform', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentId,
+          targetPlatform: platform,
+          language
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '변환 실패')
+      }
+
+      // Update local state with transformed content
+      setPlatformVariations(prev => ({
+        ...prev,
+        [platform]: {
+          text: data.text,
+          tone: platformVariations.naver?.tone || 'professional',
+          length: platformVariations.naver?.length || 'medium'
+        }
+      }))
+
+      toast.success(`${getPlatformLabel(platform)} 콘텐츠 생성 완료`)
+
+    } catch (error: any) {
+      console.error('Transform error:', error)
+      toast.error(error.message || '콘텐츠 변환 실패')
+    } finally {
+      setLoadingPlatforms(prev => ({ ...prev, [platform]: false }))
     }
   }
 
-  const platforms = Object.keys(processedVariations).filter((key) => processedVariations[key])
-  console.log("🔍 Processed platforms:", platforms)
-
-  if (platforms.length === 0) {
-    return (
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardContent className="py-8 text-center text-zinc-400">
-          플랫폼별 콘텐츠가 없습니다
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // 제일 긴 콘텐츠를 가진 플랫폼을 기본으로 선택
-  const longestPlatform = platforms.reduce((longest, current) => {
-    const longestLength = processedVariations[longest]?.text?.length || 0
-    const currentLength = processedVariations[current]?.text?.length || 0
-    return currentLength > longestLength ? current : longest
-  }, platforms[0])
-
-  console.log("🔍 Longest platform:", longestPlatform, "with", processedVariations[longestPlatform]?.text?.length, "characters")
+  // 제일 긴 콘텐츠를 가진 플랫폼을 기본으로 선택 (네이버)
+  const defaultPlatform = 'naver'
 
   return (
     <Card className="bg-zinc-900 border-zinc-800">
       <CardHeader>
         <CardTitle className="text-lg">플랫폼별 미리보기</CardTitle>
+        <p className="text-xs text-zinc-500 mt-2">
+          💡 네이버 블로그 형식으로 생성되었습니다. 다른 플랫폼 탭을 클릭하면 해당 플랫폼에 최적화된 콘텐츠가 자동 생성됩니다.
+        </p>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue={longestPlatform} className="w-full">
-          <TabsList className={`grid w-full bg-zinc-800 gap-1 p-1 ${
-            platforms.length === 1 ? 'grid-cols-1' :
-            platforms.length === 2 ? 'grid-cols-2' :
-            platforms.length === 3 ? 'grid-cols-3' :
-            platforms.length === 4 ? 'grid-cols-4' :
-            platforms.length === 5 ? 'grid-cols-5' :
-            'grid-cols-6'
-          }`}>
-            {platforms.map((platform) => (
+        <Tabs defaultValue={defaultPlatform} className="w-full">
+          <TabsList className="grid w-full grid-cols-6 bg-zinc-800/50 gap-2 p-2 rounded-lg h-auto border border-zinc-700">
+            {allPlatforms.map((platform) => (
               <TabsTrigger
                 key={platform}
                 value={platform}
-                className="flex flex-col items-center justify-center gap-1 py-3 px-2 data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 data-[state=active]:border data-[state=active]:border-amber-500/50"
+                onClick={() => handlePlatformClick(platform)}
+                disabled={loadingPlatforms[platform]}
+                className="flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-md bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 disabled:opacity-50 transition-all border-0 shadow-none"
               >
-                <PlatformIcon platformId={platform} className="w-5 h-5" />
+                {loadingPlatforms[platform] ? (
+                  <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <PlatformIcon platformId={platform} className="w-5 h-5" />
+                )}
                 <span className="text-xs font-medium whitespace-nowrap">{getPlatformLabel(platform)}</span>
               </TabsTrigger>
             ))}
           </TabsList>
 
-          {platforms.map((platform) => {
-            const variation = processedVariations[platform]
-            if (!variation) return null
+          {allPlatforms.map((platform) => {
+            const variation = platformVariations[platform]
+            const isLoading = loadingPlatforms[platform]
 
             return (
               <TabsContent key={platform} value={platform} className="mt-6">
-                <div className="bg-zinc-800 rounded-lg p-6 border border-zinc-700 overflow-hidden">
-                  {/* 블로그 플랫폼과 SNS 플랫폼을 다르게 렌더링 */}
-                  {platform === 'naver' || platform === 'tistory' ? (
-                    // 블로그 스타일 프리뷰
-                    <div className="bg-white text-black p-8 rounded">
-                      <div className="mb-6 pb-4 border-b border-gray-200">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white font-bold">
-                            B
-                          </div>
-                          <div>
-                            <div className="font-bold text-gray-900">Your Blog</div>
-                            <div className="text-sm text-gray-500">
-                              {platform === 'naver' ? '네이버 블로그' : '티스토리'}
+                {isLoading ? (
+                  <div className="bg-zinc-800 rounded-lg p-12 border border-zinc-700 flex flex-col items-center justify-center gap-4">
+                    <div className="w-12 h-12 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-zinc-400">{getPlatformLabel(platform)} 콘텐츠 생성 중...</p>
+                  </div>
+                ) : !variation ? (
+                  <div className="bg-zinc-800 rounded-lg p-12 border border-zinc-700 flex flex-col items-center justify-center gap-4">
+                    <p className="text-zinc-400">이 탭을 클릭하면 {getPlatformLabel(platform)} 콘텐츠가 생성됩니다</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-zinc-800 rounded-lg p-6 border border-zinc-700 overflow-hidden">
+                      {/* 블로그 플랫폼과 SNS 플랫폼을 다르게 렌더링 */}
+                      {platform === 'naver' || platform === 'tistory' ? (
+                        // 블로그 스타일 프리뷰
+                        <div className="bg-white text-black p-8 rounded">
+                          <div className="mb-6 pb-4 border-b border-gray-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white font-bold">
+                                B
+                              </div>
+                              <div>
+                                <div className="font-bold text-gray-900">Your Blog</div>
+                                <div className="text-sm text-gray-500">
+                                  {platform === 'naver' ? '네이버 블로그' : '티스토리'}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                      <div className="prose prose-lg max-w-none">
-                        <ReactMarkdown>{variation.text}</ReactMarkdown>
-                      </div>
-                    </div>
-                  ) : (
-                    // SNS 스타일 프리뷰
-                    <>
-                      <div className="flex items-start gap-4 mb-4">
-                        <div className={`${platform === 'linkedin' ? 'w-12 h-12 rounded' : 'w-10 h-10 rounded-full'} bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold`}>
-                          {platform === 'linkedin' ? 'Y' : 'U'}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-white mb-1">Your Brand</div>
-                          <div className="text-sm text-zinc-400">
-                            {platform === 'linkedin' ? '팔로워 1,234명' : '@yourbrand'}
+                          <div className="prose prose-lg max-w-none">
+                            <ReactMarkdown>{variation.text}</ReactMarkdown>
                           </div>
-                          {platform === 'linkedin' && (
-                            <div className="text-xs text-zinc-500">방금</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-white mb-4 prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
-                        <ReactMarkdown>{variation.text}</ReactMarkdown>
-                      </div>
-                    </>
-                  )}
-                  {variation.hashtags && variation.hashtags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {variation.hashtags.map((tag, i) => (
-                        <span key={i} className="text-blue-400 text-sm">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {/* SNS 플랫폼만 인터랙션 버튼 표시 */}
-                  {platform !== 'naver' && platform !== 'tistory' && (
-                    <div className="mt-4 pt-4 border-t border-zinc-700 flex gap-6 text-zinc-400 text-sm">
-                      {platform === 'linkedin' ? (
-                        <>
-                          <span>👍 추천</span>
-                          <span>💬 댓글</span>
-                          <span>🔁 다시 게시</span>
-                          <span>📤 보내기</span>
-                        </>
-                      ) : platform === 'twitter' || platform === 'x' ? (
-                        <div className="flex justify-between w-full">
-                          <span>💬</span>
-                          <span>🔁</span>
-                          <span>♥</span>
-                          <span>📊</span>
-                          <span>🔖</span>
-                          <span>📤</span>
                         </div>
                       ) : (
+                        // SNS 스타일 프리뷰
                         <>
-                          <span>♥ 좋아요</span>
-                          <span>💬 댓글</span>
-                          <span>🔁 공유</span>
+                          <div className="flex items-start gap-4 mb-4">
+                            <div className={`${platform === 'linkedin' ? 'w-12 h-12 rounded' : 'w-10 h-10 rounded-full'} bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold`}>
+                              {platform === 'linkedin' ? 'Y' : 'U'}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-white mb-1">Your Brand</div>
+                              <div className="text-sm text-zinc-400">
+                                {platform === 'linkedin' ? '팔로워 1,234명' : '@yourbrand'}
+                              </div>
+                              {platform === 'linkedin' && (
+                                <div className="text-xs text-zinc-500">방금</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-white mb-4 prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
+                            <ReactMarkdown>{variation.text}</ReactMarkdown>
+                          </div>
                         </>
                       )}
+                      {variation.hashtags && variation.hashtags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {variation.hashtags.map((tag, i) => (
+                            <span key={i} className="text-blue-400 text-sm">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {/* SNS 플랫폼만 인터랙션 버튼 표시 */}
+                      {platform !== 'naver' && platform !== 'tistory' && (
+                        <div className="mt-4 pt-4 border-t border-zinc-700 flex gap-6 text-zinc-400 text-sm">
+                          {platform === 'linkedin' ? (
+                            <>
+                              <span>👍 추천</span>
+                              <span>💬 댓글</span>
+                              <span>🔁 다시 게시</span>
+                              <span>📤 보내기</span>
+                            </>
+                          ) : platform === 'twitter' || platform === 'x' ? (
+                            <div className="flex justify-between w-full">
+                              <span>💬</span>
+                              <span>🔁</span>
+                              <span>♥</span>
+                              <span>📊</span>
+                              <span>🔖</span>
+                              <span>📤</span>
+                            </div>
+                          ) : (
+                            <>
+                              <span>♥ 좋아요</span>
+                              <span>💬 댓글</span>
+                              <span>🔁 공유</span>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="mt-4 text-xs text-zinc-500">
-                  <div className="flex items-center justify-between">
-                    <span>문자 수: {variation.text.length}</span>
-                    <span className="text-amber-400">✓ {getPlatformLabel(platform)} 최적화 완료</span>
-                  </div>
-                </div>
+                    <div className="mt-4 text-xs text-zinc-500">
+                      <div className="flex items-center justify-between">
+                        <span>문자 수: {variation.text.length}</span>
+                        <span className="text-amber-400">✓ {getPlatformLabel(platform)} 최적화 완료</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </TabsContent>
             )
           })}

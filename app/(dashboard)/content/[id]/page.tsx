@@ -202,7 +202,11 @@ export default function ContentDetailPage() {
 
           {/* 플랫폼별 프리뷰 */}
           {content.platform_variations && (
-            <PlatformPreview variations={content.platform_variations} />
+            <PlatformPreview
+              contentId={contentId}
+              variations={content.platform_variations}
+              language="ko"
+            />
           )}
         </div>
 
