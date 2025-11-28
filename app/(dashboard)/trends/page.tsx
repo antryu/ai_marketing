@@ -432,9 +432,14 @@ export default function TrendsPage() {
             ) : redditTrends.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {redditTrends.slice(0, 8).map((post: any, idx: number) => (
-                  <div
+                  <button
                     key={idx}
-                    className="p-2 bg-zinc-950 rounded border border-zinc-800 hover:border-orange-400/50 transition-all"
+                    onClick={() => {
+                      setKeyword(post.title)
+                      setTrendData(null)
+                      analyzeTrends(post.title)
+                    }}
+                    className="p-2 bg-zinc-950 rounded border border-zinc-800 hover:border-orange-400/50 transition-all text-left cursor-pointer"
                   >
                     <div className="flex items-start gap-1.5">
                       <span className="text-sm">{post.icon}</span>
@@ -442,7 +447,7 @@ export default function TrendsPage() {
                         {post.title}
                       </h3>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (

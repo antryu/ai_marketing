@@ -351,7 +351,7 @@ ${persona.goals?.length ? `목표: ${persona.goals.join(', ')}` : ''}
   `.trim() : '일반 타겟 고객'
 
   const prompt = language === 'ko' ? `
-당신은 마케팅 트렌드 전문가입니다. 다음 정보를 바탕으로 현재 한국 시장에서 효과적인 콘텐츠 마케팅 주제 5개를 추천해주세요.
+당신은 마케팅 트렌드 전문가입니다. 다음 정보를 바탕으로 현재 한국 시장에서 효과적인 콘텐츠 마케팅 주제 6개를 추천해주세요.
 
 ${brandContext}
 
@@ -380,7 +380,7 @@ JSON 형식으로 응답해주세요:
   ]
 }
 ` : `
-You are a marketing trend expert. Based on the following information, recommend 5 effective content marketing topics for the current US/global market.
+You are a marketing trend expert. Based on the following information, recommend 6 effective content marketing topics for the current US/global market.
 
 ${brandContext}
 
