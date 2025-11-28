@@ -469,7 +469,7 @@ export default function TrendsPage() {
               />
             </div>
             <Button
-              onClick={analyzeTrends}
+              onClick={() => analyzeTrends()}
               disabled={loading}
               className="bg-amber-400 text-black hover:bg-amber-500"
             >
