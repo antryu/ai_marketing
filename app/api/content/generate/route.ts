@@ -315,8 +315,7 @@ YOU MUST follow this character count requirement!
 
 Please follow these guidelines to generate content:
 1. **Write in English ONLY** - All content must be written in English
-${platformKey === 'thread' ? `2. **Use casual tone** - Write in a friendly, conversational style
-   Example: "You should know this", "Really great", "Try it out"` : '2. Use formal/professional tone'}
+2. Use friendly and detailed tone suitable for blog readers
 3. Optimize format for ${platformKey} platform
 4. Maintain brand voice and tone
 5. **Apply the 🎯 Target-specific content strategy above** - Use tone, style, and approach that matches each target's personality traits
@@ -360,12 +359,7 @@ Start writing in English NOW!` : `
 
 다음 지침을 따라 콘텐츠를 생성하세요:
 1. **반드시 한국어로 작성** - 모든 콘텐츠는 한국어로 작성해야 합니다
-${platformKey === 'thread' ? `2. **반말체 사용 필수** - 첫 문장부터 마지막 문장까지 100% 반말로만 작성
-   ⚠️ 절대 금지: "~요", "~니다", "~세요", "~습니다" 등의 존댓말
-   ✅ 반드시 사용: "~야", "~어", "~지", "~거야", "~다", "~해" 등의 반말
-   예시 문장: "이거 진짜 대박이야", "꼭 한번 해봐", "너도 알겠지만 이건 정말 좋아"
-   첫 문장 예: "요즘 이거 때문에 고민이지?" (O) / "요즘 이것 때문에 고민이시죠?" (X)
-   마지막 문장 예: "꼭 한번 해봐!" (O) / "꼭 한번 해보세요!" (X)` : '2. 존댓말 사용'}
+2. 친근하고 상세한 톤으로 블로그 독자에게 맞게 작성
 3. ${platformKey} 플랫폼에 최적화된 형식으로 작성
 4. 브랜드 보이스와 톤 유지
 5. **위의 🎯 타겟 맞춤 콘텐츠 전략을 반드시 적용** - 각 타겟의 성격 특성에 맞는 톤, 스타일, 접근 방식 사용
