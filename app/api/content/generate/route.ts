@@ -84,31 +84,43 @@ export async function POST(request: Request) {
     const platformSettings = {
       thread: {
         maxLength: 500,
+        minLength: 400,
+        maxTokens: 800,
         style: "감성적, 스토리텔링, 완전한 반말체 (존댓말 절대 사용 금지, 친구에게 말하듯 편하고 캐주얼한 톤)",
         format: "짧은 form"
       },
       linkedin: {
         maxLength: 1500,
+        minLength: 1200,
+        maxTokens: 2400,
         style: "전문적, 데이터 중심, ROI 중심",
         format: "긴 form"
       },
       instagram: {
         maxLength: 300,
+        minLength: 200,
+        maxTokens: 500,
         style: "비주얼 중심, 감성적",
         format: "캡션"
       },
       twitter: {
         maxLength: 280,
+        minLength: 200,
+        maxTokens: 450,
         style: "간결하고 임팩트 있는",
         format: "짧은 form"
       },
       naver: {
         maxLength: 2500,
+        minLength: 2000,
+        maxTokens: 4000,
         style: "친근하고 상세한, 한국 독자 맞춤, 실용적 정보 제공, SEO 최적화",
         format: "블로그 포스트"
       },
       tistory: {
         maxLength: 2000,
+        minLength: 1600,
+        maxTokens: 3200,
         style: "체계적이고 구조화된, 단계별 가이드, 기술적 디테일 포함",
         format: "블로그 포스트"
       }
@@ -291,6 +303,16 @@ ${typedBrand.personas?.map((p: any) => {
 ${writerContext}
 
 ${language === "en" ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ IMPORTANT: Character Count Requirements
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Minimum characters: ${settings.minLength} (REQUIRED)
+Maximum characters: ${settings.maxLength} (DO NOT EXCEED)
+Target length: Write between ${settings.minLength}-${settings.maxLength} characters
+
+YOU MUST follow this character count requirement!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Please follow these guidelines to generate content:
 1. **Write in English ONLY** - All content must be written in English
 ${platformKey === 'thread' ? `2. **Use casual tone** - Write in a friendly, conversational style
@@ -302,7 +324,7 @@ ${platformKey === 'thread' ? `2. **Use casual tone** - Write in a friendly, conv
 7. Reflect writer persona's style and characteristics
 8. Focus on providing real value
 9. Include Call-to-Action (CTA) naturally
-10. Keep within ${settings.maxLength} characters
+10. **Character count: MUST write between ${settings.minLength}-${settings.maxLength} characters**
 ${platformKey === 'naver' || platformKey === 'tistory' ? `
 10. **Blog format** - Use introduction, body, conclusion structure
 11. **Use subheadings** - Clear section divisions with ## markdown
@@ -326,6 +348,16 @@ OUTPUT REQUIREMENTS:
 ⚠️ WARNING: Using Korean or other languages will FAIL this task!
 
 Start writing in English NOW!` : `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ 중요: 글자수 요구사항
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+최소 글자수: ${settings.minLength}자 (필수)
+최대 글자수: ${settings.maxLength}자 (절대 초과 금지)
+목표 글자수: ${settings.minLength}-${settings.maxLength}자 사이로 작성
+
+이 글자수를 반드시 지켜주세요!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 다음 지침을 따라 콘텐츠를 생성하세요:
 1. **반드시 한국어로 작성** - 모든 콘텐츠는 한국어로 작성해야 합니다
 ${platformKey === 'thread' ? `2. **반말체 사용 필수** - 첫 문장부터 마지막 문장까지 100% 반말로만 작성
@@ -341,7 +373,7 @@ ${platformKey === 'thread' ? `2. **반말체 사용 필수** - 첫 문장부터 
 7. 작성자 페르소나의 스타일과 특성 반영
 8. 실제 가치 제공에 집중
 9. CTA(Call-to-Action) 자연스럽게 포함
-10. ${settings.maxLength}자 이내로 작성
+10. **글자수: ${settings.minLength}-${settings.maxLength}자 사이로 반드시 작성**
 ${platformKey === 'naver' || platformKey === 'tistory' ? `
 10. **블로그 형식** - 서론, 본론, 결론 구조 사용
 11. **소제목 활용** - ## 마크다운으로 명확한 섹션 구분
@@ -375,10 +407,10 @@ Start writing in Korean NOW!`}
         // Ollama로 생성
         generatedContent = await generateWithOllama(prompt, aiModel)
       } else {
-        // Claude로 생성
+        // Claude로 생성 - 플랫폼별 max_tokens 동적 설정
         const response = await anthropic.messages.create({
           model: "claude-3-haiku-20240307",
-          max_tokens: 1000,
+          max_tokens: settings.maxTokens,
           temperature: 0.7,
           messages: [
             {
