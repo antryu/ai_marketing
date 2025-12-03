@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { topic, brandId, platform, tone, length, writerPersonaId, aiModel, language } = await request.json()
+    const { topic, brandId, platform, tone, length, writerPersonaId, aiModel, language, seoKeywords } = await request.json()
 
     if (!topic || !brandId) {
       return NextResponse.json(
@@ -205,6 +205,10 @@ Platform: ${platformKey}
 Style: ${settings.style}
 Max Length: ${settings.maxLength} characters
 Format: ${settings.format}
+${seoKeywords && seoKeywords.length > 0 ? `
+SEO Keywords (MUST INCLUDE): ${seoKeywords.join(", ")}
+- Naturally incorporate these keywords into the content
+- Use keywords in a natural context, not excessively` : ""}
 
 Target Personas:` : `
 제품 정보:
@@ -218,6 +222,10 @@ Target Personas:` : `
 스타일: ${settings.style}
 최대 길이: ${settings.maxLength}자
 형식: ${settings.format}
+${seoKeywords && seoKeywords.length > 0 ? `
+SEO 키워드 (반드시 포함): ${seoKeywords.join(", ")}
+- 이 키워드들을 자연스럽게 본문에 포함시켜주세요
+- 키워드가 과하지 않게, 자연스러운 문맥에서 사용하세요` : ""}
 
 타겟 페르소나:`}
 ${typedBrand.personas?.map((p: any) => {

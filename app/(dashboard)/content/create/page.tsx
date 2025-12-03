@@ -44,6 +44,7 @@ export default function ContentCreatePage() {
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([])
   const [manualKeyword, setManualKeyword] = useState("")
   const [saving, setSaving] = useState(false)
+  const [seoStep, setSeoStep] = useState(false) // SEO 단계 활성화 여부
 
   useEffect(() => {
     loadBrands()
@@ -107,6 +108,47 @@ export default function ContentCreatePage() {
     }
   }
 
+  // SEO 키워드 제안 먼저 실행
+  const handleSeoSuggestion = async () => {
+    if (!topic.trim()) {
+      toast.error(t("topicRequired"))
+      return
+    }
+
+    if (!selectedBrand) {
+      toast.error(t("productSelectRequired"))
+      return
+    }
+
+    setLoadingSeo(true)
+    try {
+      const response = await fetch("/api/content/suggest-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: topic, // 토픽 기반으로 SEO 제안
+          topic,
+          language,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate SEO suggestions")
+      }
+
+      setSeoSuggestions(data.data)
+      setSeoStep(true) // SEO 선택 단계로 이동
+      toast.success(language === "ko" ? "SEO 키워드 분석 완료! 원하는 키워드를 선택하세요." : "SEO keywords analyzed! Select keywords you want.")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || t("errorOccurred"))
+    } finally {
+      setLoadingSeo(false)
+    }
+  }
+
   const handleGenerate = async () => {
     if (!topic.trim()) {
       toast.error(t("topicRequired"))
@@ -140,6 +182,7 @@ export default function ContentCreatePage() {
             writerPersonaId: selectedWriterPersona || null,
             aiModel: ollamaModel === "claude" ? null : ollamaModel, // claude 선택 시 null, 나머지는 모델명 전달
             language, // 언어 추가
+            seoKeywords: selectedKeywords.length > 0 ? selectedKeywords : null, // SEO 키워드 추가
             ...(compareMode && { ollamaModel: ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel })
           })
         })
@@ -200,40 +243,6 @@ export default function ContentCreatePage() {
 
   const handlePublish = async () => {
     toast.success(t("publishSoon"))
-  }
-
-  const generateSeoSuggestions = async () => {
-    if (!generatedContent) {
-      toast.error(t("noSeoSuggestions"))
-      return
-    }
-
-    setLoadingSeo(true)
-    try {
-      const response = await fetch("/api/content/suggest-keywords", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: generatedContent,
-          topic,
-          language,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate SEO suggestions")
-      }
-
-      setSeoSuggestions(data.data)
-      toast.success(language === "ko" ? "SEO 키워드 분석 완료!" : "SEO keywords analyzed!")
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.message || t("errorOccurred"))
-    } finally {
-      setLoadingSeo(false)
-    }
   }
 
   const toggleKeyword = (keyword: string) => {
@@ -657,25 +666,53 @@ export default function ContentCreatePage() {
               </Select>
             </div>
 
-            {/* Generate Button */}
-            <Button
-              onClick={handleGenerate}
-              disabled={loading}
-              className="w-full h-12 text-base group"
-            >
-              {loading ? (
-                <>{t("generating")}</>
-              ) : (
-                <>
-                  {contentType === "video" ? (
-                    <Video className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                  ) : (
+            {/* Generate Buttons */}
+            {contentType === "text" && !seoStep ? (
+              <Button
+                onClick={handleSeoSuggestion}
+                disabled={loadingSeo}
+                className="w-full h-12 text-base group bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400"
+              >
+                {loadingSeo ? (
+                  <>{language === "ko" ? "SEO 분석 중..." : "Analyzing SEO..."}</>
+                ) : (
+                  <>
+                    <Tag className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                    {language === "ko" ? "1단계: SEO 키워드 제안" : "Step 1: SEO Keywords"}
+                  </>
+                )}
+              </Button>
+            ) : contentType === "text" && seoStep ? (
+              <Button
+                onClick={handleGenerate}
+                disabled={loading}
+                className="w-full h-12 text-base group"
+              >
+                {loading ? (
+                  <>{t("generating")}</>
+                ) : (
+                  <>
                     <Sparkles className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                  )}
-                  {contentType === "video" ? t("generateVideo") : t("generateContent")}
-                </>
-              )}
-            </Button>
+                    {language === "ko" ? "2단계: 콘텐츠 생성" : "Step 2: Generate Content"}
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerate}
+                disabled={loading}
+                className="w-full h-12 text-base group"
+              >
+                {loading ? (
+                  <>{t("generating")}</>
+                ) : (
+                  <>
+                    <Video className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                    {t("generateVideo")}
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           {/* Right: Preview */}
@@ -683,17 +720,163 @@ export default function ContentCreatePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-light text-white tracking-wide">
-                  {compareMode && comparison ? t("aiComparison") : t("preview")}
+                  {compareMode && comparison ? t("aiComparison") : seoStep && !generatedContent ? (language === "ko" ? "SEO 키워드 선택" : "Select SEO Keywords") : t("preview")}
                 </h2>
                 <p className="text-zinc-400 text-xs font-normal tracking-wide mt-1">
-                  {compareMode && comparison ? "Claude vs Ollama" : t("generatedContentPreview")}
+                  {compareMode && comparison ? "Claude vs Ollama" : seoStep && !generatedContent ? (language === "ko" ? "원하는 키워드를 선택하고 콘텐츠를 생성하세요" : "Select keywords and generate content") : t("generatedContentPreview")}
                 </p>
               </div>
               <Sparkles className="w-5 h-5 text-amber-400" />
             </div>
             <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
-            {comparison ? (
+            {seoStep && !generatedContent && seoSuggestions ? (
+              <div className="space-y-6">
+                {/* SEO Selection UI */}
+                <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-lg p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                      <Tag className="w-5 h-5 text-amber-400" />
+                      {language === "ko" ? "SEO 키워드 제안" : "SEO Keywords Suggestions"}
+                    </h3>
+                  </div>
+
+                  <p className="text-sm text-zinc-400">
+                    {language === "ko" ? "토픽에 맞는 SEO 키워드를 선택하세요. 선택한 키워드가 콘텐츠에 자동으로 반영됩니다." : "Select SEO keywords for your topic. Selected keywords will be automatically reflected in the content."}
+                  </p>
+
+                  {/* Suggested Keywords */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-zinc-300">
+                      {t("suggestedKeywords")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {seoSuggestions.keywords?.map((keyword: string, idx: number) => (
+                        <button
+                          key={`keyword-${idx}`}
+                          onClick={() => toggleKeyword(keyword)}
+                          className={`
+                            px-3 py-1.5 rounded text-sm transition-all
+                            ${selectedKeywords.includes(keyword)
+                              ? "bg-amber-500/20 border border-amber-500 text-amber-400"
+                              : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-amber-500/50"
+                            }
+                          `}
+                        >
+                          {keyword}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Suggested Hashtags */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-zinc-300">
+                      {t("suggestedHashtags")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {seoSuggestions.hashtags?.map((hashtag: string, idx: number) => (
+                        <button
+                          key={`hashtag-${idx}`}
+                          onClick={() => toggleKeyword(hashtag)}
+                          className={`
+                            px-3 py-1.5 rounded text-sm transition-all
+                            ${selectedKeywords.includes(hashtag)
+                              ? "bg-blue-500/20 border border-blue-500 text-blue-400"
+                              : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-blue-500/50"
+                            }
+                          `}
+                        >
+                          {hashtag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Related Searches */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-zinc-300">
+                      {t("relatedSearches")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {seoSuggestions.relatedSearches?.map((search: string, idx: number) => (
+                        <button
+                          key={`search-${idx}`}
+                          onClick={() => toggleKeyword(search)}
+                          className={`
+                            px-3 py-1.5 rounded text-sm transition-all
+                            ${selectedKeywords.includes(search)
+                              ? "bg-green-500/20 border border-green-500 text-green-400"
+                              : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-green-500/50"
+                            }
+                          `}
+                        >
+                          {search}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Manual Add */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-zinc-300">{t("manualAdd")}</h4>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={language === "ko" ? "키워드 입력..." : "Enter keyword..."}
+                        value={manualKeyword}
+                        onChange={(e) => setManualKeyword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            addManualKeyword()
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={addManualKeyword}
+                        size="sm"
+                        className="bg-zinc-700 hover:bg-zinc-600"
+                      >
+                        {t("addKeyword")}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Selected Keywords Display */}
+                  {selectedKeywords.length > 0 && (
+                    <div className="space-y-2 pt-4 border-t border-zinc-700">
+                      <h4 className="text-sm font-medium text-amber-400">
+                        {t("selectedKeywords")} ({selectedKeywords.length})
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedKeywords.map((keyword, idx) => (
+                          <div
+                            key={`selected-${idx}`}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded text-sm text-amber-300"
+                          >
+                            <span>{keyword}</span>
+                            <button
+                              onClick={() => removeKeyword(keyword)}
+                              className="hover:text-amber-100 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Continue Button */}
+                  <div className="pt-4 border-t border-zinc-700">
+                    <p className="text-xs text-zinc-400 mb-3">
+                      {language === "ko" ? "키워드를 선택하지 않고 진행하면 SEO 최적화 없이 콘텐츠가 생성됩니다." : "If you proceed without selecting keywords, content will be generated without SEO optimization."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : comparison ? (
               <div className="space-y-4">
                 {/* Claude Result */}
                 <div className="space-y-2">
@@ -767,154 +950,25 @@ export default function ContentCreatePage() {
                   </div>
                 </div>
 
-                {/* SEO Optimization Section */}
-                <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-lg p-6 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                {/* Selected SEO Keywords Display (Read-only after generation) */}
+                {selectedKeywords.length > 0 && (
+                  <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-white flex items-center gap-2 mb-4">
                       <Tag className="w-5 h-5 text-amber-400" />
-                      {t("seoOptimization")}
+                      {language === "ko" ? "적용된 SEO 키워드" : "Applied SEO Keywords"}
                     </h3>
-                    <Button
-                      onClick={generateSeoSuggestions}
-                      disabled={loadingSeo}
-                      size="sm"
-                      className="bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
-                    >
-                      {loadingSeo ? t("loadingSeoSuggestions") : t("generateSeoSuggestions")}
-                    </Button>
-                  </div>
-
-                  <p className="text-sm text-zinc-400">
-                    {t("seoSuggestionsDesc")}
-                  </p>
-
-                  {seoSuggestions && (
-                    <div className="space-y-4">
-                      {/* Suggested Keywords */}
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-zinc-300">
-                          {t("suggestedKeywords")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {seoSuggestions.keywords?.map((keyword: string, idx: number) => (
-                            <button
-                              key={`keyword-${idx}`}
-                              onClick={() => toggleKeyword(keyword)}
-                              className={`
-                                px-3 py-1.5 rounded text-sm transition-all
-                                ${selectedKeywords.includes(keyword)
-                                  ? "bg-amber-500/20 border border-amber-500 text-amber-400"
-                                  : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-amber-500/50"
-                                }
-                              `}
-                            >
-                              {keyword}
-                            </button>
-                          ))}
+                    <div className="flex flex-wrap gap-2">
+                      {selectedKeywords.map((keyword, idx) => (
+                        <div
+                          key={`applied-${idx}`}
+                          className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded text-sm text-amber-300"
+                        >
+                          {keyword}
                         </div>
-                      </div>
-
-                      {/* Suggested Hashtags */}
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-zinc-300">
-                          {t("suggestedHashtags")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {seoSuggestions.hashtags?.map((hashtag: string, idx: number) => (
-                            <button
-                              key={`hashtag-${idx}`}
-                              onClick={() => toggleKeyword(hashtag)}
-                              className={`
-                                px-3 py-1.5 rounded text-sm transition-all
-                                ${selectedKeywords.includes(hashtag)
-                                  ? "bg-blue-500/20 border border-blue-500 text-blue-400"
-                                  : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-blue-500/50"
-                                }
-                              `}
-                            >
-                              {hashtag}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Related Searches */}
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-zinc-300">
-                          {t("relatedSearches")} <span className="text-xs text-zinc-500">{t("clickToSelect")}</span>
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {seoSuggestions.relatedSearches?.map((search: string, idx: number) => (
-                            <button
-                              key={`search-${idx}`}
-                              onClick={() => toggleKeyword(search)}
-                              className={`
-                                px-3 py-1.5 rounded text-sm transition-all
-                                ${selectedKeywords.includes(search)
-                                  ? "bg-green-500/20 border border-green-500 text-green-400"
-                                  : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-green-500/50"
-                                }
-                              `}
-                            >
-                              {search}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Manual Add */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-zinc-300">{t("manualAdd")}</h4>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={language === "ko" ? "키워드 입력..." : "Enter keyword..."}
-                        value={manualKeyword}
-                        onChange={(e) => setManualKeyword(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            addManualKeyword()
-                          }
-                        }}
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={addManualKeyword}
-                        size="sm"
-                        className="bg-zinc-700 hover:bg-zinc-600"
-                      >
-                        {t("addKeyword")}
-                      </Button>
+                      ))}
                     </div>
                   </div>
-
-                  {/* Selected Keywords Display */}
-                  {selectedKeywords.length > 0 && (
-                    <div className="space-y-2 pt-4 border-t border-zinc-700">
-                      <h4 className="text-sm font-medium text-amber-400">
-                        {t("selectedKeywords")} ({selectedKeywords.length})
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedKeywords.map((keyword, idx) => (
-                          <div
-                            key={`selected-${idx}`}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded text-sm text-amber-300"
-                          >
-                            <span>{keyword}</span>
-                            <button
-                              onClick={() => removeKeyword(keyword)}
-                              className="hover:text-amber-100 transition-colors"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
                   <p className="text-xs text-zinc-400 font-normal">
