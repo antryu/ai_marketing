@@ -671,7 +671,7 @@ export default function ContentCreatePage() {
               <Button
                 onClick={handleSeoSuggestion}
                 disabled={loadingSeo}
-                className="w-full h-12 text-base group bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400"
+                className="w-full h-12 text-base group bg-gradient-to-r from-zinc-700 to-zinc-600 hover:from-zinc-600 hover:to-zinc-500 border border-zinc-600"
               >
                 {loadingSeo ? (
                   <>{language === "ko" ? "SEO 분석 중..." : "Analyzing SEO..."}</>
