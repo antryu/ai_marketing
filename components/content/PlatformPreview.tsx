@@ -17,6 +17,7 @@ interface PlatformPreviewProps {
   contentId: string
   variations: Record<string, PlatformVariation>
   language?: string
+  seoKeywords?: string[]
 }
 
 const PlatformIcon = ({ platformId, className = "w-6 h-6" }: { platformId: string; className?: string }) => {
@@ -80,7 +81,7 @@ const getPlatformLabel = (platformId: string): string => {
   return labels[platformId] || platformId
 }
 
-export function PlatformPreview({ contentId, variations, language = "ko" }: PlatformPreviewProps) {
+export function PlatformPreview({ contentId, variations, language = "ko", seoKeywords = [] }: PlatformPreviewProps) {
   // 레거시 데이터 처리: "all" 키를 "naver" 키로 변환
   const processedVariations = (() => {
     if (variations.all && !variations.naver) {
@@ -276,6 +277,25 @@ export function PlatformPreview({ contentId, variations, language = "ko" }: Plat
                               <span>🔁 공유</span>
                             </>
                           )}
+                        </div>
+                      )}
+
+                      {/* SEO Keywords at bottom */}
+                      {seoKeywords && seoKeywords.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-zinc-700">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xs font-medium text-zinc-400">🏷️ SEO 키워드</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {seoKeywords.map((keyword, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-300"
+                              >
+                                {keyword}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

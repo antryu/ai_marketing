@@ -140,6 +140,10 @@ ${content.body}
 최대 길이: ${settings.maxLength}자
 최소 길이: ${settings.minLength}자
 형식: ${settings.format}
+${content.seo_keywords && content.seo_keywords.length > 0 ? `
+SEO 키워드 (반드시 포함): ${content.seo_keywords.join(", ")}
+- 이 키워드들을 자연스럽게 본문에 포함시켜주세요
+- 키워드가 과하지 않게, 자연스러운 문맥에서 사용하세요` : ""}
 
 위 원본 콘텐츠를 ${targetPlatform} 플랫폼에 맞게 재작성해주세요.
 

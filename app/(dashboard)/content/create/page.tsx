@@ -944,31 +944,36 @@ export default function ContentCreatePage() {
               </div>
             ) : generatedContent ? (
               <div className="space-y-6">
-                <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 overflow-hidden">
-                  <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
-                    <ReactMarkdown>{generatedContent}</ReactMarkdown>
-                  </div>
-                </div>
-
-                {/* Selected SEO Keywords Display (Read-only after generation) */}
-                {selectedKeywords.length > 0 && (
-                  <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-white flex items-center gap-2 mb-4">
-                      <Tag className="w-5 h-5 text-amber-400" />
-                      {language === "ko" ? "적용된 SEO 키워드" : "Applied SEO Keywords"}
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedKeywords.map((keyword, idx) => (
-                        <div
-                          key={`applied-${idx}`}
-                          className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded text-sm text-amber-300"
-                        >
-                          {keyword}
-                        </div>
-                      ))}
+                <div className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+                  {/* Content */}
+                  <div className="p-6">
+                    <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
+                      <ReactMarkdown>{generatedContent}</ReactMarkdown>
                     </div>
                   </div>
-                )}
+
+                  {/* SEO Keywords at bottom of content box */}
+                  {selectedKeywords.length > 0 && (
+                    <div className="border-t border-zinc-700 bg-zinc-800/50 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Tag className="w-4 h-4 text-amber-400" />
+                        <h4 className="text-sm font-medium text-zinc-300">
+                          {language === "ko" ? "적용된 SEO 키워드" : "Applied SEO Keywords"}
+                        </h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedKeywords.map((keyword, idx) => (
+                          <div
+                            key={`applied-${idx}`}
+                            className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-300"
+                          >
+                            {keyword}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
                   <p className="text-xs text-zinc-400 font-normal">

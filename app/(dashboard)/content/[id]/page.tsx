@@ -206,6 +206,7 @@ export default function ContentDetailPage() {
               contentId={contentId}
               variations={content.platform_variations}
               language="ko"
+              seoKeywords={content.seo_keywords || []}
             />
           )}
         </div>
