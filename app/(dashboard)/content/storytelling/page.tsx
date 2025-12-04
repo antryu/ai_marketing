@@ -320,7 +320,8 @@ export default function CreateMirraPage() {
                   <Button
                     onClick={handleQuickGenerate}
                     disabled={loading}
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium transition-all duration-300 border border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/50"
+                    size="lg"
                   >
                     {loading ? "생성 중..." : "🚀 빠르게 생성"}
                   </Button>
@@ -434,7 +435,7 @@ export default function CreateMirraPage() {
                   <Button
                     onClick={handleMirraGenerate}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium transition-all duration-300 border border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/50"
                     size="lg"
                   >
                     {loading ? "생성 중..." : "✨ 스토리텔링으로 생성"}
