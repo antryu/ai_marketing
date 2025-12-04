@@ -39,7 +39,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const t = (key: TranslationKey) => translations[key][language]
   const [showTrendsNew, setShowTrendsNew] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [contentMenuOpen, setContentMenuOpen] = useState(true)
 
   // Check if user has visited trends page
   useEffect(() => {
@@ -74,16 +73,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     { name: t("navBrandVoice"), href: "/writer-personas", icon: User, highlight: false },
     { name: t("navTargetCustomers"), href: "/personas", icon: Target, highlight: false },
     { name: t("navTrends"), href: "/trends", icon: TrendingUp, highlight: showTrendsNew },
-    {
-      name: t("navContentGeneration"),
-      icon: Sparkles,
-      highlight: false,
-      hasSubmenu: true,
-      subItems: [
-        { name: language === "ko" ? "빠른 생성" : "Quick Generation", href: "/content/create", icon: Zap },
-        { name: language === "ko" ? "스토리텔링 생성" : "Storytelling Generation", href: "/content/storytelling", icon: Sparkles, highlight: false }
-      ]
-    },
+    { name: t("navContentGeneration"), href: "/content/create", icon: Zap, highlight: false },
+    { name: t("navStorytellingGeneration"), href: "/content/storytelling", icon: Sparkles, highlight: false },
     { name: t("navContentList"), href: "/content", icon: FileText, highlight: false },
     { name: t("navCalendar"), href: "/calendar", icon: Calendar, highlight: false },
     { name: t("navAnalytics"), href: "/analytics", icon: BarChart3, highlight: false },
@@ -142,92 +133,31 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
         <nav className="p-6 space-y-1">
         {navigation.map((item, index) => {
-          // Check if this item or its children are active
+          // 정확한 경로 매칭
           let isActive = false
-          let isParentActive = false
 
-          if (item.hasSubmenu && item.subItems) {
-            // Check if any submenu item is active
-            isParentActive = item.subItems.some(subItem =>
-              pathname === subItem.href || pathname?.startsWith(subItem.href + "/")
-            )
-          } else if (item.href) {
-            // Regular menu item logic
-            if (pathname === item.href) {
+          if (pathname === item.href) {
+            // 정확히 같은 경로면 활성화
+            isActive = true
+          } else if (pathname?.startsWith(item.href + "/")) {
+            // 하위 경로 체크
+            if (item.href === "/content") {
+              // /content는 정확히 일치하거나 /content/[id] 형식만 활성화
+              // /content/create와 /content/storytelling는 제외
+              const contentPath = pathname.replace("/content/", "")
+              isActive = contentPath !== "create" && contentPath !== "storytelling" && !contentPath.startsWith("create/") && !contentPath.startsWith("storytelling/")
+            } else {
+              // 나머지는 하위 경로도 활성화
               isActive = true
-            } else if (pathname?.startsWith(item.href + "/")) {
-              if (item.href === "/content") {
-                // Only activate for /content/[id], not /content/create or /content/storytelling
-                const contentPath = pathname.replace("/content/", "")
-                isActive = contentPath !== "create" && contentPath !== "storytelling" && !contentPath.startsWith("create/") && !contentPath.startsWith("storytelling/")
-              } else {
-                isActive = true
-              }
             }
           }
 
           const isHighlight = item.highlight
 
-          // Render parent menu item with submenu
-          if (item.hasSubmenu && item.subItems) {
-            return (
-              <div key={item.name}>
-                <button
-                  onClick={() => setContentMenuOpen(!contentMenuOpen)}
-                  className={`w-full group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded ${
-                    isParentActive
-                      ? "text-amber-600 bg-amber-500/20 border border-amber-500/50 dark:text-amber-400 dark:bg-amber-500/20 dark:border dark:border-amber-500/50"
-                      : "text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
-                  }`}
-                >
-                  <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
-                    isParentActive ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
-                  }`} />
-                  <span className="flex-1 text-left dark:transition-all dark:duration-300">{item.name}</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${contentMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Submenu items */}
-                {contentMenuOpen && (
-                  <div className="ml-4 mt-1 space-y-0.5">
-                    {item.subItems.map((subItem) => {
-                      const isSubActive = pathname === subItem.href || pathname?.startsWith(subItem.href + "/")
-                      const isSubHighlight = subItem.highlight
-
-                      return (
-                        <Link
-                          key={subItem.name}
-                          href={subItem.href}
-                          onClick={handleLinkClick}
-                          className={`group relative flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-3 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded ${
-                            isSubActive
-                              ? "text-amber-600 bg-amber-500/20 border border-amber-500/50 dark:text-amber-400 dark:bg-amber-500/20 dark:border dark:border-amber-500/50"
-                              : isSubHighlight
-                              ? "text-indigo-600 dark:text-white hover:bg-indigo-50 hover:text-indigo-700 dark:bg-gradient-to-r dark:from-amber-500/10 dark:to-transparent dark:border-l-2 dark:border-amber-500 dark:hover:bg-amber-500/20 dark:hover:border-amber-400 dark:hover:translate-x-1"
-                              : "text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/50 dark:border-l-2 dark:border-transparent dark:hover:border-zinc-700 dark:hover:translate-x-1"
-                          }`}
-                        >
-                          <subItem.icon className={`h-4 w-4 flex-shrink-0 transition-colors duration-200 dark:transition-all dark:duration-300 ${
-                            isSubActive ? "text-amber-600 dark:text-amber-400" : isSubHighlight ? "text-indigo-600 dark:text-amber-400 dark:group-hover:scale-110" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-700 dark:group-hover:text-amber-400 dark:group-hover:scale-110"
-                          }`} />
-                          <span className="flex-1 dark:transition-all dark:duration-300">{subItem.name}</span>
-                          {isSubHighlight && !isSubActive && (
-                            <span className="text-[10px] bg-indigo-600 dark:bg-amber-500 text-white px-2 py-1 rounded-full dark:rounded font-bold uppercase tracking-wide">NEW</span>
-                          )}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          }
-
-          // Regular menu item (no submenu)
           return (
             <Link
               key={item.name}
-              href={item.href!}
+              href={item.href}
               onClick={handleLinkClick}
               className={`group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 dark:gap-4 dark:px-4 dark:py-4 dark:font-normal dark:tracking-wide dark:duration-300 dark:rounded ${
                 isActive
