@@ -39,7 +39,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const t = (key: TranslationKey) => translations[key][language]
   const [showTrendsNew, setShowTrendsNew] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [contentMenuOpen, setContentMenuOpen] = useState(false)
+  const [contentMenuOpen, setContentMenuOpen] = useState(true)
 
   // Check if user has visited trends page
   useEffect(() => {
