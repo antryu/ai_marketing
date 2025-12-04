@@ -239,6 +239,13 @@ export default function CreateMirraPage() {
   return (
     <div className="p-12 min-h-screen">
       <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-light text-white mb-3 tracking-wide">스토리텔링 생성</h1>
+          <p className="text-zinc-400 font-normal">
+            스토리 프레임을 활용한 감성적인 콘텐츠를 생성하세요
+          </p>
+        </div>
 
         <Tabs defaultValue="mirra" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
