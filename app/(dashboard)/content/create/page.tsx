@@ -406,16 +406,8 @@ export default function ContentCreatePage() {
   }
 
   return (
-    <div className="p-12 min-h-screen">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-light text-white mb-3 tracking-wide">빠른 콘텐츠 생성</h1>
-          <p className="text-zinc-400 font-normal">
-            토픽만 입력하면 AI가 즉시 콘텐츠를 생성합니다
-          </p>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: Input Form */}
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10 space-y-6">
