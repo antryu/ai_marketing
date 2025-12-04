@@ -157,7 +157,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               isActive = true
             } else if (pathname?.startsWith(item.href + "/")) {
               if (item.href === "/content") {
-                isActive = !pathname.startsWith("/content/create") && !pathname.startsWith("/content/storytelling")
+                // Only activate for /content/[id], not /content/create or /content/storytelling
+                const contentPath = pathname.replace("/content/", "")
+                isActive = contentPath !== "create" && contentPath !== "storytelling" && !contentPath.startsWith("create/") && !contentPath.startsWith("storytelling/")
               } else {
                 isActive = true
               }
