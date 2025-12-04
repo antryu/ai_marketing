@@ -164,6 +164,7 @@ export const translations = {
   navBrandVoice: { ko: "브랜드 보이스", en: "Brand Voice" },
   navTargetCustomers: { ko: "타겟 고객", en: "Target Customers" },
   navContentGeneration: { ko: "콘텐츠 생성", en: "Content Generation" },
+  navStorytellingGeneration: { ko: "스토리텔링 생성", en: "Storytelling Generation" },
   navContentList: { ko: "콘텐츠 목록", en: "Content List" },
   navCalendar: { ko: "캘린더", en: "Calendar" },
   navAnalytics: { ko: "분석", en: "Analytics" },
