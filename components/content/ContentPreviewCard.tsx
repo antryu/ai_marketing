@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/ui/avatar"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Heart,
   MessageCircle,
@@ -14,7 +15,10 @@ import {
   Zap,
   Scissors,
   Maximize2,
-  Volume2
+  Volume2,
+  Save,
+  Edit,
+  Check
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { RefineAction, ContentStatus } from "@/types/mirra-content.types"
@@ -25,6 +29,8 @@ interface ContentPreviewCardProps {
   brandLogo?: string
   status: ContentStatus
   onRefine: (action: RefineAction) => void
+  onSave?: () => void
+  onContentChange?: (newContent: string) => void
   loading?: boolean
 }
 
@@ -34,10 +40,14 @@ export function ContentPreviewCard({
   brandLogo,
   status,
   onRefine,
+  onSave,
+  onContentChange,
   loading = false
 }: ContentPreviewCardProps) {
   const [liked, setLiked] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedContent, setEditedContent] = useState(content)
 
   const formatDate = () => {
     const now = new Date()
@@ -70,6 +80,18 @@ export function ContentPreviewCard({
       default:
         return ""
     }
+  }
+
+  const handleSaveEdit = () => {
+    if (onContentChange) {
+      onContentChange(editedContent)
+    }
+    setIsEditing(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditedContent(content)
+    setIsEditing(false)
   }
 
   return (
@@ -133,21 +155,50 @@ export function ContentPreviewCard({
 
         {/* Content */}
         <div className="p-4">
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown
-              components={{
-                h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-lg font-bold mb-2 mt-4">{children}</h2>,
-                p: ({ children }) => <p className="mb-2 text-sm leading-relaxed">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-                li: ({ children }) => <li className="text-sm">{children}</li>,
-                strong: ({ children }) => <strong className="font-bold">{children}</strong>
-              }}
-            >
-              {content}
-            </ReactMarkdown>
-          </div>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="min-h-[300px] font-sans text-sm"
+                placeholder="콘텐츠를 입력하세요..."
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                >
+                  취소
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  적용
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-lg font-bold mb-2 mt-4">{children}</h2>,
+                  p: ({ children }) => <p className="mb-2 text-sm leading-relaxed">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="text-sm">{children}</li>,
+                  strong: ({ children }) => <strong className="font-bold">{children}</strong>
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -202,17 +253,29 @@ export function ContentPreviewCard({
         </div>
       </Card>
 
-      {/* Refine Actions */}
+      {/* Edit and Save Actions */}
       <div className="space-y-3">
-        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          ✨ 콘텐츠 개선하기
+        <div className="flex justify-between items-center">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            ✨ 콘텐츠 개선하기
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(!isEditing)}
+            className="flex items-center space-x-2"
+          >
+            <Edit className="h-4 w-4" />
+            <span>{isEditing ? "편집 취소" : "직접 수정"}</span>
+          </Button>
         </div>
+
         <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onRefine("refine")}
-            disabled={loading}
+            disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
             <Sparkles className="h-4 w-4" />
@@ -222,7 +285,7 @@ export function ContentPreviewCard({
             variant="outline"
             size="sm"
             onClick={() => onRefine("add_hook")}
-            disabled={loading}
+            disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
             <Zap className="h-4 w-4" />
@@ -232,7 +295,7 @@ export function ContentPreviewCard({
             variant="outline"
             size="sm"
             onClick={() => onRefine("shorten")}
-            disabled={loading}
+            disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
             <Scissors className="h-4 w-4" />
@@ -242,7 +305,7 @@ export function ContentPreviewCard({
             variant="outline"
             size="sm"
             onClick={() => onRefine("expand")}
-            disabled={loading}
+            disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
             <Maximize2 className="h-4 w-4" />
@@ -252,13 +315,25 @@ export function ContentPreviewCard({
             variant="outline"
             size="sm"
             onClick={() => onRefine("adjust_tone")}
-            disabled={loading}
+            disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2 col-span-2"
           >
             <Volume2 className="h-4 w-4" />
             <span>톤 조정</span>
           </Button>
         </div>
+
+        {onSave && (
+          <Button
+            onClick={onSave}
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium transition-all duration-300 border border-green-500 hover:border-green-400 hover:shadow-lg hover:shadow-green-500/50"
+            size="lg"
+          >
+            <Save className="h-5 w-5 mr-2" />
+            {loading ? "저장 중..." : "저장하고 목록으로"}
+          </Button>
+        )}
       </div>
     </div>
   )

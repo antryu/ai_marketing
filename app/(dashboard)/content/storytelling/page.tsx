@@ -211,6 +211,42 @@ export default function CreateMirraPage() {
     }
   }
 
+  const handleContentChange = async (newContent: string) => {
+    if (!contentId) {
+      toast.error("콘텐츠 ID가 없습니다")
+      return
+    }
+
+    try {
+      const supabase = createClient()
+      const { error } = await (supabase as any)
+        .from("contents")
+        .update({
+          body: newContent,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", contentId)
+
+      if (error) throw error
+
+      setGeneratedContent(newContent)
+      toast.success("콘텐츠가 수정되었습니다")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "수정 실패")
+    }
+  }
+
+  const handleSaveAndGoToList = async () => {
+    if (!contentId) {
+      toast.error("저장할 콘텐츠가 없습니다")
+      return
+    }
+
+    toast.success("콘텐츠가 저장되었습니다")
+    router.push("/content")
+  }
+
   if (loadingBrands) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -337,6 +373,8 @@ export default function CreateMirraPage() {
                     brandLogo={brands.find(b => b.id === selectedBrand)?.logo_url}
                     status={contentStatus}
                     onRefine={handleRefine}
+                    onSave={handleSaveAndGoToList}
+                    onContentChange={handleContentChange}
                     loading={loading}
                   />
                 ) : (
@@ -452,6 +490,8 @@ export default function CreateMirraPage() {
                     brandLogo={brands.find(b => b.id === selectedBrand)?.logo_url}
                     status={contentStatus}
                     onRefine={handleRefine}
+                    onSave={handleSaveAndGoToList}
+                    onContentChange={handleContentChange}
                     loading={loading}
                   />
                 ) : (
