@@ -237,24 +237,8 @@ export default function CreateMirraPage() {
   }
 
   return (
-    <div className="p-6 md:p-12 min-h-screen">
+    <div className="p-12 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/content")}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            뒤로 가기
-          </Button>
-          <h1 className="text-3xl font-bold mb-2">콘텐츠 생성</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            원하는 스타일로 콘텐츠를 생성하세요
-          </p>
-        </div>
 
         <Tabs defaultValue="mirra" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -270,14 +254,12 @@ export default function CreateMirraPage() {
 
           {/* 빠른 생성 탭 */}
           <TabsContent value="quick" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* 왼쪽: 입력 폼 */}
-              <div className="space-y-6 border rounded-lg p-6">
+              <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10 space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-4">🚀 빠른 생성</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    토픽만 입력하면 바로 생성됩니다
-                  </p>
+                  <h2 className="text-xl font-light text-white mb-6 tracking-wide">빠른 생성</h2>
+                  <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
                 </div>
 
                 <div className="space-y-4">
@@ -368,15 +350,19 @@ export default function CreateMirraPage() {
 
           {/* Mirra 스타일 탭 */}
           <TabsContent value="mirra" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* 왼쪽: 설정 */}
               <div className="space-y-6">
                 {/* 기본 정보 */}
-                <div className="border rounded-lg p-6 space-y-4">
-                  <h2 className="text-xl font-semibold mb-4">✨ 스토리텔링 생성</h2>
-
+                <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10 space-y-6">
                   <div>
-                    <Label htmlFor="brand-mirra">브랜드</Label>
+                    <h2 className="text-xl font-light text-white mb-6 tracking-wide">스토리텔링 생성</h2>
+                    <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="brand-mirra">브랜드</Label>
                     <Select value={selectedBrand} onValueChange={setSelectedBrand}>
                       <SelectTrigger id="brand-mirra">
                         <SelectValue />
@@ -389,21 +375,21 @@ export default function CreateMirraPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                    </div>
 
-                  <div>
-                    <Label htmlFor="topic-mirra">토픽</Label>
-                    <Input
-                      id="topic-mirra"
-                      placeholder="예: 실패했던 첫 마케팅 캠페인 이야기"
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="platform-mirra">플랫폼</Label>
+                      <Label htmlFor="topic-mirra">토픽</Label>
+                      <Input
+                        id="topic-mirra"
+                        placeholder="예: 실패했던 첫 마케팅 캠페인 이야기"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="platform-mirra">플랫폼</Label>
                       <Select value={platform} onValueChange={setPlatform}>
                         <SelectTrigger id="platform-mirra">
                           <SelectValue />
@@ -429,12 +415,13 @@ export default function CreateMirraPage() {
                           <SelectItem value="long">길게</SelectItem>
                         </SelectContent>
                       </Select>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Mirra 스타일 선택기 */}
-                <div className="border rounded-lg p-6">
+                <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
                   <MirraStyleSelector
                     onSelect={(config) => {
                       setMirraConfig(config)
