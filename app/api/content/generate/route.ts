@@ -390,7 +390,18 @@ ${engagementGoalPrompt}
     console.log(`   - 미리보기: ${generatedContent.substring(0, 100)}...`)
 
     // Store content for the specified platform
-    const platformVariations: Record<string, { text: string; tone: string; length: string }> = {
+    const platformVariations: Record<string, {
+      text: string;
+      tone: string;
+      length: string;
+      metadata?: {
+        storyFrame?: StoryFrame;
+        generationMode?: GenerationMode;
+        emotionalTone?: EmotionalTone;
+        engagementGoal?: EngagementGoal;
+        selectedHook?: string;
+      }
+    }> = {
       [platformKey]: {
         text: generatedContent,
         tone,
