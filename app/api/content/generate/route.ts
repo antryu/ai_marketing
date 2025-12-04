@@ -455,7 +455,7 @@ ${engagementGoalPrompt}
       success: true,
       content,
       generated: generatedContent,
-      metadata
+      metadata: platformVariations[platformKey].metadata || null
     })
 
   } catch (error: any) {
