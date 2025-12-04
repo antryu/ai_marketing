@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Sparkles, Zap, ArrowLeft } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { MirraStyleSelector } from "@/components/content/MirraStyleSelector"
 import { ContentPreviewCard } from "@/components/content/ContentPreviewCard"
 import {
@@ -111,55 +110,6 @@ export default function CreateMirraPage() {
       setContentId(data.content.id)
       setContentStatus("draft")
       toast.success("✨ 스토리텔링 콘텐츠 생성 완료!")
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.message || "생성 실패")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleQuickGenerate = async () => {
-    if (!topic.trim()) {
-      toast.error("토픽을 입력하세요")
-      return
-    }
-
-    if (!selectedBrand) {
-      toast.error("브랜드를 선택하세요")
-      return
-    }
-
-    setLoading(true)
-    try {
-      // 빠른 생성: 기본값으로 생성
-      const response = await fetch("/api/content/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic,
-          brandId: selectedBrand,
-          platform,
-          length,
-          language: "ko",
-          // 기본 Mirra 설정
-          storyFrame: "how_to_guide",
-          emotionalTone: "honest",
-          engagementGoal: "educate",
-          generationMode: "creative"
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "콘텐츠 생성 실패")
-      }
-
-      setGeneratedContent(data.generated)
-      setContentId(data.content.id)
-      setContentStatus("draft")
-      toast.success("🚀 빠른 생성 완료!")
     } catch (error: any) {
       console.error(error)
       toast.error(error.message || "생성 실패")
@@ -275,119 +225,7 @@ export default function CreateMirraPage() {
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <Tabs defaultValue="mirra" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="quick" className="flex items-center space-x-2">
-              <Zap className="h-4 w-4" />
-              <span>빠른 생성</span>
-            </TabsTrigger>
-            <TabsTrigger value="mirra" className="flex items-center space-x-2">
-              <Sparkles className="h-4 w-4" />
-              <span>스토리텔링 생성</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* 빠른 생성 탭 */}
-          <TabsContent value="quick" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* 왼쪽: 입력 폼 */}
-              <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10 space-y-6">
-                <div>
-                  <h2 className="text-xl font-light text-white mb-6 tracking-wide">빠른 생성</h2>
-                  <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="brand-quick">브랜드</Label>
-                    <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                      <SelectTrigger id="brand-quick">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {brands.map((brand) => (
-                          <SelectItem key={brand.id} value={brand.id}>
-                            {brand.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="topic-quick">토픽</Label>
-                    <Input
-                      id="topic-quick"
-                      placeholder="예: 마케팅 자동화의 장점"
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="platform-quick">플랫폼</Label>
-                    <Select value={platform} onValueChange={setPlatform}>
-                      <SelectTrigger id="platform-quick">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="naver">네이버 블로그</SelectItem>
-                        <SelectItem value="tistory">티스토리</SelectItem>
-                        <SelectItem value="thread">스레드</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="length-quick">길이</Label>
-                    <Select value={length} onValueChange={setLength}>
-                      <SelectTrigger id="length-quick">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="short">짧게</SelectItem>
-                        <SelectItem value="medium">보통</SelectItem>
-                        <SelectItem value="long">길게</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    onClick={handleQuickGenerate}
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium transition-all duration-300 border border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/50"
-                    size="lg"
-                  >
-                    {loading ? "생성 중..." : "🚀 빠르게 생성"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* 오른쪽: 미리보기 */}
-              <div>
-                {generatedContent ? (
-                  <ContentPreviewCard
-                    content={generatedContent}
-                    brandName={brands.find(b => b.id === selectedBrand)?.name}
-                    brandLogo={brands.find(b => b.id === selectedBrand)?.logo_url}
-                    status={contentStatus}
-                    onRefine={handleRefine}
-                    onSave={handleSaveAndGoToList}
-                    onContentChange={handleContentChange}
-                    loading={loading}
-                  />
-                ) : (
-                  <div className="border rounded-lg p-12 text-center text-gray-500">
-                    생성된 콘텐츠가 여기에 표시됩니다
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Mirra 스타일 탭 */}
-          <TabsContent value="mirra" className="space-y-6">
+        <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* 왼쪽: 설정 */}
               <div className="space-y-6">
@@ -506,8 +344,7 @@ export default function CreateMirraPage() {
                 )}
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
+        </div>
       </div>
     </div>
   )
