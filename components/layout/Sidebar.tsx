@@ -81,7 +81,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       hasSubmenu: true,
       subItems: [
         { name: language === "ko" ? "빠른 생성" : "Quick Generation", href: "/content/create", icon: Zap },
-        { name: language === "ko" ? "스토리텔링 생성" : "Storytelling Generation", href: "/content/storytelling", icon: Sparkles, highlight: true }
+        { name: language === "ko" ? "스토리텔링 생성" : "Storytelling Generation", href: "/content/storytelling", icon: Sparkles, highlight: false }
       ]
     },
     { name: t("navContentList"), href: "/content", icon: FileText, highlight: false },
