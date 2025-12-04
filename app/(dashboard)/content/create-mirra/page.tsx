@@ -82,7 +82,7 @@ export default function CreateMirraPage() {
     }
 
     if (!mirraConfig) {
-      toast.error("Mirra 스타일 설정을 완료하세요")
+      toast.error("스토리텔링 설정을 완료하세요")
       return
     }
 
@@ -110,7 +110,7 @@ export default function CreateMirraPage() {
       setGeneratedContent(data.generated)
       setContentId(data.content.id)
       setContentStatus("draft")
-      toast.success("✨ Mirra 스타일 콘텐츠 생성 완료!")
+      toast.success("✨ 스토리텔링 콘텐츠 생성 완료!")
     } catch (error: any) {
       console.error(error)
       toast.error(error.message || "생성 실패")
@@ -264,7 +264,7 @@ export default function CreateMirraPage() {
             </TabsTrigger>
             <TabsTrigger value="mirra" className="flex items-center space-x-2">
               <Sparkles className="h-4 w-4" />
-              <span>Mirra 스타일</span>
+              <span>스토리텔링 생성</span>
             </TabsTrigger>
           </TabsList>
 
@@ -373,7 +373,7 @@ export default function CreateMirraPage() {
               <div className="space-y-6">
                 {/* 기본 정보 */}
                 <div className="border rounded-lg p-6 space-y-4">
-                  <h2 className="text-xl font-semibold mb-4">✨ Mirra 스타일</h2>
+                  <h2 className="text-xl font-semibold mb-4">✨ 스토리텔링 생성</h2>
 
                   <div>
                     <Label htmlFor="brand-mirra">브랜드</Label>
@@ -451,7 +451,7 @@ export default function CreateMirraPage() {
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                     size="lg"
                   >
-                    {loading ? "생성 중..." : "✨ Mirra 스타일로 생성"}
+                    {loading ? "생성 중..." : "✨ 스토리텔링으로 생성"}
                   </Button>
                 )}
               </div>
@@ -470,7 +470,7 @@ export default function CreateMirraPage() {
                 ) : (
                   <div className="border rounded-lg p-12 text-center text-gray-500">
                     <Sparkles className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p className="text-lg font-medium mb-2">Mirra 스타일 콘텐츠</p>
+                    <p className="text-lg font-medium mb-2">스토리텔링 콘텐츠</p>
                     <p className="text-sm">
                       스토리 프레임을 선택하고 생성하면<br />
                       구조화된 콘텐츠가 여기에 표시됩니다
