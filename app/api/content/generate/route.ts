@@ -398,14 +398,15 @@ ${engagementGoalPrompt}
       }
     }
 
-    // Mirra 스타일 메타데이터
-    const metadata: ContentMetadata = {
-      storyFrame,
-      generationMode: generationMode || 'creative',
-      emotionalTone,
-      engagementGoal,
-      selectedHook: customHook,
-      status: 'draft'
+    // Mirra 스타일 메타데이터 (platform_variations에 포함)
+    if (storyFrame || emotionalTone || engagementGoal) {
+      platformVariations[platformKey].metadata = {
+        storyFrame,
+        generationMode: generationMode || 'creative',
+        emotionalTone,
+        engagementGoal,
+        selectedHook: customHook
+      }
     }
 
     // Save to database
@@ -419,7 +420,6 @@ ${engagementGoalPrompt}
         content_type: "text",
         ai_model: aiModel || "claude-opus-4-20250514",
         platform_variations: platformVariations,
-        metadata: metadata,
         status: "draft"
       })
       .select()
@@ -492,7 +492,9 @@ export async function PUT(request: Request) {
 
     const existingContent = contentResult.data
     const currentBody = existingContent.body
-    const metadata = existingContent.metadata as ContentMetadata
+    // metadata는 platform_variations에서 가져옴
+    const platformKey = Object.keys(existingContent.platform_variations || {})[0]
+    const metadata = platformKey ? existingContent.platform_variations[platformKey]?.metadata : null
 
     // 액션별 프롬프트 생성
     let refinePrompt = ""
@@ -599,10 +601,13 @@ ${refinePrompt}
       .replace(/```\n?/g, '')
       .trim()
 
-    // 메타데이터 업데이트
-    const updatedMetadata: ContentMetadata = {
-      ...metadata,
-      status: 'refined'
+    // 메타데이터 업데이트 (platform_variations에 포함)
+    const updatedPlatformVariations = { ...existingContent.platform_variations }
+    if (platformKey && updatedPlatformVariations[platformKey]) {
+      updatedPlatformVariations[platformKey].metadata = {
+        ...metadata,
+        status: 'refined'
+      }
     }
 
     // Update database
@@ -610,7 +615,7 @@ ${refinePrompt}
       .from("contents")
       .update({
         body: refinedContent,
-        metadata: updatedMetadata,
+        platform_variations: updatedPlatformVariations,
         updated_at: new Date().toISOString()
       })
       .eq("id", contentId)
