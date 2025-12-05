@@ -10,8 +10,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, Search, ExternalLink, Sparkles, BarChart3, Target } from "lucide-react"
+import { TrendingUp, Search, Sparkles, BarChart3, Target, Zap, BookOpen } from "lucide-react"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export const dynamic = 'force-dynamic'
 
@@ -89,6 +95,8 @@ export default function TrendsPage() {
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>("")
   const [redditTrends, setRedditTrends] = useState<any[]>([])
   const [loadingReddit, setLoadingReddit] = useState(false)
+  const [showContentTypeModal, setShowContentTypeModal] = useState(false)
+  const [selectedTopic, setSelectedTopic] = useState("")
 
   // Load personas when brand changes
   useEffect(() => {
@@ -241,7 +249,18 @@ export default function TrendsPage() {
   }
 
   const createContentWithTopic = (topic: string) => {
-    router.push(`/content/create?topic=${encodeURIComponent(topic)}`)
+    setSelectedTopic(topic)
+    setShowContentTypeModal(true)
+  }
+
+  const handleQuickGenerate = () => {
+    router.push(`/content/create?topic=${encodeURIComponent(selectedTopic)}`)
+    setShowContentTypeModal(false)
+  }
+
+  const handleScenarioGenerate = () => {
+    router.push(`/content/storytelling?topic=${encodeURIComponent(selectedTopic)}`)
+    setShowContentTypeModal(false)
   }
 
   const formatMetric = (num: number): string => {
@@ -623,6 +642,69 @@ export default function TrendsPage() {
             </div>
           </div>
         )}
+
+        {/* Content Type Selection Modal */}
+        <Dialog open={showContentTypeModal} onOpenChange={setShowContentTypeModal}>
+          <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-700">
+            <DialogHeader>
+              <DialogTitle className="text-white text-lg">
+                {language === "ko" ? "콘텐츠 생성 방식 선택" : "Select Content Type"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-zinc-400 text-sm mb-4 line-clamp-2">
+                <span className="text-amber-400 font-medium">{language === "ko" ? "토픽" : "Topic"}:</span> {selectedTopic}
+              </p>
+              <div className="grid grid-cols-1 gap-3">
+                {/* Quick Generate */}
+                <button
+                  onClick={handleQuickGenerate}
+                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-amber-400/50 transition-all text-left group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-amber-400/10 flex items-center justify-center flex-shrink-0">
+                      <Zap className="h-5 w-5 text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium group-hover:text-amber-400 transition-colors">
+                        {language === "ko" ? "빠른 생성" : "Quick Generate"}
+                      </h3>
+                      <p className="text-zinc-500 text-sm mt-1">
+                        {language === "ko"
+                          ? "SEO 키워드 최적화와 함께 즉시 콘텐츠를 생성합니다"
+                          : "Generate content instantly with SEO keyword optimization"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Scenario Generate */}
+                <button
+                  onClick={handleScenarioGenerate}
+                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-blue-400/50 transition-all text-left group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-400/10 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium group-hover:text-blue-400 transition-colors">
+                        {language === "ko" ? "시나리오 생성" : "Scenario Generate"}
+                      </h3>
+                      <p className="text-zinc-500 text-sm mt-1">
+                        {language === "ko"
+                          ? "스토리텔링 프레임을 선택하여 구조화된 콘텐츠를 생성합니다"
+                          : "Create structured content with storytelling framework"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

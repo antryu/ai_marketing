@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,6 +24,7 @@ import {
 
 export default function CreateMirraPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [brands, setBrands] = useState<any[]>([])
   const [selectedBrand, setSelectedBrand] = useState("")
   const [topic, setTopic] = useState("")
@@ -50,6 +51,12 @@ export default function CreateMirraPage() {
 
   useEffect(() => {
     loadBrands()
+
+    // Load topic from URL parameter
+    const topicParam = searchParams.get('topic')
+    if (topicParam) {
+      setTopic(topicParam)
+    }
   }, [])
 
   const loadBrands = async () => {
