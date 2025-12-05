@@ -562,7 +562,7 @@ export default function TrendsPage() {
             <div className="grid grid-cols-1 gap-4">
               {/* Google Trends Topics */}
               {trendData.googleTrends && trendData.googleTrends.topQueries.slice(0, 5).map((query, idx) => (
-                <Card key={`google-${idx}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-amber-400/50 transition-all cursor-pointer group"
+                <Card key={`google-${idx}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-amber-400/50 transition-all cursor-pointer group/google"
                   onClick={() => createContentWithTopic(query.query)}>
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded bg-amber-400/10 flex items-center justify-center flex-shrink-0">
@@ -570,7 +570,7 @@ export default function TrendsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-medium text-white group-hover:text-amber-400 transition-colors flex-1">
+                        <h3 className="text-lg font-medium text-white group-hover/google:text-amber-400 transition-colors flex-1">
                           {query.query}
                         </h3>
                         <span className="text-xs bg-amber-400/20 text-amber-400 px-2 py-1 rounded border border-amber-400/30 ml-3 whitespace-nowrap">
@@ -600,7 +600,7 @@ export default function TrendsPage() {
 
               {/* Twitter/X Posts */}
               {trendData.twitter && trendData.twitter.tweets && trendData.twitter.tweets.slice(0, 5).map((tweet) => (
-                <Card key={`twitter-${tweet.id}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-blue-400/50 transition-all cursor-pointer group"
+                <Card key={`twitter-${tweet.id}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-blue-400/50 transition-all cursor-pointer group/twitter"
                   onClick={() => createContentWithTopic(tweet.text)}>
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -608,7 +608,7 @@ export default function TrendsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-medium text-white group-hover:text-blue-400 transition-colors line-clamp-2 flex-1">
+                        <h3 className="text-lg font-medium text-white group-hover/twitter:text-blue-400 transition-colors line-clamp-2 flex-1">
                           {tweet.text.split('.')[0] || tweet.text.substring(0, 80)}
                         </h3>
                         <span className="text-xs bg-blue-400/20 text-blue-400 px-2 py-1 rounded border border-blue-400/30 ml-3 whitespace-nowrap">
@@ -636,7 +636,7 @@ export default function TrendsPage() {
 
               {/* Reddit Posts */}
               {trendData.reddit && trendData.reddit.posts.slice(0, 5).map((post, idx) => (
-                <Card key={`reddit-${idx}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-orange-400/50 transition-all cursor-pointer group"
+                <Card key={`reddit-${idx}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-orange-400/50 transition-all cursor-pointer group/reddit"
                   onClick={() => createContentWithTopic(post.title)}>
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0">
@@ -646,7 +646,7 @@ export default function TrendsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-medium text-white group-hover:text-orange-400 transition-colors line-clamp-2 flex-1">
+                        <h3 className="text-lg font-medium text-white group-hover/reddit:text-orange-400 transition-colors line-clamp-2 flex-1">
                           {post.title}
                         </h3>
                         <span className="text-xs bg-orange-400/20 text-orange-400 px-2 py-1 rounded border border-orange-400/30 ml-3 whitespace-nowrap">
