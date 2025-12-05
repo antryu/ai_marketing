@@ -695,14 +695,14 @@ export default function TrendsPage() {
                 {/* Quick Generate */}
                 <button
                   onClick={handleQuickGenerate}
-                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-amber-400/50 hover:bg-zinc-750 transition-all text-left [&:hover_h3]:text-amber-400"
+                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-amber-400/50 hover:bg-zinc-800/80 transition-all text-left group/quick"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-amber-400/10 flex items-center justify-center flex-shrink-0">
                       <Zap className="h-5 w-5 text-amber-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-medium transition-colors">
+                      <h3 className="text-white font-medium transition-colors group-hover/quick:text-amber-400">
                         {language === "ko" ? "빠른 생성" : "Quick Generate"}
                       </h3>
                       <p className="text-zinc-500 text-sm mt-1">
@@ -718,14 +718,14 @@ export default function TrendsPage() {
                 {/* Scenario Generate */}
                 <button
                   onClick={handleScenarioGenerate}
-                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-blue-400/50 hover:bg-zinc-750 transition-all text-left [&:hover_h3]:text-blue-400"
+                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-blue-400/50 hover:bg-zinc-800/80 transition-all text-left group/scenario"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-blue-400/10 flex items-center justify-center flex-shrink-0">
                       <BookOpen className="h-5 w-5 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-white font-medium transition-colors">
+                      <h3 className="text-white font-medium transition-colors group-hover/scenario:text-blue-400">
                         {language === "ko" ? "시나리오 생성" : "Scenario Generate"}
                       </h3>
                       <p className="text-zinc-500 text-sm mt-1">
