@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, Search, Sparkles, BarChart3, Target, Zap, BookOpen } from "lucide-react"
+import { TrendingUp, Search, Sparkles, BarChart3, Target, Zap, BookOpen, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -97,6 +97,7 @@ export default function TrendsPage() {
   const [loadingReddit, setLoadingReddit] = useState(false)
   const [showContentTypeModal, setShowContentTypeModal] = useState(false)
   const [selectedTopic, setSelectedTopic] = useState("")
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
   // Load personas when brand changes
   useEffect(() => {
@@ -105,9 +106,9 @@ export default function TrendsPage() {
     }
   }, [selectedBrandId])
 
-  // Load suggestions when persona or language changes
+  // Load suggestions when persona or language changes (only first time)
   useEffect(() => {
-    if (selectedPersonaId) {
+    if (selectedPersonaId && !hasLoadedOnce) {
       loadSuggestions()
     }
   }, [selectedPersonaId, language])
@@ -153,6 +154,7 @@ export default function TrendsPage() {
 
       if (data.success) {
         setSuggestions(data.data)
+        setHasLoadedOnce(true)
       }
     } catch (error) {
       console.error("Failed to load suggestions:", error)
@@ -160,6 +162,28 @@ export default function TrendsPage() {
       setLoadingSuggestions(false)
       // Load Reddit trends after AI suggestions are displayed
       setTimeout(() => loadRedditTrends(), 100)
+    }
+  }
+
+  const refreshSuggestions = async () => {
+    if (!selectedPersonaId) return
+
+    setLoadingSuggestions(true)
+    try {
+      // Add timestamp to bypass cache
+      const apiUrl = `/api/trends/suggestions?personaId=${selectedPersonaId}&language=${language}&refresh=${Date.now()}`
+      const res = await fetch(apiUrl)
+      const data = await res.json()
+
+      if (data.success) {
+        setSuggestions(data.data)
+        toast.success(language === "ko" ? "새로운 토픽을 가져왔습니다!" : "New topics loaded!")
+      }
+    } catch (error) {
+      console.error("Failed to refresh suggestions:", error)
+      toast.error(language === "ko" ? "토픽 새로고침 실패" : "Failed to refresh topics")
+    } finally {
+      setLoadingSuggestions(false)
     }
   }
 
@@ -364,22 +388,34 @@ export default function TrendsPage() {
         {/* AI Suggestions */}
         {!loadingSuggestions && suggestions && (
           <Card className="p-6 bg-gradient-to-br from-amber-400/10 via-zinc-900 to-zinc-900 border-amber-400/30 mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="h-6 w-6 text-amber-400" />
-              <div>
-                <h2 className="text-xl font-medium text-white">
-                  {language === "ko"
-                    ? `${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}님을 위한 AI 추천 토픽`
-                    : `AI Recommended Topics for ${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}`
-                  }
-                </h2>
-                <p className="text-zinc-400 text-sm">
-                  {language === "ko"
-                    ? `${suggestions.industry} 업계 · ${suggestions.personaName ? '타겟 고객 기반' : '브랜드 기반'} · 실시간 트렌드 자동 생성`
-                    : `${suggestions.industry} Industry · ${suggestions.personaName ? 'Target Customer Based' : 'Brand Based'} · Real-time Trend Generation`
-                  }
-                </p>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-6 w-6 text-amber-400" />
+                <div>
+                  <h2 className="text-xl font-medium text-white">
+                    {language === "ko"
+                      ? `${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}님을 위한 AI 추천 토픽`
+                      : `AI Recommended Topics for ${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}`
+                    }
+                  </h2>
+                  <p className="text-zinc-400 text-sm">
+                    {language === "ko"
+                      ? `${suggestions.industry} 업계 · ${suggestions.personaName ? '타겟 고객 기반' : '브랜드 기반'} · 실시간 트렌드 자동 생성`
+                      : `${suggestions.industry} Industry · ${suggestions.personaName ? 'Target Customer Based' : 'Brand Based'} · Real-time Trend Generation`
+                    }
+                  </p>
+                </div>
               </div>
+              <Button
+                onClick={refreshSuggestions}
+                disabled={loadingSuggestions}
+                variant="outline"
+                size="sm"
+                className="border-amber-400/50 text-amber-400 hover:bg-amber-400/10"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loadingSuggestions ? 'animate-spin' : ''}`} />
+                {language === "ko" ? "새 토픽" : "New Topics"}
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
