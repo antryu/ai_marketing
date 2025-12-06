@@ -154,7 +154,7 @@ export function ContentPreviewCard({
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="p-4 max-h-[400px] overflow-y-auto">
           {isEditing ? (
             <div className="space-y-2">
               <Textarea
@@ -183,7 +183,7 @@ export function ContentPreviewCard({
               </div>
             </div>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="prose prose-sm dark:prose-invert max-w-none break-words" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
               <ReactMarkdown
                 components={{
                   h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
@@ -254,7 +254,7 @@ export function ContentPreviewCard({
       </Card>
 
       {/* Edit and Save Actions */}
-      <div className="space-y-3">
+      <div className="space-y-3 max-w-md mx-auto">
         <div className="flex justify-between items-center">
           <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
             ✨ 콘텐츠 개선하기
@@ -278,8 +278,8 @@ export function ContentPreviewCard({
             disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
-            <Sparkles className="h-4 w-4" />
-            <span>AI 정제하기</span>
+            <Sparkles className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">AI 정제하기</span>
           </Button>
           <Button
             variant="outline"
@@ -288,8 +288,8 @@ export function ContentPreviewCard({
             disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
-            <Zap className="h-4 w-4" />
-            <span>훅 강화</span>
+            <Zap className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">훅 강화</span>
           </Button>
           <Button
             variant="outline"
@@ -298,8 +298,8 @@ export function ContentPreviewCard({
             disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
-            <Scissors className="h-4 w-4" />
-            <span>줄이기</span>
+            <Scissors className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">줄이기</span>
           </Button>
           <Button
             variant="outline"
@@ -308,8 +308,8 @@ export function ContentPreviewCard({
             disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2"
           >
-            <Maximize2 className="h-4 w-4" />
-            <span>늘리기</span>
+            <Maximize2 className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">늘리기</span>
           </Button>
           <Button
             variant="outline"
@@ -318,8 +318,8 @@ export function ContentPreviewCard({
             disabled={loading || isEditing}
             className="flex items-center justify-start space-x-2 col-span-2"
           >
-            <Volume2 className="h-4 w-4" />
-            <span>톤 조정</span>
+            <Volume2 className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">톤 조정</span>
           </Button>
         </div>
 

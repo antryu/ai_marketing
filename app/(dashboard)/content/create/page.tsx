@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download } from "lucide-react"
+import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -47,6 +47,9 @@ export default function ContentCreatePage() {
   const [seoStep, setSeoStep] = useState(false) // SEO 단계 활성화 여부
   const [targetPreset, setTargetPreset] = useState("") // 타겟 프리셋
   const [customTarget, setCustomTarget] = useState("") // 직접 입력 타겟
+  const [targetFromTrends, setTargetFromTrends] = useState(false) // 트렌드 페이지에서 타겟이 전달되었는지 여부
+  const [contentId, setContentId] = useState<string | null>(null) // 생성된 콘텐츠 ID (수정용)
+  const [refining, setRefining] = useState(false) // 콘텐츠 수정 중
 
   useEffect(() => {
     loadBrands()
@@ -55,6 +58,13 @@ export default function ContentCreatePage() {
     const topicParam = searchParams.get('topic')
     if (topicParam) {
       setTopic(topicParam)
+    }
+
+    // Load target from URL parameter (passed from trends page)
+    const targetParam = searchParams.get('target')
+    if (targetParam) {
+      setTargetPreset(targetParam)
+      setTargetFromTrends(true) // 트렌드에서 전달된 타겟임을 표시
     }
   }, [])
 
@@ -211,6 +221,10 @@ export default function ContentCreatePage() {
           toast.success(`${t("comparisonComplete")} (${(data.comparison.generationTime / 1000).toFixed(1)}초)`)
         } else {
           setGeneratedContent(data.generated)
+          // 생성된 콘텐츠 ID 저장 (수정 기능용)
+          if (data.content?.id) {
+            setContentId(data.content.id)
+          }
           // 사용된 AI 모델 표시
           const modelUsed = ollamaModel === "claude" ? "Claude (Haiku)" :
                            ollamaModel === "qwen2.5:7b" ? "Qwen 2.5 7B" :
@@ -256,6 +270,53 @@ export default function ContentCreatePage() {
 
   const handlePublish = async () => {
     toast.success(t("publishSoon"))
+  }
+
+  // 콘텐츠 수정 함수
+  const handleRefineContent = async (action: string, customInstruction?: string) => {
+    if (!contentId) {
+      toast.error(language === "ko" ? "수정할 콘텐츠가 없습니다" : "No content to refine")
+      return
+    }
+
+    setRefining(true)
+    try {
+      const response = await fetch("/api/content/generate", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentId,
+          action,
+          customInstruction
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || (language === "ko" ? "수정 실패" : "Refinement failed"))
+      }
+
+      setGeneratedContent(data.refined)
+
+      const actionLabels: Record<string, { ko: string; en: string }> = {
+        refine: { ko: "다듬기", en: "Refine" },
+        add_hook: { ko: "훅 강화", en: "Add Hook" },
+        shorten: { ko: "짧게", en: "Shorten" },
+        expand: { ko: "늘리기", en: "Expand" },
+        adjust_tone: { ko: "톤 조정", en: "Adjust Tone" }
+      }
+
+      toast.success(language === "ko"
+        ? `${actionLabels[action]?.ko || action} 완료!`
+        : `${actionLabels[action]?.en || action} complete!`
+      )
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message)
+    } finally {
+      setRefining(false)
+    }
   }
 
   const toggleKeyword = (keyword: string) => {
@@ -652,71 +713,122 @@ export default function ContentCreatePage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{language === "ko" ? "타겟 고객" : "Target Audience"}</Label>
-                <span className="text-xs text-zinc-500">
-                  {language === "ko" ? "선택 사항" : "Optional"}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", labelEn: "30s Professionals", descKo: "커리어 성장, 워라밸", descEn: "Career growth, work-life balance" },
-                  { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", labelEn: "Gen MZ", descKo: "트렌드 민감, SNS 활발", descEn: "Trend-sensitive, social media active" },
-                  { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", labelEn: "Parents/Family", descKo: "육아, 가정 관심", descEn: "Parenting, family-focused" },
-                  { value: "students", emoji: "🎓", labelKo: "대학생/취준생", labelEn: "Students/Job Seekers", descKo: "비용 민감, 성장 지향", descEn: "Budget-conscious, growth-oriented" },
-                  { value: "business", emoji: "💼", labelKo: "사업가", labelEn: "Business Owners", descKo: "효율, ROI 중시", descEn: "Efficiency, ROI-focused" },
-                  { value: "senior", emoji: "👴", labelKo: "50대+", labelEn: "50s+", descKo: "건강, 여유로운 삶", descEn: "Health, quality of life" },
-                ].map((targetOption) => (
-                  <button
-                    key={targetOption.value}
-                    onClick={() => {
-                      setTargetPreset(targetPreset === targetOption.value ? "" : targetOption.value)
-                      if (targetPreset !== targetOption.value) setCustomTarget("") // 프리셋 선택 시 직접 입력 초기화
-                    }}
-                    className={`
-                      p-3 rounded border transition-all text-left
-                      ${targetPreset === targetOption.value
-                        ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                        : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{targetOption.emoji}</span>
-                      <span className={`text-sm font-medium ${targetPreset === targetOption.value ? "text-amber-400" : "text-zinc-300"}`}>
-                        {language === "ko" ? targetOption.labelKo : targetOption.labelEn}
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-500 ml-7">
-                      {language === "ko" ? targetOption.descKo : targetOption.descEn}
-                    </p>
-                  </button>
-                ))}
+                {targetFromTrends ? (
+                  <span className="text-xs text-amber-400">
+                    {language === "ko" ? "✓ 트렌드에서 선택됨" : "✓ From Trends"}
+                  </span>
+                ) : (
+                  <span className="text-xs text-zinc-500">
+                    {language === "ko" ? "선택 사항" : "Optional"}
+                  </span>
+                )}
               </div>
 
-              {/* Custom Target Input */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-px bg-zinc-700"></div>
-                  <span className="text-xs text-zinc-500">{language === "ko" ? "또는 직접 입력" : "or enter manually"}</span>
-                  <div className="flex-1 h-px bg-zinc-700"></div>
+              {/* 트렌드에서 전달된 타겟이 있으면 간단한 표시만 */}
+              {targetFromTrends && targetPreset ? (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  {(() => {
+                    const targetOptions = [
+                      { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", labelEn: "30s Professionals", descKo: "커리어 성장, 워라밸 중시", descEn: "Career growth, work-life balance" },
+                      { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", labelEn: "Gen MZ", descKo: "트렌드 민감, SNS 활발", descEn: "Trend-sensitive, social media active" },
+                      { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", labelEn: "Parents/Family", descKo: "육아, 가정에 관심", descEn: "Parenting, family-focused" },
+                      { value: "students", emoji: "🎓", labelKo: "대학생/취준생", labelEn: "Students/Job Seekers", descKo: "비용 민감, 성장 지향", descEn: "Budget-conscious, growth-oriented" },
+                      { value: "business", emoji: "💼", labelKo: "사업가", labelEn: "Business Owners", descKo: "효율, ROI 중시", descEn: "Efficiency, ROI-focused" },
+                      { value: "senior", emoji: "👴", labelKo: "50대+", labelEn: "50s+", descKo: "건강, 여유로운 삶 추구", descEn: "Health, quality of life" },
+                    ]
+                    const selected = targetOptions.find(t => t.value === targetPreset)
+                    if (!selected) return null
+                    return (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{selected.emoji}</span>
+                          <div>
+                            <p className="text-amber-400 font-medium">
+                              {language === "ko" ? selected.labelKo : selected.labelEn}
+                            </p>
+                            <p className="text-xs text-zinc-400">
+                              {language === "ko" ? selected.descKo : selected.descEn}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setTargetFromTrends(false)
+                            setTargetPreset("")
+                          }}
+                          className="text-xs text-zinc-400 hover:text-zinc-300 underline"
+                        >
+                          {language === "ko" ? "변경" : "Change"}
+                        </button>
+                      </div>
+                    )
+                  })()}
                 </div>
-                <Input
-                  placeholder={language === "ko" ? "예: 첫 창업을 준비하는 20대 후반 직장인" : "e.g., Late 20s professionals preparing for first startup"}
-                  value={customTarget}
-                  onChange={(e) => {
-                    setCustomTarget(e.target.value)
-                    if (e.target.value) setTargetPreset("") // 직접 입력 시 프리셋 선택 해제
-                  }}
-                  className="text-sm"
-                />
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", labelEn: "30s Professionals", descKo: "커리어 성장, 워라밸", descEn: "Career growth, work-life balance" },
+                      { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", labelEn: "Gen MZ", descKo: "트렌드 민감, SNS 활발", descEn: "Trend-sensitive, social media active" },
+                      { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", labelEn: "Parents/Family", descKo: "육아, 가정 관심", descEn: "Parenting, family-focused" },
+                      { value: "students", emoji: "🎓", labelKo: "대학생/취준생", labelEn: "Students/Job Seekers", descKo: "비용 민감, 성장 지향", descEn: "Budget-conscious, growth-oriented" },
+                      { value: "business", emoji: "💼", labelKo: "사업가", labelEn: "Business Owners", descKo: "효율, ROI 중시", descEn: "Efficiency, ROI-focused" },
+                      { value: "senior", emoji: "👴", labelKo: "50대+", labelEn: "50s+", descKo: "건강, 여유로운 삶", descEn: "Health, quality of life" },
+                    ].map((targetOption) => (
+                      <button
+                        key={targetOption.value}
+                        onClick={() => {
+                          setTargetPreset(targetPreset === targetOption.value ? "" : targetOption.value)
+                          if (targetPreset !== targetOption.value) setCustomTarget("") // 프리셋 선택 시 직접 입력 초기화
+                        }}
+                        className={`
+                          p-3 rounded border transition-all text-left
+                          ${targetPreset === targetOption.value
+                            ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                            : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{targetOption.emoji}</span>
+                          <span className={`text-sm font-medium ${targetPreset === targetOption.value ? "text-amber-400" : "text-zinc-300"}`}>
+                            {language === "ko" ? targetOption.labelKo : targetOption.labelEn}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-500 ml-7">
+                          {language === "ko" ? targetOption.descKo : targetOption.descEn}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
 
-              {/* Empty State Hint */}
-              {!targetPreset && !customTarget && (
-                <p className="text-xs text-zinc-500 bg-zinc-800/30 p-2 rounded border border-zinc-700/50">
-                  💡 {language === "ko"
-                    ? "비워두면 브랜드 설명에서 AI가 자동으로 타겟을 추론합니다"
-                    : "Leave empty and AI will auto-infer target from brand description"}
-                </p>
+                  {/* Custom Target Input */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-zinc-700"></div>
+                      <span className="text-xs text-zinc-500">{language === "ko" ? "또는 직접 입력" : "or enter manually"}</span>
+                      <div className="flex-1 h-px bg-zinc-700"></div>
+                    </div>
+                    <Input
+                      placeholder={language === "ko" ? "예: 첫 창업을 준비하는 20대 후반 직장인" : "e.g., Late 20s professionals preparing for first startup"}
+                      value={customTarget}
+                      onChange={(e) => {
+                        setCustomTarget(e.target.value)
+                        if (e.target.value) setTargetPreset("") // 직접 입력 시 프리셋 선택 해제
+                      }}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  {/* Empty State Hint */}
+                  {!targetPreset && !customTarget && (
+                    <p className="text-xs text-zinc-500 bg-zinc-800/30 p-2 rounded border border-zinc-700/50">
+                      💡 {language === "ko"
+                        ? "비워두면 브랜드 설명에서 AI가 자동으로 타겟을 추론합니다"
+                        : "Leave empty and AI will auto-infer target from brand description"}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
@@ -1057,8 +1169,8 @@ export default function ContentCreatePage() {
               <div className="space-y-6">
                 <div className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
                   {/* Content */}
-                  <div className="p-6">
-                    <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
+                  <div className="p-6 max-h-[500px] overflow-y-auto">
+                    <div className="text-white prose prose-invert prose-sm max-w-none break-words [overflow-wrap:anywhere] [word-break:break-word]">
                       <ReactMarkdown>{generatedContent}</ReactMarkdown>
                     </div>
                   </div>
@@ -1085,6 +1197,108 @@ export default function ContentCreatePage() {
                     </div>
                   )}
                 </div>
+
+                {/* 콘텐츠 개선하기 섹션 */}
+                {contentId && (
+                  <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="w-4 h-4 text-amber-400" />
+                        <h4 className="text-sm font-medium text-zinc-300">
+                          {language === "ko" ? "콘텐츠 개선하기" : "Improve Content"}
+                        </h4>
+                      </div>
+                      {refining && (
+                        <div className="flex items-center gap-2 text-xs text-amber-400">
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          {language === "ko" ? "개선 중..." : "Improving..."}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleRefineContent("refine")}
+                        disabled={refining}
+                        className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        <div>
+                          <p className="text-sm text-zinc-300 font-medium">
+                            {language === "ko" ? "AI 정제" : "AI Refine"}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {language === "ko" ? "문장을 더 매끄럽게" : "Smoother sentences"}
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleRefineContent("add_hook")}
+                        disabled={refining}
+                        className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Zap className="w-4 h-4 text-yellow-400" />
+                        <div>
+                          <p className="text-sm text-zinc-300 font-medium">
+                            {language === "ko" ? "훅 강화" : "Add Hook"}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {language === "ko" ? "시작을 더 강렬하게" : "Stronger opening"}
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleRefineContent("shorten")}
+                        disabled={refining}
+                        className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Minimize2 className="w-4 h-4 text-blue-400" />
+                        <div>
+                          <p className="text-sm text-zinc-300 font-medium">
+                            {language === "ko" ? "줄이기" : "Shorten"}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {language === "ko" ? "30% 더 짧게" : "30% shorter"}
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleRefineContent("expand")}
+                        disabled={refining}
+                        className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Maximize2 className="w-4 h-4 text-green-400" />
+                        <div>
+                          <p className="text-sm text-zinc-300 font-medium">
+                            {language === "ko" ? "늘리기" : "Expand"}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {language === "ko" ? "30% 더 길게" : "30% longer"}
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleRefineContent("adjust_tone")}
+                        disabled={refining}
+                        className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left col-span-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <MessageSquare className="w-4 h-4 text-purple-400" />
+                        <div>
+                          <p className="text-sm text-zinc-300 font-medium">
+                            {language === "ko" ? "톤 조정" : "Adjust Tone"}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {language === "ko" ? "더 진솔하고 공감 가는 톤으로" : "More authentic and empathetic tone"}
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
                   <p className="text-xs text-zinc-400 font-normal">

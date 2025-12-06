@@ -128,13 +128,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Mirra 스타일 필드 검증
-    if (!storyFrame || !emotionalTone || !engagementGoal) {
-      return NextResponse.json(
-        { error: "스토리 프레임, 감정 톤, 목표는 필수입니다" },
-        { status: 400 }
-      )
-    }
+    // Mirra 스타일 사용 여부 (스토리텔링 페이지에서만 사용)
+    const useMirraStyle = storyFrame && emotionalTone && engagementGoal
 
     // Get brand information
     const brandResult = await (supabase as any)
@@ -259,21 +254,28 @@ ${persona.signature_phrases?.length > 0 ? `자주 사용하는 표현: ${persona
     const platformKey = platform || 'naver'
     const settings = platformSettings[platformKey as keyof typeof platformSettings] || platformSettings.naver
 
-    console.log(`\n=== Mirra 스타일 ${platformKey} 콘텐츠 생성 시작 ===`)
-    console.log(`스토리 프레임: ${storyFrame}`)
-    console.log(`감정 톤: ${emotionalTone}`)
-    console.log(`목표: ${engagementGoal}`)
+    console.log(`\n=== ${useMirraStyle ? 'Mirra 스타일' : '빠른 생성'} ${platformKey} 콘텐츠 생성 시작 ===`)
+    console.log(`토픽: ${topic}`)
+    if (useMirraStyle) {
+      console.log(`스토리 프레임: ${storyFrame}`)
+      console.log(`감정 톤: ${emotionalTone}`)
+      console.log(`목표: ${engagementGoal}`)
+    }
 
     // Ollama 모델 사용 여부 확인
     const ollamaModels = ['qwen2.5:7b', 'phi3:3.8b', 'llama3.2:3b', 'gemma2:2b']
     const useOllama = aiModel && ollamaModels.includes(aiModel)
 
-    // Mirra 스타일 프롬프트 구성
-    const storyFramePrompt = buildStoryFramePrompt(storyFrame, topic, customHook)
-    const emotionalTonePrompt = buildEmotionalTonePrompt(emotionalTone)
-    const engagementGoalPrompt = buildEngagementGoalPrompt(engagementGoal)
+    // 프롬프트 구성 - Mirra 스타일 또는 심플 스타일
+    let prompt: string
 
-    const prompt = `당신은 한국어만 사용하는 전문 마케팅 콘텐츠 작성자입니다.
+    if (useMirraStyle) {
+      // Mirra 스타일 프롬프트 구성 (스토리텔링 페이지)
+      const storyFramePrompt = buildStoryFramePrompt(storyFrame, topic, customHook)
+      const emotionalTonePrompt = buildEmotionalTonePrompt(emotionalTone)
+      const engagementGoalPrompt = buildEngagementGoalPrompt(engagementGoal)
+
+      prompt = `당신은 한국어만 사용하는 전문 마케팅 콘텐츠 작성자입니다.
 절대 영어, 중국어, 일본어를 사용하지 마세요. 오직 한국어로만 답변하세요.
 
 당신은 ${typedBrand.name}의 전문 마케팅 콘텐츠 작성자입니다.
@@ -353,6 +355,95 @@ ${engagementGoalPrompt}
 
 지금 바로 한국어로만 콘텐츠를 작성하세요!
 `
+    } else {
+      // 심플 프롬프트 (빠른 생성 페이지)
+      prompt = `당신은 한국어만 사용하는 전문 마케팅 콘텐츠 작성자입니다.
+절대 영어, 중국어, 일본어를 사용하지 마세요. 오직 한국어로만 답변하세요.
+
+당신은 ${typedBrand.name}의 전문 마케팅 콘텐츠 작성자입니다.
+중요: 반드시 한국어로만 작성하세요.
+
+제품/브랜드 정보:
+- 이름: ${typedBrand.name}
+- 설명: ${typedBrand.description}
+- 타겟 시장: ${typedBrand.target_market?.join(", ") || "글로벌"}
+- 브랜드 톤: ${typedBrand.brand_voice?.tone || "전문적인"}
+- 브랜드 스타일: ${typedBrand.brand_voice?.style || "친근한"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 콘텐츠 주제
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${topic}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 플랫폼 & 형식
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+플랫폼: ${platformKey}
+스타일: ${settings.style}
+최대 길이: ${settings.maxLength}자
+형식: ${settings.format}
+톤: ${tone || "친근한"}
+
+${seoKeywords && seoKeywords.length > 0 ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 SEO 키워드 (반드시 포함)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${seoKeywords.join(", ")}
+- 이 키워드들을 자연스럽게 본문에 포함시켜주세요
+` : ""}
+
+타겟 페르소나:
+${typedBrand.personas?.map((p: any) => {
+  let personaInfo = `- ${p.name}: ${p.description}`
+  const traits = []
+  if (p.mbti) traits.push(`MBTI ${p.mbti}`)
+  if (p.generation) traits.push(`${p.generation}`)
+  if (p.blood_type) traits.push(`${p.blood_type}형`)
+  if (traits.length > 0) {
+    personaInfo += ` (${traits.join(", ")})`
+  }
+  return personaInfo
+}).join("\n") || "일반 대중"}
+
+${writerContext}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ 글자수 요구사항
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+최소 글자수: ${settings.minLength}자 (필수)
+최대 글자수: ${settings.maxLength}자 (절대 초과 금지)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 작성 가이드
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **독자의 관심을 끄는 시작**
+   - 흥미로운 질문이나 놀라운 사실로 시작
+   - 공감을 불러일으키는 상황 묘사
+
+2. **핵심 가치 전달**
+   - 독자가 얻을 수 있는 혜택 강조
+   - 구체적인 예시와 디테일 사용
+
+3. **행동 유도**
+   - 자연스러운 CTA로 마무리
+   - 독자가 다음 행동을 하고 싶게 만들기
+
+4. **마크다운 형식 사용**
+   - ## 로 소제목 구분
+   - **굵게** 강조
+   - - 리스트 활용
+
+출력 요구사항:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. 언어: 100% 한국어만 사용
+2. 코드 블록 사용 금지 (NO \`\`\`markdown blocks)
+3. 마크다운 형식 사용 가능
+4. 바로 콘텐츠 작성 시작
+
+지금 바로 한국어로만 콘텐츠를 작성하세요!
+`
+    }
 
     let generatedContent: string
 

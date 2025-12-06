@@ -291,12 +291,14 @@ export default function TrendsPage() {
   }
 
   const handleQuickGenerate = () => {
-    router.push(`/content/create?topic=${encodeURIComponent(selectedTopic)}`)
+    // 타겟 프리셋을 URL에 포함시켜 콘텐츠 생성 페이지로 전달
+    router.push(`/content/create?topic=${encodeURIComponent(selectedTopic)}&target=${targetPreset}`)
     setShowContentTypeModal(false)
   }
 
   const handleScenarioGenerate = () => {
-    router.push(`/content/storytelling?topic=${encodeURIComponent(selectedTopic)}`)
+    // 타겟 프리셋을 URL에 포함시켜 스토리텔링 페이지로 전달
+    router.push(`/content/storytelling?topic=${encodeURIComponent(selectedTopic)}&target=${targetPreset}`)
     setShowContentTypeModal(false)
   }
 

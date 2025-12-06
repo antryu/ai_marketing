@@ -51,6 +51,7 @@ export default function CreateMirraPage() {
   const [tone, setTone] = useState("friendly")
   const [targetPreset, setTargetPreset] = useState("") // 타겟 프리셋
   const [customTarget, setCustomTarget] = useState("") // 직접 입력 타겟
+  const [targetFromTrends, setTargetFromTrends] = useState(false) // 트렌드 페이지에서 타겟이 전달되었는지 여부
 
   useEffect(() => {
     loadBrands()
@@ -59,6 +60,13 @@ export default function CreateMirraPage() {
     const topicParam = searchParams.get('topic')
     if (topicParam) {
       setTopic(topicParam)
+    }
+
+    // Load target from URL parameter (passed from trends page)
+    const targetParam = searchParams.get('target')
+    if (targetParam) {
+      setTargetPreset(targetParam)
+      setTargetFromTrends(true) // 트렌드에서 전달된 타겟임을 표시
     }
   }, [])
 
@@ -320,62 +328,107 @@ export default function CreateMirraPage() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <Label>타겟 고객</Label>
-                        <span className="text-xs text-zinc-500">선택 사항</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", descKo: "커리어 성장, 워라밸" },
-                          { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", descKo: "트렌드 민감, SNS 활발" },
-                          { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", descKo: "육아, 가정 관심" },
-                          { value: "students", emoji: "🎓", labelKo: "대학생/취준생", descKo: "비용 민감, 성장 지향" },
-                          { value: "business", emoji: "💼", labelKo: "사업가", descKo: "효율, ROI 중시" },
-                          { value: "senior", emoji: "👴", labelKo: "50대+", descKo: "건강, 여유로운 삶" },
-                        ].map((targetOption) => (
-                          <button
-                            key={targetOption.value}
-                            type="button"
-                            onClick={() => {
-                              setTargetPreset(targetPreset === targetOption.value ? "" : targetOption.value)
-                              if (targetPreset !== targetOption.value) setCustomTarget("")
-                            }}
-                            className={`p-3 rounded border text-left transition-all ${
-                              targetPreset === targetOption.value
-                                ? "border-amber-500 bg-amber-500/10"
-                                : "border-zinc-700 hover:border-zinc-600 bg-zinc-800/50"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-lg">{targetOption.emoji}</span>
-                              <span className="font-medium text-sm text-white">{targetOption.labelKo}</span>
-                            </div>
-                            <p className="text-xs text-zinc-400">{targetOption.descKo}</p>
-                          </button>
-                        ))}
+                        {targetFromTrends ? (
+                          <span className="text-xs text-amber-400">✓ 트렌드에서 선택됨</span>
+                        ) : (
+                          <span className="text-xs text-zinc-500">선택 사항</span>
+                        )}
                       </div>
 
-                      {/* 직접 입력 */}
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-px bg-zinc-700"></div>
-                          <span className="text-xs text-zinc-500">또는 직접 입력</span>
-                          <div className="flex-1 h-px bg-zinc-700"></div>
+                      {/* 트렌드에서 전달된 타겟이 있으면 간단한 표시만 */}
+                      {targetFromTrends && targetPreset ? (
+                        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                          {(() => {
+                            const targetOptions = [
+                              { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", descKo: "커리어 성장, 워라밸 중시" },
+                              { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", descKo: "트렌드 민감, SNS 활발" },
+                              { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", descKo: "육아, 가정에 관심" },
+                              { value: "students", emoji: "🎓", labelKo: "대학생/취준생", descKo: "비용 민감, 성장 지향" },
+                              { value: "business", emoji: "💼", labelKo: "사업가", descKo: "효율, ROI 중시" },
+                              { value: "senior", emoji: "👴", labelKo: "50대+", descKo: "건강, 여유로운 삶 추구" },
+                            ]
+                            const selected = targetOptions.find(t => t.value === targetPreset)
+                            if (!selected) return null
+                            return (
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-2xl">{selected.emoji}</span>
+                                  <div>
+                                    <p className="text-amber-400 font-medium">{selected.labelKo}</p>
+                                    <p className="text-xs text-zinc-400">{selected.descKo}</p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setTargetFromTrends(false)
+                                    setTargetPreset("")
+                                  }}
+                                  className="text-xs text-zinc-400 hover:text-zinc-300 underline"
+                                >
+                                  변경
+                                </button>
+                              </div>
+                            )
+                          })()}
                         </div>
-                        <Input
-                          placeholder="예: 첫 창업을 준비하는 20대 후반 직장인"
-                          value={customTarget}
-                          onChange={(e) => {
-                            setCustomTarget(e.target.value)
-                            if (e.target.value) setTargetPreset("")
-                          }}
-                          className="text-sm"
-                        />
-                      </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", descKo: "커리어 성장, 워라밸" },
+                              { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", descKo: "트렌드 민감, SNS 활발" },
+                              { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", descKo: "육아, 가정 관심" },
+                              { value: "students", emoji: "🎓", labelKo: "대학생/취준생", descKo: "비용 민감, 성장 지향" },
+                              { value: "business", emoji: "💼", labelKo: "사업가", descKo: "효율, ROI 중시" },
+                              { value: "senior", emoji: "👴", labelKo: "50대+", descKo: "건강, 여유로운 삶" },
+                            ].map((targetOption) => (
+                              <button
+                                key={targetOption.value}
+                                type="button"
+                                onClick={() => {
+                                  setTargetPreset(targetPreset === targetOption.value ? "" : targetOption.value)
+                                  if (targetPreset !== targetOption.value) setCustomTarget("")
+                                }}
+                                className={`p-3 rounded border text-left transition-all ${
+                                  targetPreset === targetOption.value
+                                    ? "border-amber-500 bg-amber-500/10"
+                                    : "border-zinc-700 hover:border-zinc-600 bg-zinc-800/50"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">{targetOption.emoji}</span>
+                                  <span className="font-medium text-sm text-white">{targetOption.labelKo}</span>
+                                </div>
+                                <p className="text-xs text-zinc-400">{targetOption.descKo}</p>
+                              </button>
+                            ))}
+                          </div>
 
-                      {/* 빈 상태 힌트 */}
-                      {!targetPreset && !customTarget && (
-                        <p className="text-xs text-zinc-500 bg-zinc-800/30 p-2 rounded border border-zinc-700/50 mt-3">
-                          💡 비워두면 브랜드 설명에서 AI가 자동으로 타겟을 추론합니다
-                        </p>
+                          {/* 직접 입력 */}
+                          <div className="mt-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-px bg-zinc-700"></div>
+                              <span className="text-xs text-zinc-500">또는 직접 입력</span>
+                              <div className="flex-1 h-px bg-zinc-700"></div>
+                            </div>
+                            <Input
+                              placeholder="예: 첫 창업을 준비하는 20대 후반 직장인"
+                              value={customTarget}
+                              onChange={(e) => {
+                                setCustomTarget(e.target.value)
+                                if (e.target.value) setTargetPreset("")
+                              }}
+                              className="text-sm"
+                            />
+                          </div>
+
+                          {/* 빈 상태 힌트 */}
+                          {!targetPreset && !customTarget && (
+                            <p className="text-xs text-zinc-500 bg-zinc-800/30 p-2 rounded border border-zinc-700/50 mt-3">
+                              💡 비워두면 브랜드 설명에서 AI가 자동으로 타겟을 추론합니다
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
 
