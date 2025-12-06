@@ -350,8 +350,16 @@ ${persona.pain_points?.length ? `고민/문제: ${persona.pain_points.join(', ')
 ${persona.goals?.length ? `목표: ${persona.goals.join(', ')}` : ''}
   `.trim() : '일반 타겟 고객'
 
+  // Get current date in Korean/English format
+  const now = new Date()
+  const currentDateKo = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`
+  const currentDateEn = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+
   const prompt = language === 'ko' ? `
 당신은 마케팅 트렌드 전문가입니다. 다음 정보를 바탕으로 현재 한국 시장에서 효과적인 콘텐츠 마케팅 주제 6개를 추천해주세요.
+
+**오늘 날짜: ${currentDateKo}**
+(중요: 모든 추천 토픽은 반드시 ${now.getFullYear()}년 ${now.getMonth() + 1}월 현재 시점에 맞는 내용이어야 합니다. 과거 날짜나 지난 시즌의 내용은 절대 포함하지 마세요.)
 
 ${brandContext}
 
@@ -368,6 +376,7 @@ ${realTimeTrends}
    - Twitter/X: 한국어 실시간 소셜 미디어 트렌드
 4. 브랜드의 산업 특성과 타겟 고객의 특성을 고려해야 합니다
 5. 각 주제마다 왜 이 주제가 효과적인지 구체적인 이유를 제시해야 합니다 (실시간 트렌드 근거 포함)
+6. **절대로 "2024년 하반기", "작년", "지난해" 등 과거 시점의 표현을 사용하지 마세요. 모든 토픽은 ${now.getFullYear()}년 ${now.getMonth() + 1}월 현재 또는 미래 시점이어야 합니다.**
 
 JSON 형식으로 응답해주세요:
 {
@@ -381,6 +390,9 @@ JSON 형식으로 응답해주세요:
 }
 ` : `
 You are a marketing trend expert. Based on the following information, recommend 6 effective content marketing topics for the current US/global market.
+
+**Today's Date: ${currentDateEn}**
+(Important: All recommended topics MUST be relevant to ${now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}. Do NOT include any references to past dates, previous years, or outdated seasons.)
 
 ${brandContext}
 
@@ -396,6 +408,7 @@ Requirements:
    - Twitter/X: Real-time English social media trends
 4. Consider brand's industry characteristics and target customer profile
 5. Provide specific reasons why each topic is effective (cite real-time trend evidence)
+6. **NEVER use phrases like "2024", "last year", "previous quarter", etc. All topics must be current (${now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}) or future-oriented.**
 
 Respond in JSON format:
 {

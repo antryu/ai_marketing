@@ -48,6 +48,9 @@ export default function CreateMirraPage() {
   // 빠른 생성 모드 필드
   const [platform, setPlatform] = useState("naver")
   const [length, setLength] = useState("medium")
+  const [tone, setTone] = useState("friendly")
+  const [targetPreset, setTargetPreset] = useState("") // 타겟 프리셋
+  const [customTarget, setCustomTarget] = useState("") // 직접 입력 타겟
 
   useEffect(() => {
     loadBrands()
@@ -94,6 +97,16 @@ export default function CreateMirraPage() {
 
     setLoading(true)
     try {
+      // 타겟 정보 구성
+      const targetAudience = customTarget || (targetPreset ? {
+        office_30s: "30대 직장인 (커리어 성장, 워라밸 중시)",
+        gen_mz: "MZ세대 (트렌드 민감, SNS 활발)",
+        parents: "부모/가족 (육아, 가정에 관심)",
+        students: "대학생/취준생 (비용 민감, 성장 지향)",
+        business: "사업가 (효율, ROI 중시)",
+        senior: "50대 이상 (건강, 여유로운 삶 추구)",
+      }[targetPreset] : null)
+
       const response = await fetch("/api/content/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,7 +115,9 @@ export default function CreateMirraPage() {
           brandId: selectedBrand,
           platform,
           length,
+          tone,
           language: "ko",
+          targetAudience,
           ...mirraConfig
         })
       })
@@ -298,6 +313,101 @@ export default function CreateMirraPage() {
                           <SelectItem value="long">길게</SelectItem>
                         </SelectContent>
                       </Select>
+                      </div>
+                    </div>
+
+                    {/* 타겟 고객 선택 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <Label>타겟 고객</Label>
+                        <span className="text-xs text-zinc-500">선택 사항</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", descKo: "커리어 성장, 워라밸" },
+                          { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", descKo: "트렌드 민감, SNS 활발" },
+                          { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", descKo: "육아, 가정 관심" },
+                          { value: "students", emoji: "🎓", labelKo: "대학생/취준생", descKo: "비용 민감, 성장 지향" },
+                          { value: "business", emoji: "💼", labelKo: "사업가", descKo: "효율, ROI 중시" },
+                          { value: "senior", emoji: "👴", labelKo: "50대+", descKo: "건강, 여유로운 삶" },
+                        ].map((targetOption) => (
+                          <button
+                            key={targetOption.value}
+                            type="button"
+                            onClick={() => {
+                              setTargetPreset(targetPreset === targetOption.value ? "" : targetOption.value)
+                              if (targetPreset !== targetOption.value) setCustomTarget("")
+                            }}
+                            className={`p-3 rounded border text-left transition-all ${
+                              targetPreset === targetOption.value
+                                ? "border-amber-500 bg-amber-500/10"
+                                : "border-zinc-700 hover:border-zinc-600 bg-zinc-800/50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-lg">{targetOption.emoji}</span>
+                              <span className="font-medium text-sm text-white">{targetOption.labelKo}</span>
+                            </div>
+                            <p className="text-xs text-zinc-400">{targetOption.descKo}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* 직접 입력 */}
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-px bg-zinc-700"></div>
+                          <span className="text-xs text-zinc-500">또는 직접 입력</span>
+                          <div className="flex-1 h-px bg-zinc-700"></div>
+                        </div>
+                        <Input
+                          placeholder="예: 첫 창업을 준비하는 20대 후반 직장인"
+                          value={customTarget}
+                          onChange={(e) => {
+                            setCustomTarget(e.target.value)
+                            if (e.target.value) setTargetPreset("")
+                          }}
+                          className="text-sm"
+                        />
+                      </div>
+
+                      {/* 빈 상태 힌트 */}
+                      {!targetPreset && !customTarget && (
+                        <p className="text-xs text-zinc-500 bg-zinc-800/30 p-2 rounded border border-zinc-700/50 mt-3">
+                          💡 비워두면 브랜드 설명에서 AI가 자동으로 타겟을 추론합니다
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 톤 선택 */}
+                    <div>
+                      <Label className="mb-3 block">톤 선택</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { value: "friendly", emoji: "😊", labelKo: "친근하고 따뜻한", descKo: "편안한 대화체" },
+                          { value: "professional", emoji: "💼", labelKo: "전문적이고 신뢰감", descKo: "객관적 정보" },
+                          { value: "casual", emoji: "🎯", labelKo: "직설적이고 명확한", descKo: "핵심만 간결하게" },
+                          { value: "trendy", emoji: "✨", labelKo: "트렌디하고 감각적", descKo: "MZ세대 어투" },
+                          { value: "educational", emoji: "📚", labelKo: "교육적이고 정보중심", descKo: "단계별 설명" },
+                          { value: "humorous", emoji: "😄", labelKo: "유머러스하고 재치", descKo: "가벼운 톤" },
+                        ].map((toneOption) => (
+                          <button
+                            key={toneOption.value}
+                            type="button"
+                            onClick={() => setTone(toneOption.value)}
+                            className={`p-3 rounded border text-left transition-all ${
+                              tone === toneOption.value
+                                ? "border-amber-500 bg-amber-500/10"
+                                : "border-zinc-700 hover:border-zinc-600 bg-zinc-800/50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-lg">{toneOption.emoji}</span>
+                              <span className="font-medium text-sm text-white">{toneOption.labelKo}</span>
+                            </div>
+                            <p className="text-xs text-zinc-400">{toneOption.descKo}</p>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>

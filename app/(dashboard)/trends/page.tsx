@@ -99,6 +99,32 @@ export default function TrendsPage() {
   const [selectedTopic, setSelectedTopic] = useState("")
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
+  // Load cached suggestions from localStorage on mount
+  useEffect(() => {
+    const cachedSuggestions = localStorage.getItem('trendSuggestions')
+    const cachedRedditTrends = localStorage.getItem('redditTrends')
+
+    if (cachedSuggestions) {
+      try {
+        const parsed = JSON.parse(cachedSuggestions)
+        setSuggestions(parsed)
+        setHasLoadedOnce(true)
+        setLoadingSuggestions(false)
+      } catch (e) {
+        console.error('Failed to parse cached suggestions:', e)
+      }
+    }
+
+    if (cachedRedditTrends) {
+      try {
+        const parsed = JSON.parse(cachedRedditTrends)
+        setRedditTrends(parsed)
+      } catch (e) {
+        console.error('Failed to parse cached reddit trends:', e)
+      }
+    }
+  }, [])
+
   // Load personas when brand changes
   useEffect(() => {
     if (selectedBrandId) {
@@ -106,12 +132,12 @@ export default function TrendsPage() {
     }
   }, [selectedBrandId])
 
-  // Load suggestions when persona or language changes (only first time)
+  // Load suggestions when persona changes (only if no cached data)
   useEffect(() => {
     if (selectedPersonaId && !hasLoadedOnce) {
       loadSuggestions()
     }
-  }, [selectedPersonaId, language])
+  }, [selectedPersonaId])
 
   const loadPersonas = async () => {
     try {
@@ -155,6 +181,8 @@ export default function TrendsPage() {
       if (data.success) {
         setSuggestions(data.data)
         setHasLoadedOnce(true)
+        // Save to localStorage
+        localStorage.setItem('trendSuggestions', JSON.stringify(data.data))
       }
     } catch (error) {
       console.error("Failed to load suggestions:", error)
@@ -177,6 +205,8 @@ export default function TrendsPage() {
 
       if (data.success) {
         setSuggestions(data.data)
+        // Save to localStorage
+        localStorage.setItem('trendSuggestions', JSON.stringify(data.data))
         toast.success(language === "ko" ? "새로운 토픽을 가져왔습니다!" : "New topics loaded!")
       }
     } catch (error) {
@@ -195,6 +225,8 @@ export default function TrendsPage() {
 
       if (data.success) {
         setRedditTrends(data.data)
+        // Save to localStorage
+        localStorage.setItem('redditTrends', JSON.stringify(data.data))
         console.log('✅ Reddit trends loaded:', data.data.length, 'posts')
       }
     } catch (error) {

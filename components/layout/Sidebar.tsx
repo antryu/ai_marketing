@@ -12,8 +12,6 @@ import {
   Zap,
   Sparkles,
   CreditCard,
-  Target,
-  User,
   Building2,
   ChevronDown,
   TrendingUp,
@@ -71,8 +69,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const navigation = [
     { name: t("navDashboard"), href: "/dashboard", icon: LayoutDashboard, highlight: false },
     { name: t("navBrandSettings"), href: "/brand", icon: Building2, highlight: false },
-    { name: t("navBrandVoice"), href: "/writer-personas", icon: User, highlight: false },
-    { name: t("navTargetCustomers"), href: "/personas", icon: Target, highlight: false },
     { name: t("navTrends"), href: "/trends", icon: TrendingUp, highlight: showTrendsNew },
     {
       name: t("navContentGeneration"),
@@ -145,11 +141,10 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           let isActive = false
           let isParentActive = false
 
-          // 드롭다운 메뉴 체크
+          // 드롭다운 메뉴 체크 - 부모는 활성화하지 않음 (서브메뉴만 활성화)
           if (item.hasSubmenu && item.subItems) {
-            isParentActive = item.subItems.some(subItem =>
-              pathname === subItem.href || pathname?.startsWith(subItem.href + "/")
-            )
+            // isParentActive는 false로 유지 - 부모 메뉴는 하이라이트하지 않음
+            isParentActive = false
           } else if (item.href) {
             // 일반 메뉴 경로 매칭
             if (pathname === item.href) {
@@ -188,7 +183,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 {contentMenuOpen && (
                   <div className="ml-4 mt-1 space-y-0.5">
                     {item.subItems.map((subItem) => {
-                      const isSubActive = pathname === subItem.href || pathname?.startsWith(subItem.href + "/")
+                      // 정확한 경로 매칭 (쿼리 파라미터 무시)
+                      const currentPath = pathname?.split('?')[0]
+                      const isSubActive = currentPath === subItem.href
 
                       return (
                         <Link

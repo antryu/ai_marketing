@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Building2, Plus, Trash2, Sparkles } from "lucide-react"
+import { Building2, Plus, Trash2, Sparkles, Globe, Loader2, Briefcase, Coffee, ShoppingBag, Laptop, Stethoscope, GraduationCap, Home, Scissors } from "lucide-react"
 import { toast } from "sonner"
 import { useBrand } from "@/contexts/BrandContext"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -17,6 +17,82 @@ interface Brand {
   created_at: string
 }
 
+// Industry templates
+const industryTemplates = [
+  {
+    id: "fitness",
+    icon: "🏋️",
+    labelKo: "피트니스/필라테스",
+    labelEn: "Fitness/Pilates",
+    product_type: "service",
+    descriptionKo: "건강한 라이프스타일을 추구하는 고객을 위한 전문 피트니스 센터입니다. 1:1 맞춤 트레이닝과 그룹 수업을 제공하며, 체형 교정과 다이어트 프로그램을 운영합니다.",
+    descriptionEn: "A professional fitness center for customers pursuing a healthy lifestyle. We offer personalized 1:1 training and group classes, with body correction and diet programs."
+  },
+  {
+    id: "cafe",
+    icon: "☕",
+    labelKo: "카페/음식점",
+    labelEn: "Cafe/Restaurant",
+    product_type: "service",
+    descriptionKo: "정성스럽게 준비한 음식과 음료로 고객에게 특별한 경험을 제공합니다. 프리미엄 원두와 신선한 재료만을 사용하며, 편안한 분위기에서 휴식을 취할 수 있습니다.",
+    descriptionEn: "We provide special experiences with carefully prepared food and beverages. Using only premium beans and fresh ingredients, customers can relax in a comfortable atmosphere."
+  },
+  {
+    id: "ecommerce",
+    icon: "🛒",
+    labelKo: "온라인 쇼핑몰",
+    labelEn: "E-commerce",
+    product_type: "ecommerce",
+    descriptionKo: "엄선된 제품만을 판매하는 온라인 쇼핑몰입니다. 빠른 배송과 친절한 고객 서비스로 만족스러운 쇼핑 경험을 제공합니다. 품질 보증과 쉬운 반품 정책을 운영합니다.",
+    descriptionEn: "An online shopping mall selling only carefully selected products. We provide satisfying shopping experiences with fast delivery and friendly customer service."
+  },
+  {
+    id: "it",
+    icon: "💻",
+    labelKo: "IT/소프트웨어",
+    labelEn: "IT/Software",
+    product_type: "b2b_saas",
+    descriptionKo: "기업의 디지털 전환을 돕는 IT 솔루션을 제공합니다. 클라우드 기반 서비스와 맞춤형 소프트웨어 개발로 업무 효율성을 높이고 비용을 절감합니다.",
+    descriptionEn: "We provide IT solutions to help businesses with digital transformation. Cloud-based services and custom software development improve work efficiency and reduce costs."
+  },
+  {
+    id: "medical",
+    icon: "🏥",
+    labelKo: "병원/의원",
+    labelEn: "Medical/Clinic",
+    product_type: "service",
+    descriptionKo: "환자 중심의 의료 서비스를 제공하는 전문 의료기관입니다. 최신 의료 장비와 전문 의료진이 정확한 진단과 치료를 제공합니다. 예약제로 대기 시간을 최소화합니다.",
+    descriptionEn: "A professional medical institution providing patient-centered healthcare. Latest medical equipment and expert medical staff provide accurate diagnosis and treatment."
+  },
+  {
+    id: "education",
+    icon: "📚",
+    labelKo: "교육/학원",
+    labelEn: "Education/Academy",
+    product_type: "education",
+    descriptionKo: "학생 개개인의 잠재력을 이끌어내는 맞춤형 교육을 제공합니다. 전문 강사진과 체계적인 커리큘럼으로 목표 달성을 지원합니다. 1:1 상담과 학습 관리를 제공합니다.",
+    descriptionEn: "We provide customized education that brings out each student's potential. Expert instructors and systematic curriculum support goal achievement."
+  },
+  {
+    id: "realestate",
+    icon: "🏠",
+    labelKo: "부동산",
+    labelEn: "Real Estate",
+    product_type: "service",
+    descriptionKo: "고객의 부동산 니즈에 맞는 최적의 솔루션을 제공합니다. 매매, 임대, 투자 상담까지 전문적인 서비스로 성공적인 부동산 거래를 지원합니다.",
+    descriptionEn: "We provide optimal solutions for customers' real estate needs. From buying, renting, to investment consulting, we support successful real estate transactions."
+  },
+  {
+    id: "beauty",
+    icon: "✨",
+    labelKo: "뷰티/미용",
+    labelEn: "Beauty/Salon",
+    product_type: "service",
+    descriptionKo: "고객의 아름다움을 완성하는 프리미엄 뷰티 서비스를 제공합니다. 트렌드를 반영한 스타일링과 전문적인 케어로 자신감을 높여드립니다.",
+    descriptionEn: "We provide premium beauty services to complete your beauty. Trendy styling and professional care boost your confidence."
+  }
+]
+
 export default function BrandPage() {
   const { selectedBrandId, refreshBrands, setSelectedBrandId } = useBrand()
   const { language } = useLanguage()
@@ -25,6 +101,9 @@ export default function BrandPage() {
   const [loading, setLoading] = useState(true)
   const [currentBrand, setCurrentBrand] = useState<Brand | null>(null)
   const [isCreatingNew, setIsCreatingNew] = useState(false)
+  const [showInputHelper, setShowInputHelper] = useState(false)
+  const [urlInput, setUrlInput] = useState("")
+  const [analyzingUrl, setAnalyzingUrl] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -152,6 +231,7 @@ export default function BrandPage() {
 
   const handleCreateNew = () => {
     setIsCreatingNew(true)
+    setShowInputHelper(true)
     setFormData({
       name: "",
       description: "",
@@ -162,6 +242,7 @@ export default function BrandPage() {
 
   const handleCancelCreate = () => {
     setIsCreatingNew(false)
+    setShowInputHelper(false)
     if (currentBrand) {
       setFormData({
         name: currentBrand.name,
@@ -170,6 +251,56 @@ export default function BrandPage() {
         target_market: currentBrand.target_market || [],
       })
     }
+  }
+
+  const handleAnalyzeUrl = async () => {
+    if (!urlInput.trim()) {
+      toast.error(language === "ko" ? "URL을 입력해주세요" : "Please enter a URL")
+      return
+    }
+
+    setAnalyzingUrl(true)
+    try {
+      const res = await fetch("/api/brands/analyze-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: urlInput }),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setFormData({
+          ...formData,
+          name: data.data.name || formData.name,
+          description: data.data.description || formData.description,
+          product_type: data.data.product_type || formData.product_type,
+        })
+        setShowInputHelper(false)
+        toast.success(language === "ko" ? "웹사이트 정보를 분석했습니다!" : "Website analyzed successfully!")
+      } else {
+        toast.error(data.error || (language === "ko" ? "분석 실패" : "Analysis failed"))
+      }
+    } catch (error) {
+      console.error("URL analysis error:", error)
+      toast.error(language === "ko" ? "웹사이트 분석에 실패했습니다" : "Failed to analyze website")
+    } finally {
+      setAnalyzingUrl(false)
+    }
+  }
+
+  const handleSelectTemplate = (template: typeof industryTemplates[0]) => {
+    setFormData({
+      ...formData,
+      description: language === "ko" ? template.descriptionKo : template.descriptionEn,
+      product_type: template.product_type,
+    })
+    setShowInputHelper(false)
+    toast.success(language === "ko" ? "템플릿이 적용되었습니다. 브랜드명을 입력해주세요!" : "Template applied. Please enter your brand name!")
+  }
+
+  const handleDirectInput = () => {
+    setShowInputHelper(false)
   }
 
   const getProductTypeLabel = (type: string) => {
@@ -243,8 +374,115 @@ export default function BrandPage() {
           )}
         </div>
 
+        {/* Input Helper - Show when creating new brand */}
+        {isCreatingNew && showInputHelper && (
+          <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-6 mb-6 space-y-6">
+            <h3 className="text-lg font-medium text-white">
+              {language === "ko" ? "브랜드 정보 입력 방법 선택" : "Choose how to enter brand info"}
+            </h3>
+
+            {/* URL Auto-fill */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-amber-400">
+                <Globe className="w-5 h-5" />
+                <span className="font-medium">
+                  {language === "ko" ? "🔗 웹사이트로 자동 입력 (추천)" : "🔗 Auto-fill from website (Recommended)"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://example.com"
+                  className="flex-1 h-12 bg-zinc-900/50 border border-zinc-700 px-4 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAnalyzeUrl()}
+                />
+                <button
+                  onClick={handleAnalyzeUrl}
+                  disabled={analyzingUrl}
+                  className="px-6 bg-amber-500 hover:bg-amber-400 text-black font-medium rounded transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {analyzingUrl ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {language === "ko" ? "분석중..." : "Analyzing..."}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      {language === "ko" ? "AI 분석" : "AI Analyze"}
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-zinc-500">
+                {language === "ko"
+                  ? "회사 홈페이지 URL을 입력하면 AI가 자동으로 브랜드 정보를 분석합니다"
+                  : "Enter your company website URL and AI will automatically analyze brand information"
+                }
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-zinc-700"></div>
+              <span className="text-zinc-500 text-sm">{language === "ko" ? "또는" : "or"}</span>
+              <div className="flex-1 h-px bg-zinc-700"></div>
+            </div>
+
+            {/* Industry Templates */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-zinc-300">
+                <Briefcase className="w-5 h-5" />
+                <span className="font-medium">
+                  {language === "ko" ? "📋 업종 템플릿으로 시작" : "📋 Start with industry template"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {industryTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => handleSelectTemplate(template)}
+                    className="p-3 bg-zinc-800 border border-zinc-700 rounded hover:border-amber-400/50 hover:bg-zinc-700/50 transition-all text-left group"
+                  >
+                    <span className="text-2xl mb-1 block">{template.icon}</span>
+                    <span className="text-sm text-zinc-300 group-hover:text-white">
+                      {language === "ko" ? template.labelKo : template.labelEn}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-zinc-700"></div>
+              <span className="text-zinc-500 text-sm">{language === "ko" ? "또는" : "or"}</span>
+              <div className="flex-1 h-px bg-zinc-700"></div>
+            </div>
+
+            {/* Direct Input */}
+            <button
+              onClick={handleDirectInput}
+              className="w-full p-4 bg-zinc-800/50 border border-zinc-700 rounded hover:border-zinc-600 hover:bg-zinc-800 transition-all text-left"
+            >
+              <div className="flex items-center gap-2 text-zinc-400">
+                <span className="text-lg">✏️</span>
+                <span className="font-medium">
+                  {language === "ko" ? "직접 입력하기" : "Enter manually"}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 mt-1 ml-7">
+                {language === "ko"
+                  ? "브랜드 정보를 직접 작성합니다"
+                  : "Write brand information yourself"
+                }
+              </p>
+            </button>
+          </div>
+        )}
+
         {/* Form */}
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-8 space-y-6">
+        <div className={`bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-8 space-y-6 ${isCreatingNew && showInputHelper ? 'opacity-50 pointer-events-none' : ''}`}>
 
             {/* Brand Name */}
             <div className="space-y-3">
@@ -268,10 +506,19 @@ export default function BrandPage() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder={t("productDescPlaceholder")}
+                placeholder={language === "ko"
+                  ? "예: 30-40대 직장인을 위한 프리미엄 필라테스 스튜디오입니다. 1:1 맞춤 수업과 체형 교정 프로그램을 제공하며, 바쁜 일상 속 건강한 휴식을 선사합니다."
+                  : "Example: A premium Pilates studio for professionals in their 30s-40s. We offer personalized 1:1 classes and body correction programs, providing healthy relaxation in busy daily life."
+                }
                 rows={4}
                 className="w-full bg-zinc-900/50 border border-zinc-700 px-4 py-3 text-white rounded focus:border-amber-400/50 focus:outline-none transition-colors resize-none"
               />
+              <p className="text-xs text-zinc-500">
+                {language === "ko"
+                  ? "💡 팁: 무엇을 제공하는지, 누구를 위한 것인지, 어떤 가치가 있는지 포함하면 좋습니다"
+                  : "💡 Tip: Include what you offer, who it's for, and what value it provides"
+                }
+              </p>
             </div>
 
             {/* Product Type */}

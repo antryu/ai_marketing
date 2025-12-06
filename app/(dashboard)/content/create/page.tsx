@@ -45,6 +45,8 @@ export default function ContentCreatePage() {
   const [manualKeyword, setManualKeyword] = useState("")
   const [saving, setSaving] = useState(false)
   const [seoStep, setSeoStep] = useState(false) // SEO 단계 활성화 여부
+  const [targetPreset, setTargetPreset] = useState("") // 타겟 프리셋
+  const [customTarget, setCustomTarget] = useState("") // 직접 입력 타겟
 
   useEffect(() => {
     loadBrands()
@@ -170,6 +172,16 @@ export default function ContentCreatePage() {
         // "all" 플랫폼인 경우 네이버 블로그 기준으로 생성
         const targetPlatform = platform === "all" ? "naver" : platform
 
+        // 타겟 정보 구성
+        const targetAudience = customTarget || (targetPreset ? {
+          office_30s: language === "ko" ? "30대 직장인 (커리어 성장, 워라밸 중시)" : "30s Professionals (career growth, work-life balance)",
+          gen_mz: language === "ko" ? "MZ세대 (트렌드 민감, SNS 활발)" : "Gen MZ (trend-sensitive, social media active)",
+          parents: language === "ko" ? "부모/가족 (육아, 가정에 관심)" : "Parents/Family (parenting, family-focused)",
+          students: language === "ko" ? "대학생/취준생 (비용 민감, 성장 지향)" : "Students/Job Seekers (budget-conscious, growth-oriented)",
+          business: language === "ko" ? "사업가 (효율, ROI 중시)" : "Business Owners (efficiency, ROI-focused)",
+          senior: language === "ko" ? "50대 이상 (건강, 여유로운 삶 추구)" : "50s+ (health, quality of life)",
+        }[targetPreset] : null)
+
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -183,6 +195,7 @@ export default function ContentCreatePage() {
             aiModel: ollamaModel === "claude" ? null : ollamaModel, // claude 선택 시 null, 나머지는 모델명 전달
             language, // 언어 추가
             seoKeywords: selectedKeywords.length > 0 ? selectedKeywords : null, // SEO 키워드 추가
+            targetAudience, // 타겟 고객 추가
             ...(compareMode && { ollamaModel: ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel })
           })
         })
@@ -635,20 +648,118 @@ export default function ContentCreatePage() {
               </Select>
             </div>
 
-            {/* Tone Selection */}
-            <div className="space-y-2">
-              <Label>{t("toneField")}</Label>
-              <Select value={tone} onValueChange={setTone}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="professional">{t("toneProfessional")}</SelectItem>
-                  <SelectItem value="casual">{t("toneCasual")}</SelectItem>
-                  <SelectItem value="friendly">{t("toneFriendly")}</SelectItem>
-                  <SelectItem value="authoritative">{t("toneAuthoritative")}</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Target Selection - Visual Preset Style */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>{language === "ko" ? "타겟 고객" : "Target Audience"}</Label>
+                <span className="text-xs text-zinc-500">
+                  {language === "ko" ? "선택 사항" : "Optional"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", labelEn: "30s Professionals", descKo: "커리어 성장, 워라밸", descEn: "Career growth, work-life balance" },
+                  { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", labelEn: "Gen MZ", descKo: "트렌드 민감, SNS 활발", descEn: "Trend-sensitive, social media active" },
+                  { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", labelEn: "Parents/Family", descKo: "육아, 가정 관심", descEn: "Parenting, family-focused" },
+                  { value: "students", emoji: "🎓", labelKo: "대학생/취준생", labelEn: "Students/Job Seekers", descKo: "비용 민감, 성장 지향", descEn: "Budget-conscious, growth-oriented" },
+                  { value: "business", emoji: "💼", labelKo: "사업가", labelEn: "Business Owners", descKo: "효율, ROI 중시", descEn: "Efficiency, ROI-focused" },
+                  { value: "senior", emoji: "👴", labelKo: "50대+", labelEn: "50s+", descKo: "건강, 여유로운 삶", descEn: "Health, quality of life" },
+                ].map((targetOption) => (
+                  <button
+                    key={targetOption.value}
+                    onClick={() => {
+                      setTargetPreset(targetPreset === targetOption.value ? "" : targetOption.value)
+                      if (targetPreset !== targetOption.value) setCustomTarget("") // 프리셋 선택 시 직접 입력 초기화
+                    }}
+                    className={`
+                      p-3 rounded border transition-all text-left
+                      ${targetPreset === targetOption.value
+                        ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                        : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{targetOption.emoji}</span>
+                      <span className={`text-sm font-medium ${targetPreset === targetOption.value ? "text-amber-400" : "text-zinc-300"}`}>
+                        {language === "ko" ? targetOption.labelKo : targetOption.labelEn}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 ml-7">
+                      {language === "ko" ? targetOption.descKo : targetOption.descEn}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Target Input */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-zinc-700"></div>
+                  <span className="text-xs text-zinc-500">{language === "ko" ? "또는 직접 입력" : "or enter manually"}</span>
+                  <div className="flex-1 h-px bg-zinc-700"></div>
+                </div>
+                <Input
+                  placeholder={language === "ko" ? "예: 첫 창업을 준비하는 20대 후반 직장인" : "e.g., Late 20s professionals preparing for first startup"}
+                  value={customTarget}
+                  onChange={(e) => {
+                    setCustomTarget(e.target.value)
+                    if (e.target.value) setTargetPreset("") // 직접 입력 시 프리셋 선택 해제
+                  }}
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Empty State Hint */}
+              {!targetPreset && !customTarget && (
+                <p className="text-xs text-zinc-500 bg-zinc-800/30 p-2 rounded border border-zinc-700/50">
+                  💡 {language === "ko"
+                    ? "비워두면 브랜드 설명에서 AI가 자동으로 타겟을 추론합니다"
+                    : "Leave empty and AI will auto-infer target from brand description"}
+                </p>
+              )}
+            </div>
+
+            {/* Tone Selection - Visual Preset Style */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>{t("toneField")}</Label>
+                <span className="text-xs text-zinc-500">
+                  {language === "ko" ? "콘텐츠 분위기를 결정합니다" : "Sets the content mood"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "friendly", emoji: "😊", labelKo: "친근하고 따뜻한", labelEn: "Friendly & Warm", descKo: "편안한 대화체, 이모티콘 활용", descEn: "Conversational, uses emojis" },
+                  { value: "professional", emoji: "💼", labelKo: "전문적이고 신뢰감", labelEn: "Professional", descKo: "객관적 정보, 전문 용어 사용", descEn: "Objective, uses industry terms" },
+                  { value: "casual", emoji: "🎯", labelKo: "직설적이고 명확한", labelEn: "Direct & Clear", descKo: "핵심만 간결하게, 실용적", descEn: "Concise, practical" },
+                  { value: "trendy", emoji: "✨", labelKo: "트렌디하고 감각적", labelEn: "Trendy & Stylish", descKo: "최신 트렌드, MZ세대 어투", descEn: "Modern trends, Gen-Z style" },
+                  { value: "educational", emoji: "📚", labelKo: "교육적이고 정보중심", labelEn: "Educational", descKo: "단계별 설명, 쉬운 이해", descEn: "Step-by-step, easy to understand" },
+                  { value: "humorous", emoji: "😄", labelKo: "유머러스하고 재치", labelEn: "Humorous", descKo: "재치있는 표현, 가벼운 톤", descEn: "Witty expressions, light tone" },
+                ].map((toneOption) => (
+                  <button
+                    key={toneOption.value}
+                    onClick={() => setTone(toneOption.value)}
+                    className={`
+                      p-3 rounded border transition-all text-left
+                      ${tone === toneOption.value
+                        ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                        : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{toneOption.emoji}</span>
+                      <span className={`text-sm font-medium ${tone === toneOption.value ? "text-amber-400" : "text-zinc-300"}`}>
+                        {language === "ko" ? toneOption.labelKo : toneOption.labelEn}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 ml-7">
+                      {language === "ko" ? toneOption.descKo : toneOption.descEn}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Length Selection */}
