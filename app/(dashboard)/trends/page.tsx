@@ -114,21 +114,9 @@ export default function TrendsPage() {
   const [selectedTopic, setSelectedTopic] = useState("")
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
-  // Load cached suggestions from localStorage on mount
+  // Load cached Reddit trends on mount (suggestions are now target-specific)
   useEffect(() => {
-    const cachedSuggestions = localStorage.getItem('trendSuggestions')
     const cachedRedditTrends = localStorage.getItem('redditTrends')
-
-    if (cachedSuggestions) {
-      try {
-        const parsed = JSON.parse(cachedSuggestions)
-        setSuggestions(parsed)
-        setHasLoadedOnce(true)
-        setLoadingSuggestions(false)
-      } catch (e) {
-        console.error('Failed to parse cached suggestions:', e)
-      }
-    }
 
     if (cachedRedditTrends) {
       try {
@@ -140,12 +128,20 @@ export default function TrendsPage() {
     }
   }, [])
 
-  // Load suggestions when brand or target preset changes (only if no cached data)
+  // Load suggestions when target preset changes (always reload for new target)
+  useEffect(() => {
+    if (selectedBrandId && targetPreset) {
+      // 타겟이 변경되면 항상 새로운 토픽을 가져옴
+      loadSuggestions()
+    }
+  }, [targetPreset])
+
+  // Load suggestions when brand changes (only if not loaded yet)
   useEffect(() => {
     if (selectedBrandId && targetPreset && !hasLoadedOnce) {
       loadSuggestions()
     }
-  }, [selectedBrandId, targetPreset])
+  }, [selectedBrandId])
 
   const loadSuggestions = async () => {
     if (!selectedBrandId || !targetPreset) return
@@ -169,8 +165,6 @@ export default function TrendsPage() {
       if (data.success) {
         setSuggestions(data.data)
         setHasLoadedOnce(true)
-        // Save to localStorage
-        localStorage.setItem('trendSuggestions', JSON.stringify(data.data))
       }
     } catch (error) {
       console.error("Failed to load suggestions:", error)
@@ -194,8 +188,6 @@ export default function TrendsPage() {
 
       if (data.success) {
         setSuggestions(data.data)
-        // Save to localStorage
-        localStorage.setItem('trendSuggestions', JSON.stringify(data.data))
         toast.success(language === "ko" ? "새로운 토픽을 가져왔습니다!" : "New topics loaded!")
       }
     } catch (error) {
