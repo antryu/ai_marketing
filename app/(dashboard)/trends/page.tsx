@@ -68,16 +68,32 @@ interface TrendData {
   }
 }
 
-interface Persona {
-  id: string
-  name: string
-  description: string
-  age_range: string
-  gender: string
-  job_title: string[]
-  industry: string[]
-  pain_points: string[]
-  goals: string[]
+// 타겟 프리셋 정의
+const TARGET_PRESETS = {
+  office_30s: {
+    ko: "30대 직장인 (커리어 성장, 워라밸 중시)",
+    en: "30s Professionals (career growth, work-life balance)"
+  },
+  gen_mz: {
+    ko: "MZ세대 (트렌드 민감, SNS 활발)",
+    en: "Gen MZ (trend-sensitive, social media active)"
+  },
+  parents: {
+    ko: "부모/가족 (육아, 가정에 관심)",
+    en: "Parents/Family (parenting, family-focused)"
+  },
+  students: {
+    ko: "대학생/취준생 (비용 민감, 성장 지향)",
+    en: "Students/Job Seekers (budget-conscious, growth-oriented)"
+  },
+  business: {
+    ko: "사업가 (효율, ROI 중시)",
+    en: "Business Owners (efficiency, ROI-focused)"
+  },
+  senior: {
+    ko: "50대 이상 (건강, 여유로운 삶 추구)",
+    en: "50s+ (health, quality of life)"
+  }
 }
 
 export default function TrendsPage() {
@@ -91,8 +107,7 @@ export default function TrendsPage() {
   const [trendData, setTrendData] = useState<TrendData | null>(null)
   const [suggestions, setSuggestions] = useState<any>(null)
   const [loadingSuggestions, setLoadingSuggestions] = useState(true)
-  const [personas, setPersonas] = useState<Persona[]>([])
-  const [selectedPersonaId, setSelectedPersonaId] = useState<string>("")
+  const [targetPreset, setTargetPreset] = useState<string>("office_30s") // 기본값: 30대 직장인
   const [redditTrends, setRedditTrends] = useState<any[]>([])
   const [loadingReddit, setLoadingReddit] = useState(false)
   const [showContentTypeModal, setShowContentTypeModal] = useState(false)
@@ -125,48 +140,21 @@ export default function TrendsPage() {
     }
   }, [])
 
-  // Load personas when brand changes
+  // Load suggestions when brand or target preset changes (only if no cached data)
   useEffect(() => {
-    if (selectedBrandId) {
-      loadPersonas()
-    }
-  }, [selectedBrandId])
-
-  // Load suggestions when persona changes (only if no cached data)
-  useEffect(() => {
-    if (selectedPersonaId && !hasLoadedOnce) {
+    if (selectedBrandId && targetPreset && !hasLoadedOnce) {
       loadSuggestions()
     }
-  }, [selectedPersonaId])
-
-  const loadPersonas = async () => {
-    try {
-      const supabase = createClient()
-      const { data } = await (supabase as any)
-        .from("personas")
-        .select("id, name, description, age_range, gender, job_title, industry, pain_points, goals")
-        .eq("brand_id", selectedBrandId)
-        .order("created_at", { ascending: false })
-
-      if (data && data.length > 0) {
-        setPersonas(data)
-        // Auto-select first persona
-        if (!selectedPersonaId) {
-          setSelectedPersonaId(data[0].id)
-        }
-      }
-    } catch (error) {
-      console.error("Error loading personas:", error)
-    }
-  }
+  }, [selectedBrandId, targetPreset])
 
   const loadSuggestions = async () => {
-    if (!selectedPersonaId) return
+    if (!selectedBrandId || !targetPreset) return
 
     setLoadingSuggestions(true)
     try {
-      const apiUrl = `/api/trends/suggestions?personaId=${selectedPersonaId}&language=${language}`
-      console.log('🔄 Loading suggestions for:', { personaId: selectedPersonaId, language, apiUrl })
+      const targetAudience = TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ""
+      const apiUrl = `/api/trends/suggestions?brandId=${selectedBrandId}&targetAudience=${encodeURIComponent(targetAudience)}&language=${language}`
+      console.log('🔄 Loading suggestions for:', { brandId: selectedBrandId, targetAudience, language, apiUrl })
 
       const res = await fetch(apiUrl)
       const data = await res.json()
@@ -194,12 +182,13 @@ export default function TrendsPage() {
   }
 
   const refreshSuggestions = async () => {
-    if (!selectedPersonaId) return
+    if (!selectedBrandId || !targetPreset) return
 
     setLoadingSuggestions(true)
     try {
       // Add timestamp to bypass cache
-      const apiUrl = `/api/trends/suggestions?personaId=${selectedPersonaId}&language=${language}&refresh=${Date.now()}`
+      const targetAudience = TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ""
+      const apiUrl = `/api/trends/suggestions?brandId=${selectedBrandId}&targetAudience=${encodeURIComponent(targetAudience)}&language=${language}&refresh=${Date.now()}`
       const res = await fetch(apiUrl)
       const data = await res.json()
 
@@ -332,38 +321,37 @@ export default function TrendsPage() {
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
 
-        {/* Persona Selection + Data Sources - Side by side */}
+        {/* Target Selection + Data Sources - Side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-          {/* Persona Selection - Only show if 2 or more personas exist */}
-          {personas.length >= 2 && (
-            <Card className="p-6 bg-zinc-900 border-zinc-800">
-              <div className="flex items-center gap-4">
-                <Target className="h-5 w-5 text-amber-400" />
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-zinc-300 mb-2 block">
-                    {language === "ko" ? "타겟 고객 선택" : "Select Target Customer"}
-                  </label>
-                  <Select value={selectedPersonaId} onValueChange={setSelectedPersonaId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {personas.map((persona) => (
-                        <SelectItem key={persona.id} value={persona.id}>
-                          {persona.name} ({persona.age_range} · {persona.gender})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedPersonaId && personas.find(p => p.id === selectedPersonaId) && (
-                    <p className="text-xs text-zinc-500 mt-2">
-                      {personas.find(p => p.id === selectedPersonaId)?.description}
-                    </p>
-                  )}
-                </div>
+          {/* Target Preset Selection */}
+          <Card className="p-6 bg-zinc-900 border-zinc-800">
+            <div className="flex items-center gap-4">
+              <Target className="h-5 w-5 text-amber-400" />
+              <div className="flex-1">
+                <label className="text-sm font-medium text-zinc-300 mb-2 block">
+                  {language === "ko" ? "타겟 고객 선택" : "Select Target Audience"}
+                </label>
+                <Select value={targetPreset} onValueChange={setTargetPreset}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={language === "ko" ? "타겟 고객 선택" : "Select target audience"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TARGET_PRESETS).map(([key, value]) => (
+                      <SelectItem key={key} value={key}>
+                        {value[language]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-zinc-500 mt-2">
+                  {language === "ko"
+                    ? "선택한 타겟에 맞는 트렌드 토픽이 추천됩니다"
+                    : "Trend topics will be recommended based on your target audience"
+                  }
+                </p>
               </div>
-            </Card>
-          )}
+            </div>
+          </Card>
 
           {/* Data Source Information */}
           <Card className="p-6 bg-gradient-to-r from-zinc-900 to-zinc-950 border-zinc-800">
@@ -426,14 +414,14 @@ export default function TrendsPage() {
                 <div>
                   <h2 className="text-xl font-medium text-white">
                     {language === "ko"
-                      ? `${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}님을 위한 AI 추천 토픽`
-                      : `AI Recommended Topics for ${suggestions.personaName ? `${suggestions.personaName} (${suggestions.personaInfo})` : suggestions.brandName}`
+                      ? `${TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ''} AI 추천 토픽`
+                      : `AI Recommended Topics for ${TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ''}`
                     }
                   </h2>
                   <p className="text-zinc-400 text-sm">
                     {language === "ko"
-                      ? `${suggestions.industry} 업계 · ${suggestions.personaName ? '타겟 고객 기반' : '브랜드 기반'} · 실시간 트렌드 자동 생성`
-                      : `${suggestions.industry} Industry · ${suggestions.personaName ? 'Target Customer Based' : 'Brand Based'} · Real-time Trend Generation`
+                      ? `${suggestions.industry || '브랜드'} 업계 · 타겟 고객 기반 · 실시간 트렌드 자동 생성`
+                      : `${suggestions.industry || 'Brand'} Industry · Target Audience Based · Real-time Trend Generation`
                     }
                   </p>
                 </div>

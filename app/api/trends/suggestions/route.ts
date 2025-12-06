@@ -44,17 +44,10 @@ interface Brand {
   created_at: string
 }
 
-interface Persona {
-  id: string
-  brand_id: string
+// Target audience presets for direct selection (replaces database personas)
+interface TargetAudience {
   name: string
   description: string
-  age_range: string
-  gender: string
-  job_title: string[]
-  industry: string[]
-  pain_points: string[]
-  goals: string[]
 }
 
 // Removed hardcoded INDUSTRY_KEYWORDS - now using AI generation
@@ -63,9 +56,10 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
-    const personaId = searchParams.get('personaId')
+    const brandId = searchParams.get('brandId')
+    const targetAudienceParam = searchParams.get('targetAudience') // 프리셋 타겟 정보
     const language = searchParams.get('language') || 'ko'
-    const forceRefresh = searchParams.get('refresh') === 'true'
+    const forceRefresh = searchParams.has('refresh')
 
     // Get user authentication
     const { data: { user } } = await supabase.auth.getUser()
@@ -79,54 +73,46 @@ export async function GET(request: NextRequest) {
 
     let brandName = language === 'ko' ? '귀하' : 'You'
     let brandData: Brand | null = null
-    let personaData: Persona | null = null
-    let personaName = ''
-    let personaInfo = ''
+    let targetAudience: TargetAudience | null = null
 
-    if (personaId) {
-      // Get persona information
-      const { data: persona } = await supabase
-        .from('personas')
+    // Get brand information
+    if (brandId) {
+      const { data: brand } = await supabase
+        .from('brands')
         .select('*')
-        .eq('id', personaId)
+        .eq('id', brandId)
         .single()
 
-      if (persona) {
-        personaData = persona as Persona
-        personaName = personaData.name
-        personaInfo = `${personaData.age_range} ${personaData.gender}`
-
-        // Get brand information for the persona's brand
-        const { data: brand } = await supabase
-          .from('brands')
-          .select('*')
-          .eq('id', personaData.brand_id)
-          .single()
-
-        if (brand) {
-          brandData = brand as Brand
-          brandName = brandData.name
-        }
+      if (brand) {
+        brandData = brand as Brand
+        brandName = brandData.name
       }
     }
 
-    // Generate cache key based on brand and persona
-    const cacheKey = `${brandData?.id || 'default'}-${personaData?.id || 'default'}-${language}`
+    // Set target audience from preset parameter
+    if (targetAudienceParam) {
+      targetAudience = {
+        name: targetAudienceParam,
+        description: targetAudienceParam
+      }
+    }
 
-    console.log('🔑 Cache key:', cacheKey, { brandId: brandData?.id, personaId: personaData?.id, personaName })
+    // Generate cache key based on brand and target audience
+    const cacheKey = `${brandData?.id || 'default'}-${targetAudienceParam || 'default'}-${language}`
+
+    console.log('🔑 Cache key:', cacheKey, { brandId: brandData?.id, targetAudience: targetAudienceParam })
 
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
       const cachedData = getCachedSuggestions(cacheKey)
       if (cachedData) {
-        console.log('💾 Returning cached suggestions for:', personaName)
+        console.log('💾 Returning cached suggestions for:', targetAudienceParam)
         return NextResponse.json({
           success: true,
           data: {
             brandName,
-            personaName,
-            personaInfo,
-            industry: personaData?.industry?.[0] || 'general',
+            targetAudience: targetAudienceParam,
+            industry: brandData?.product_type || 'general',
             suggestions: cachedData.suggestions,
             updatedAt: cachedData.updatedAt,
             aiGenerated: true,
@@ -136,10 +122,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('🤖 Generating new AI suggestions for:', personaName)
+    console.log('🤖 Generating new AI suggestions for:', targetAudienceParam)
 
     // Generate AI-powered suggestions
-    const suggestions = await generateAISuggestions(brandData, personaData, language)
+    const suggestions = await generateAISuggestions(brandData, targetAudience, language)
 
     // Cache the result
     const responseData = {
@@ -152,9 +138,8 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         brandName,
-        personaName,
-        personaInfo,
-        industry: personaData?.industry?.[0] || 'general',
+        targetAudience: targetAudienceParam,
+        industry: brandData?.product_type || 'general',
         suggestions,
         updatedAt: responseData.updatedAt,
         aiGenerated: true,
@@ -175,7 +160,7 @@ export async function GET(request: NextRequest) {
 
 async function fetchRealTimeTrends(
   brand: Brand | null,
-  persona: Persona | null,
+  targetAudience: TargetAudience | null,
   language: string
 ): Promise<string> {
   try {
@@ -185,17 +170,14 @@ async function fetchRealTimeTrends(
     const langCode = isKorean ? 'ko' : 'en'
     const tz = isKorean ? '-540' : '-300' // KST vs EST
 
-    // Determine search keywords based on brand and persona
+    // Determine search keywords based on brand
     const searchKeywords: string[] = []
 
     if (brand?.product_type) {
       searchKeywords.push(brand.product_type)
     }
-    if (persona?.industry && persona.industry.length > 0) {
-      searchKeywords.push(...persona.industry.slice(0, 2))
-    }
     if (brand?.target_market && brand.target_market.length > 0) {
-      searchKeywords.push(...brand.target_market.slice(0, 1))
+      searchKeywords.push(...brand.target_market.slice(0, 2))
     }
 
     // Default to general marketing if no specific keywords
@@ -321,7 +303,7 @@ async function fetchRealTimeTrends(
 
 async function generateAISuggestions(
   brand: Brand | null,
-  persona: Persona | null,
+  targetAudience: TargetAudience | null,
   language: string
 ): Promise<Array<{ keyword: string; reason: string; priority: string }>> {
   const anthropic = new Anthropic({
@@ -329,7 +311,7 @@ async function generateAISuggestions(
   })
 
   // Fetch real-time trend data for selected market
-  const realTimeTrends = await fetchRealTimeTrends(brand, persona, language)
+  const realTimeTrends = await fetchRealTimeTrends(brand, targetAudience, language)
 
   // Build context for AI
   const brandContext = brand ? `
@@ -339,15 +321,9 @@ ${brand.product_type ? `제품/서비스 유형: ${brand.product_type}` : ''}
 ${brand.target_market?.length ? `타겟 시장: ${brand.target_market.join(', ')}` : ''}
   `.trim() : '일반 브랜드'
 
-  const personaContext = persona ? `
-타겟 고객: ${persona.name}
-${persona.description ? `설명: ${persona.description}` : ''}
-연령대: ${persona.age_range}
-성별: ${persona.gender}
-${persona.job_title?.length ? `직업: ${persona.job_title.join(', ')}` : ''}
-${persona.industry?.length ? `산업: ${persona.industry.join(', ')}` : ''}
-${persona.pain_points?.length ? `고민/문제: ${persona.pain_points.join(', ')}` : ''}
-${persona.goals?.length ? `목표: ${persona.goals.join(', ')}` : ''}
+  const targetContext = targetAudience ? `
+타겟 고객: ${targetAudience.name}
+${targetAudience.description ? `설명: ${targetAudience.description}` : ''}
   `.trim() : '일반 타겟 고객'
 
   // Get current date in Korean/English format
@@ -363,7 +339,7 @@ ${persona.goals?.length ? `목표: ${persona.goals.join(', ')}` : ''}
 
 ${brandContext}
 
-${personaContext}
+${targetContext}
 
 ${realTimeTrends}
 
@@ -396,7 +372,7 @@ You are a marketing trend expert. Based on the following information, recommend 
 
 ${brandContext}
 
-${personaContext}
+${targetContext}
 
 ${realTimeTrends}
 
