@@ -31,7 +31,6 @@ export function Header({ onMenuClick }: HeaderProps) {
     if (pathname === "/dashboard") return { title: t("navDashboard"), subtitle: t("dashboardSubtitle") }
     if (pathname === "/brand") return { title: t("navBrandSettings"), subtitle: t("brandSettingsSubtitle") }
     if (pathname === "/writer-personas") return { title: t("navBrandVoice"), subtitle: t("brandVoiceSubtitle") }
-    if (pathname === "/personas") return { title: t("navTargetCustomers"), subtitle: t("targetCustomersSubtitle") }
     if (pathname === "/trends") return { title: t("navTrends"), subtitle: t("trendsSubtitle") }
     if (pathname?.startsWith("/content/storytelling")) return { title: language === "ko" ? "스토리텔링 생성" : "Storytelling Generation", subtitle: language === "ko" ? "스토리 프레임을 활용한 감성적인 콘텐츠를 생성하세요" : "Create emotional content using story frames" }
     if (pathname?.startsWith("/content/create")) return { title: language === "ko" ? "빠른 콘텐츠 생성" : "Quick Content Generation", subtitle: language === "ko" ? "토픽만 입력하면 AI가 즉시 콘텐츠를 생성합니다" : "AI generates content instantly from your topic" }
@@ -49,7 +48,6 @@ export function Header({ onMenuClick }: HeaderProps) {
   // Hide "새 콘텐츠 생성" button on certain pages
   const hideContentButton = pathname === "/dashboard" ||
                            pathname === "/brand" ||
-                           pathname === "/personas" ||
                            pathname === "/writer-personas" ||
                            pathname === "/trends" ||
                            pathname === "/settings" ||

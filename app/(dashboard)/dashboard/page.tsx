@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Building2, Target, User, Sparkles, FileText, TrendingUp, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
+import { Building2, User, Sparkles, FileText, TrendingUp, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useBrand } from "@/contexts/BrandContext"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -16,7 +16,6 @@ export default function DashboardPage() {
   const t = (key: TranslationKey) => translations[key][language]
 
   const [brands, setBrands] = useState<any[]>([])
-  const [personas, setPersonas] = useState<any[]>([])
   const [writerPersonas, setWriterPersonas] = useState<any[]>([])
   const [contents, setContents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,15 +29,13 @@ export default function DashboardPage() {
 
       const supabase = createClient()
 
-      const [brandsRes, personasRes, writerPersonasRes, contentsRes] = await Promise.all([
+      const [brandsRes, writerPersonasRes, contentsRes] = await Promise.all([
         supabase.from("brands").select("*").eq("id", selectedBrandId),
-        supabase.from("personas").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }),
         supabase.from("writer_personas").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }),
         supabase.from("contents").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }).limit(5),
       ])
 
       if (brandsRes.data) setBrands(brandsRes.data)
-      if (personasRes.data) setPersonas(personasRes.data)
       if (writerPersonasRes.data) setWriterPersonas(writerPersonasRes.data)
       if (contentsRes.data) setContents(contentsRes.data)
 
@@ -60,7 +57,6 @@ export default function DashboardPage() {
   }
 
   const hasBrand = brands.length > 0
-  const hasPersonas = personas.length > 0
   const hasWriterPersonas = writerPersonas.length > 0
   const hasContent = contents.length > 0
 
@@ -72,14 +68,6 @@ export default function DashboardPage() {
       href: "/brand",
       completed: hasBrand,
       count: brands.length,
-    },
-    {
-      title: t("navTargetCustomers"),
-      description: t("targetCustomersDesc"),
-      icon: Target,
-      href: "/personas",
-      completed: hasPersonas,
-      count: personas.length,
     },
     {
       title: t("brandVoiceSettings"),
@@ -210,45 +198,6 @@ export default function DashboardPage() {
                   className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-2 md:py-3 px-6 md:px-8 text-sm md:text-base transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
                 >
                   {t("createFirstContent")}
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Target Personas */}
-          <div className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-6 md:p-10">
-            <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8 pb-4 md:pb-6 border-b border-zinc-700">
-              <Target className="w-5 h-5 md:w-6 md:h-6 text-amber-400" />
-              <div>
-                <h2 className="text-lg md:text-xl font-light tracking-wide">{t("targetPersonas")}</h2>
-                <p className="text-zinc-300 text-xs font-normal tracking-wider">{t("targetAudience")}</p>
-              </div>
-            </div>
-
-            {hasPersonas ? (
-              <div className="space-y-3 md:space-y-4">
-                {personas.slice(0, 3).map((persona) => (
-                  <div key={persona.id} className="border-l-2 border-amber-400 hover:border-amber-300 pl-4 md:pl-6 py-2 md:py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <div className="font-normal text-sm md:text-base tracking-wide">{persona.name}</div>
-                      {persona.is_primary && (
-                        <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">{t("primaryTag")}</span>
-                      )}
-                    </div>
-                    {persona.age_range && (
-                      <div className="text-zinc-400 text-xs md:text-sm mt-1">{persona.age_range}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 md:py-16 border border-dashed border-zinc-700">
-                <p className="text-zinc-300 font-normal mb-4 md:mb-6 tracking-wide text-sm md:text-base">{t("noPersonasYet")}</p>
-                <Link
-                  href="/personas"
-                  className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-2 md:py-3 px-6 md:px-8 text-sm md:text-base transition-all duration-300 border border-amber-500 hover:border-amber-400 tracking-wide hover:shadow-lg hover:shadow-amber-500/50"
-                >
-                  {t("setupTargetPersonas")}
                 </Link>
               </div>
             )}
