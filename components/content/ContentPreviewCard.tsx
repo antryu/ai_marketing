@@ -13,12 +13,14 @@ import {
   MoreHorizontal,
   Sparkles,
   Zap,
-  Scissors,
+  Minimize2,
   Maximize2,
-  Volume2,
+  MessageSquare,
   Save,
   Edit,
-  Check
+  Check,
+  Wand2,
+  RefreshCw
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { RefineAction, ContentStatus } from "@/types/mirra-content.types"
@@ -253,74 +255,92 @@ export function ContentPreviewCard({
         </div>
       </Card>
 
-      {/* Edit and Save Actions */}
-      <div className="space-y-3 max-w-md mx-auto">
-        <div className="flex justify-between items-center">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            ✨ 콘텐츠 개선하기
+      {/* Edit and Save Actions - 빠른생성 페이지와 동일한 디자인 */}
+      <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-4 max-w-md mx-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wand2 className="w-4 h-4 text-amber-400" />
+            <h4 className="text-sm font-medium text-zinc-300">
+              콘텐츠 개선하기
+            </h4>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center space-x-2"
-          >
-            <Edit className="h-4 w-4" />
-            <span>{isEditing ? "편집 취소" : "직접 수정"}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {loading && (
+              <div className="flex items-center gap-2 text-xs text-amber-400">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                개선 중...
+              </div>
+            )}
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-400 hover:text-zinc-200 border border-zinc-700 rounded hover:border-zinc-600 transition-colors"
+            >
+              <Edit className="h-3 w-3" />
+              {isEditing ? "편집 취소" : "직접 수정"}
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => onRefine("refine")}
             disabled={loading || isEditing}
-            className="flex items-center justify-start space-x-2"
+            className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Sparkles className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">AI 정제하기</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-300 font-medium">AI 정제</p>
+              <p className="text-xs text-zinc-500 truncate">문장을 더 매끄럽게</p>
+            </div>
+          </button>
+
+          <button
             onClick={() => onRefine("add_hook")}
             disabled={loading || isEditing}
-            className="flex items-center justify-start space-x-2"
+            className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Zap className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">훅 강화</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            <Zap className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-300 font-medium">훅 강화</p>
+              <p className="text-xs text-zinc-500 truncate">시작을 더 강렬하게</p>
+            </div>
+          </button>
+
+          <button
             onClick={() => onRefine("shorten")}
             disabled={loading || isEditing}
-            className="flex items-center justify-start space-x-2"
+            className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Scissors className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">줄이기</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            <Minimize2 className="w-4 h-4 text-blue-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-300 font-medium">줄이기</p>
+              <p className="text-xs text-zinc-500 truncate">30% 더 짧게</p>
+            </div>
+          </button>
+
+          <button
             onClick={() => onRefine("expand")}
             disabled={loading || isEditing}
-            className="flex items-center justify-start space-x-2"
+            className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Maximize2 className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">늘리기</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            <Maximize2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-300 font-medium">늘리기</p>
+              <p className="text-xs text-zinc-500 truncate">30% 더 길게</p>
+            </div>
+          </button>
+
+          <button
             onClick={() => onRefine("adjust_tone")}
             disabled={loading || isEditing}
-            className="flex items-center justify-start space-x-2 col-span-2"
+            className="flex items-center gap-2 p-3 rounded border border-zinc-700 bg-zinc-900/50 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all text-left col-span-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Volume2 className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">톤 조정</span>
-          </Button>
+            <MessageSquare className="w-4 h-4 text-purple-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-300 font-medium">톤 조정</p>
+              <p className="text-xs text-zinc-500 truncate">더 진솔하고 공감 가는 톤으로</p>
+            </div>
+          </button>
         </div>
 
         {onSave && (
