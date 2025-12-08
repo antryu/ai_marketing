@@ -10,66 +10,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, Search, Sparkles, BarChart3, Target, Zap, BookOpen, RefreshCw } from "lucide-react"
+import { TrendingUp, Search, Sparkles, Target, Zap, BookOpen, RefreshCw, Globe, Lightbulb, Settings, ChevronRight, FileText, Hash, ArrowRight, Users, Edit3, CheckCircle2 } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 
 export const dynamic = 'force-dynamic'
 
-interface TrendData {
-  googleTrends?: {
-    topQueries: Array<{ query: string; value: number }>
-    risingQueries: Array<{ query: string; value: number }>
-    timeline: Array<{ time: string; value: number }>
-  }
-  twitter?: {
-    primaryUrl: string
-    primaryQuery: string
-    tweets?: Array<{
-      id: string
-      text: string
-      author: string
-      likes: number
-      retweets: number
-      created: string
-      url: string
-    }>
-    notice?: string
-  }
-  reddit?: {
-    posts: Array<{
-      title: string
-      subreddit: string
-      score: number
-      comments: number
-      url: string
-      created: string
-      preview?: string
-    }>
-    relatedSubreddits: Array<{
-      name: string
-      url: string
-    }>
-    suggestedSearches: Array<{
-      name: string
-      searchUrl: string
-    }>
-  }
-  naver?: {
-    timeline: Array<{ date: string; value: number }>
-    relatedKeywords?: string[]
-    mockData?: boolean
-    notice?: string
-  }
-}
-
-// 타겟 프리셋 정의
-const TARGET_PRESETS = {
+// 기본 타겟 프리셋 (브랜드 페르소나가 없을 때 사용)
+const DEFAULT_TARGET_PRESETS = {
   office_30s: {
     ko: "30대 직장인 (커리어 성장, 워라밸 중시)",
     en: "30s Professionals (career growth, work-life balance)"
@@ -96,92 +44,184 @@ const TARGET_PRESETS = {
   }
 }
 
+interface BrandPersona {
+  id: string
+  name: string
+  description: string
+  age_range: string
+  gender: string
+  job_title: string[]
+  pain_points: string[]
+  goals: string[]
+  is_primary: boolean
+}
+
+interface TopicItem {
+  keyword: string
+  reason: string
+  source?: string
+  priority?: string
+  category?: string
+  type: 'ai-recommend' | 'ai-search' | 'related'
+}
+
+interface TopicDetails {
+  topic: string
+  titles: Array<{ title: string; angle: string }>
+  hooks: string[]
+  keywords: string[]
+  loading: boolean
+}
+
 export default function TrendsPage() {
   const router = useRouter()
   const { language } = useLanguage()
   const { selectedBrandId } = useBrand()
   const t = (key: TranslationKey) => translations[key][language]
+  const supabase = createClient()
 
-  const [keyword, setKeyword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [trendData, setTrendData] = useState<TrendData | null>(null)
+  // Step state: 'target' | 'topics'
+  const [currentStep, setCurrentStep] = useState<'target' | 'topics'>('target')
+
+  // Brand and persona state (kept for API compatibility)
+  const [brandInfo, setBrandInfo] = useState<{ name: string; description: string } | null>(null)
+  const [personas, setPersonas] = useState<BrandPersona[]>([])
+  const [loadingPersonas, setLoadingPersonas] = useState(false)
+
+  // Target state
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null)
+  const [useCustomTarget, setUseCustomTarget] = useState(true)
+  const [customTarget, setCustomTarget] = useState("")
+  const [targetPreset, setTargetPreset] = useState<string>("office_30s")
+
+  // Topic state
   const [suggestions, setSuggestions] = useState<any>(null)
-  const [loadingSuggestions, setLoadingSuggestions] = useState(true)
-  const [targetPreset, setTargetPreset] = useState<string>("office_30s") // 기본값: 30대 직장인
-  const [redditTrends, setRedditTrends] = useState<any[]>([])
-  const [loadingReddit, setLoadingReddit] = useState(false)
-  const [showContentTypeModal, setShowContentTypeModal] = useState(false)
-  const [selectedTopic, setSelectedTopic] = useState("")
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
-  // Load cached Reddit trends on mount (suggestions are now target-specific)
+  // AI 웹 검색 상태
+  const [aiSearchQuery, setAiSearchQuery] = useState("")
+  const [aiSearchLoading, setAiSearchLoading] = useState(false)
+  const [aiSearchResults, setAiSearchResults] = useState<{
+    searchTopic: string
+    topics: Array<{ keyword: string; reason: string; source: string; priority: string }>
+    relatedTopics: Array<{ keyword: string; reason: string; category: string }>
+    webInsights: string
+  } | null>(null)
+
+  // 선택된 토픽 상세 정보
+  const [selectedTopic, setSelectedTopic] = useState<TopicItem | null>(null)
+  const [topicDetails, setTopicDetails] = useState<TopicDetails | null>(null)
+
+  // Load brand and personas when brand changes
   useEffect(() => {
-    const cachedRedditTrends = localStorage.getItem('redditTrends')
-
-    if (cachedRedditTrends) {
-      try {
-        const parsed = JSON.parse(cachedRedditTrends)
-        setRedditTrends(parsed)
-      } catch (e) {
-        console.error('Failed to parse cached reddit trends:', e)
-      }
-    }
-  }, [])
-
-  // Load suggestions when target preset changes (always reload for new target)
-  useEffect(() => {
-    if (selectedBrandId && targetPreset) {
-      // 타겟이 변경되면 항상 새로운 토픽을 가져옴
-      loadSuggestions()
-    }
-  }, [targetPreset])
-
-  // Load suggestions when brand changes (only if not loaded yet)
-  useEffect(() => {
-    if (selectedBrandId && targetPreset && !hasLoadedOnce) {
-      loadSuggestions()
+    if (selectedBrandId) {
+      loadBrandAndPersonas()
     }
   }, [selectedBrandId])
 
+  const loadBrandAndPersonas = async () => {
+    if (!selectedBrandId) return
+
+    setLoadingPersonas(true)
+    try {
+      // Load brand info
+      const { data: brand } = await supabase
+        .from('brands')
+        .select('name, description')
+        .eq('id', selectedBrandId)
+        .single()
+
+      if (brand) {
+        setBrandInfo(brand)
+      }
+
+      // Load personas
+      const { data: personaData } = await supabase
+        .from('personas')
+        .select('*')
+        .eq('brand_id', selectedBrandId)
+        .order('is_primary', { ascending: false })
+
+      if (personaData && personaData.length > 0) {
+        const typedPersonas = personaData as BrandPersona[]
+        setPersonas(typedPersonas)
+        // 기본적으로 primary persona 또는 첫 번째 선택
+        const primary = typedPersonas.find(p => p.is_primary) || typedPersonas[0]
+        setSelectedPersonaId(primary.id)
+        setUseCustomTarget(false)
+      } else {
+        setPersonas([])
+        setSelectedPersonaId(null)
+        setUseCustomTarget(true)
+      }
+    } catch (error) {
+      console.error("Failed to load brand data:", error)
+    } finally {
+      setLoadingPersonas(false)
+    }
+  }
+
+  // Get target audience description based on current selection
+  const getTargetAudienceDescription = (): string => {
+    if (useCustomTarget && customTarget.trim()) {
+      return customTarget.trim()
+    }
+
+    if (selectedPersonaId) {
+      const persona = personas.find(p => p.id === selectedPersonaId)
+      if (persona) {
+        const parts = []
+        if (persona.name) parts.push(persona.name)
+        if (persona.age_range) parts.push(`${persona.age_range}세`)
+        if (persona.job_title?.length) parts.push(persona.job_title.join(', '))
+        if (persona.pain_points?.length) parts.push(`고민: ${persona.pain_points.slice(0, 2).join(', ')}`)
+        if (persona.goals?.length) parts.push(`목표: ${persona.goals.slice(0, 2).join(', ')}`)
+        return parts.join(' | ')
+      }
+    }
+
+    // Fallback to preset
+    return DEFAULT_TARGET_PRESETS[targetPreset as keyof typeof DEFAULT_TARGET_PRESETS]?.[language] || ""
+  }
+
+  // Proceed to topics step
+  const handleProceedToTopics = () => {
+    const target = getTargetAudienceDescription()
+    if (!target) {
+      toast.error(language === "ko" ? "타겟을 선택하거나 직접 입력해주세요" : "Please select or enter a target audience")
+      return
+    }
+    setCurrentStep('topics')
+    loadSuggestions()
+  }
+
   const loadSuggestions = async () => {
-    if (!selectedBrandId || !targetPreset) return
+    if (!selectedBrandId) return
 
     setLoadingSuggestions(true)
     try {
-      const targetAudience = TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ""
+      const targetAudience = getTargetAudienceDescription()
       const apiUrl = `/api/trends/suggestions?brandId=${selectedBrandId}&targetAudience=${encodeURIComponent(targetAudience)}&language=${language}`
-      console.log('🔄 Loading suggestions for:', { brandId: selectedBrandId, targetAudience, language, apiUrl })
 
       const res = await fetch(apiUrl)
       const data = await res.json()
 
-      console.log('✅ Suggestions received:', {
-        personaName: data.data?.personaName,
-        cached: data.data?.cached,
-        suggestionCount: data.data?.suggestions?.length,
-        firstSuggestion: data.data?.suggestions?.[0]?.keyword
-      })
-
       if (data.success) {
         setSuggestions(data.data)
-        setHasLoadedOnce(true)
       }
     } catch (error) {
       console.error("Failed to load suggestions:", error)
     } finally {
       setLoadingSuggestions(false)
-      // Load Reddit trends after AI suggestions are displayed
-      setTimeout(() => loadRedditTrends(), 100)
     }
   }
 
   const refreshSuggestions = async () => {
-    if (!selectedBrandId || !targetPreset) return
+    if (!selectedBrandId) return
 
     setLoadingSuggestions(true)
     try {
-      // Add timestamp to bypass cache
-      const targetAudience = TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ""
+      const targetAudience = getTargetAudienceDescription()
       const apiUrl = `/api/trends/suggestions?brandId=${selectedBrandId}&targetAudience=${encodeURIComponent(targetAudience)}&language=${language}&refresh=${Date.now()}`
       const res = await fetch(apiUrl)
       const data = await res.json()
@@ -198,563 +238,666 @@ export default function TrendsPage() {
     }
   }
 
-  const loadRedditTrends = async () => {
-    setLoadingReddit(true)
-    try {
-      const res = await fetch(`/api/trends/reddit-suggestions?language=${language}`)
-      const data = await res.json()
-
-      if (data.success) {
-        setRedditTrends(data.data)
-        // Save to localStorage
-        localStorage.setItem('redditTrends', JSON.stringify(data.data))
-        console.log('✅ Reddit trends loaded:', data.data.length, 'posts')
-      }
-    } catch (error) {
-      console.error("Failed to load Reddit trends:", error)
-    } finally {
-      setLoadingReddit(false)
-    }
-  }
-
-  const analyzeTrends = async (searchKeyword?: string) => {
-    const targetKeyword = searchKeyword || keyword
-
-    if (!targetKeyword.trim()) {
-      toast.error(t("keywordRequired"))
+  // AI 웹 검색 실행
+  const performAIWebSearch = async () => {
+    if (!aiSearchQuery.trim()) {
+      toast.error(language === "ko" ? "검색할 주제를 입력해주세요" : "Please enter a topic to search")
       return
     }
 
-    setLoading(true)
+    setAiSearchLoading(true)
+    setAiSearchResults(null)
 
     try {
-      // Fetch all trend data in parallel
-      const [googleRes, twitterRes, redditRes, naverRes] = await Promise.all([
-        fetch("/api/trends/google", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword: targetKeyword, language }),
-        }),
-        fetch("/api/trends/twitter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword: targetKeyword, language }),
-        }),
-        fetch("/api/trends/reddit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword: targetKeyword, language }),
-        }),
-        fetch("/api/trends/naver", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword: targetKeyword, language }),
-        }),
-      ])
+      const targetAudience = getTargetAudienceDescription()
 
-      const [googleData, twitterData, redditData, naverData] = await Promise.all([
-        googleRes.json(),
-        twitterRes.json(),
-        redditRes.json(),
-        naverRes.json(),
-      ])
+      const res = await fetch("/api/trends/ai-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: aiSearchQuery,
+          brandId: selectedBrandId,
+          targetAudience,
+          language
+        })
+      })
 
-      const newTrendData = {
-        googleTrends: googleData.success ? googleData.data : null,
-        twitter: twitterData.success ? twitterData.data : null,
-        reddit: redditData.success ? redditData.data : null,
-        naver: naverData.data || null,
+      const data = await res.json()
+
+      if (data.success) {
+        setAiSearchResults(data.data)
+        toast.success(language === "ko" ? "AI 검색이 완료되었습니다!" : "AI search completed!")
+      } else {
+        toast.error(data.error || (language === "ko" ? "검색 실패" : "Search failed"))
       }
-
-      console.log('Trend Data:', newTrendData)
-      console.log('Reddit posts:', newTrendData.reddit?.posts?.length)
-
-      setTrendData(newTrendData)
-
-      if (naverData.data?.mockData) {
-        toast.info(naverData.data.notice || "Using sample data for Naver")
-      }
-
-      // Show success message with data counts
-      toast.success(`분석 완료: Google ${googleData.success ? '✓' : '✗'} | Twitter ${twitterData.success ? '✓' : '✗'} | Reddit ${redditData.success ? '✓' : '✗'} (${redditData.data?.posts?.length || 0}개)`)
     } catch (error) {
-      console.error("Trend analysis error:", error)
-      toast.error(t("trendsError"))
+      console.error("AI web search error:", error)
+      toast.error(language === "ko" ? "AI 검색 중 오류가 발생했습니다" : "Error during AI search")
     } finally {
-      setLoading(false)
+      setAiSearchLoading(false)
     }
   }
 
-  const createContentWithTopic = (topic: string) => {
+  // 토픽 선택 시 상세 정보 생성
+  const handleTopicSelect = async (topic: TopicItem) => {
     setSelectedTopic(topic)
-    setShowContentTypeModal(true)
-  }
+    setTopicDetails({
+      topic: topic.keyword,
+      titles: [],
+      hooks: [],
+      keywords: [],
+      loading: true
+    })
 
-  const handleQuickGenerate = () => {
-    // 타겟 프리셋을 URL에 포함시켜 콘텐츠 생성 페이지로 전달
-    router.push(`/content/create?topic=${encodeURIComponent(selectedTopic)}&target=${targetPreset}`)
-    setShowContentTypeModal(false)
-  }
+    try {
+      const targetAudience = getTargetAudienceDescription()
 
-  const handleScenarioGenerate = () => {
-    // 타겟 프리셋을 URL에 포함시켜 스토리텔링 페이지로 전달
-    router.push(`/content/storytelling?topic=${encodeURIComponent(selectedTopic)}&target=${targetPreset}`)
-    setShowContentTypeModal(false)
-  }
+      const res = await fetch("/api/trends/topic-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: topic.keyword,
+          reason: topic.reason,
+          brandId: selectedBrandId,
+          targetAudience,
+          language
+        })
+      })
 
-  const formatMetric = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M'
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K'
+      const data = await res.json()
+
+      if (data.success) {
+        setTopicDetails({
+          topic: topic.keyword,
+          titles: data.data.titles || [],
+          hooks: data.data.hooks || [],
+          keywords: data.data.keywords || [],
+          loading: false
+        })
+      } else {
+        setTopicDetails({
+          topic: topic.keyword,
+          titles: [{ title: topic.keyword, angle: topic.reason }],
+          hooks: [],
+          keywords: [],
+          loading: false
+        })
+      }
+    } catch (error) {
+      console.error("Failed to load topic details:", error)
+      setTopicDetails({
+        topic: topic.keyword,
+        titles: [{ title: topic.keyword, angle: topic.reason }],
+        hooks: [],
+        keywords: [],
+        loading: false
+      })
     }
-    return num.toString()
   }
 
-  return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto">
+  const handleQuickGenerate = (title?: string) => {
+    const topic = title || selectedTopic?.keyword || ""
+    const personaParam = selectedPersonaId ? `&personaId=${selectedPersonaId}` : ""
+    router.push(`/content/create?topic=${encodeURIComponent(topic)}${personaParam}`)
+  }
 
-        {/* Target Selection + Data Sources - Side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-          {/* Target Preset Selection */}
-          <Card className="p-6 bg-zinc-900 border-zinc-800">
-            <div className="flex items-center gap-4">
-              <Target className="h-5 w-5 text-amber-400" />
-              <div className="flex-1">
-                <label className="text-sm font-medium text-zinc-300 mb-2 block">
-                  {language === "ko" ? "타겟 고객 선택" : "Select Target Audience"}
-                </label>
-                <Select value={targetPreset} onValueChange={setTargetPreset}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={language === "ko" ? "타겟 고객 선택" : "Select target audience"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TARGET_PRESETS).map(([key, value]) => (
-                      <SelectItem key={key} value={key}>
-                        {value[language]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-zinc-500 mt-2">
-                  {language === "ko"
-                    ? "선택한 타겟에 맞는 트렌드 토픽이 추천됩니다"
-                    : "Trend topics will be recommended based on your target audience"
-                  }
-                </p>
-              </div>
-            </div>
-          </Card>
+  const handleScenarioGenerate = (title?: string) => {
+    const topic = title || selectedTopic?.keyword || ""
+    const personaParam = selectedPersonaId ? `&personaId=${selectedPersonaId}` : ""
+    router.push(`/content/storytelling?topic=${encodeURIComponent(topic)}${personaParam}`)
+  }
 
-          {/* Data Source Information */}
-          <Card className="p-6 bg-gradient-to-r from-zinc-900 to-zinc-950 border-zinc-800">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
-                <BarChart3 className="h-5 w-5 text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-white font-medium mb-2">
-                  {language === "ko" ? "트렌드 데이터 출처" : "Trend Data Sources"}
-                </h3>
-                <div className="text-xs text-zinc-400 space-y-1">
-                  {language === "ko" ? (
-                    <>
-                      <p className="text-zinc-300 font-medium mb-1.5">한국 시장 트렌드 분석:</p>
-                      <p>• <span className="text-green-400 font-medium">Naver DataLab</span>: 네이버 검색 트렌드 (최우선)</p>
-                      <p>• <span className="text-amber-400 font-medium">Google Trends KR</span>: 급상승 검색어</p>
-                      <p>• <span className="text-blue-400 font-medium">Twitter/X 한국어</span>: 실시간 소셜 트렌드</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-zinc-300 font-medium mb-1.5">US/Global Market Trends:</p>
-                      <p>• <span className="text-amber-400 font-medium">Google Trends US</span>: Rising keywords</p>
-                      <p>• <span className="text-blue-400 font-medium">Twitter/X English</span>: Social trends</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+  // 모든 토픽을 하나의 리스트로 통합
+  const getAllTopics = (): TopicItem[] => {
+    const topics: TopicItem[] = []
 
-        {/* AI Suggestions Loading */}
-        {loadingSuggestions && (
-          <Card className="p-6 bg-gradient-to-br from-amber-400/10 via-zinc-900 to-zinc-900 border-amber-400/30 mb-8">
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-amber-400 mb-4"></div>
-              <h3 className="text-white text-lg font-medium mb-2">
-                {language === "ko"
-                  ? "AI가 맞춤 토픽을 생성하고 있습니다..."
-                  : "AI is generating personalized topics..."
-                }
-              </h3>
-              <p className="text-zinc-400 text-sm text-center max-w-md">
-                {language === "ko"
-                  ? "실시간 트렌드 데이터를 분석하고 있습니다. 최대 30초 정도 소요될 수 있습니다."
-                  : "Analyzing real-time trend data. This may take up to 30 seconds."
-                }
-              </p>
-            </div>
-          </Card>
-        )}
+    // AI 추천 토픽
+    if (suggestions?.suggestions) {
+      suggestions.suggestions.slice(0, 6).forEach((sug: any) => {
+        topics.push({
+          keyword: sug.keyword,
+          reason: sug.reason,
+          priority: sug.priority,
+          type: 'ai-recommend'
+        })
+      })
+    }
 
-        {/* AI Suggestions */}
-        {!loadingSuggestions && suggestions && (
-          <Card className="p-6 bg-gradient-to-br from-amber-400/10 via-zinc-900 to-zinc-900 border-amber-400/30 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-6 w-6 text-amber-400" />
-                <div>
-                  <h2 className="text-xl font-medium text-white">
-                    {language === "ko"
-                      ? `${TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ''} AI 추천 토픽`
-                      : `AI Recommended Topics for ${TARGET_PRESETS[targetPreset as keyof typeof TARGET_PRESETS]?.[language] || ''}`
-                    }
-                  </h2>
-                  <p className="text-zinc-400 text-sm">
-                    {language === "ko"
-                      ? `${suggestions.industry || '브랜드'} 업계 · 타겟 고객 기반 · 실시간 트렌드 자동 생성`
-                      : `${suggestions.industry || 'Brand'} Industry · Target Audience Based · Real-time Trend Generation`
-                    }
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={refreshSuggestions}
-                disabled={loadingSuggestions}
-                variant="outline"
-                size="sm"
-                className="border-amber-400/50 text-amber-400 hover:bg-amber-400/10"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loadingSuggestions ? 'animate-spin' : ''}`} />
-                {language === "ko" ? "새 토픽" : "New Topics"}
-              </Button>
-            </div>
+    // AI 검색 결과
+    if (aiSearchResults?.topics) {
+      aiSearchResults.topics.forEach((topic) => {
+        topics.push({
+          keyword: topic.keyword,
+          reason: topic.reason,
+          source: topic.source,
+          priority: topic.priority,
+          type: 'ai-search'
+        })
+      })
+    }
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {suggestions.suggestions.slice(0, 6).map((sug: any, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setKeyword(sug.keyword)
-                    setTrendData(null)
-                    analyzeTrends(sug.keyword)
-                  }}
-                  className="p-4 bg-zinc-950 rounded border border-zinc-800 hover:border-amber-400/50 transition-all text-left group"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-white font-medium group-hover:text-amber-400 transition-colors">
-                      {sug.keyword}
-                    </h3>
-                    {sug.priority === 'high' && (
-                      <span className="text-xs bg-amber-400 text-black px-2 py-0.5 rounded font-medium">
-                        HOT
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-zinc-500 text-sm mb-3 line-clamp-2">
-                    {sug.reason}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-zinc-500">
-                    <Sparkles className="h-3 w-3 text-amber-400" />
-                    <span>
-                      {language === "ko"
-                        ? "AI 생성 · 실시간 트렌드 기반"
-                        : "AI Generated · Real-time Trends"
-                      }
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </Card>
-        )}
+    // 연관 토픽
+    if (aiSearchResults?.relatedTopics) {
+      aiSearchResults.relatedTopics.forEach((topic) => {
+        topics.push({
+          keyword: topic.keyword,
+          reason: topic.reason,
+          category: topic.category,
+          type: 'related'
+        })
+      })
+    }
 
-        {/* Reddit Trending Topics */}
-        {!loadingSuggestions && suggestions && (
-          <Card className="p-4 bg-gradient-to-br from-orange-400/10 via-zinc-900 to-zinc-900 border-orange-400/30 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-orange-400/10 flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="h-4 w-4 text-orange-400" />
+    return topics
+  }
+
+  const getTopicTypeLabel = (type: TopicItem['type']) => {
+    switch (type) {
+      case 'ai-recommend':
+        return { label: language === "ko" ? "AI 추천" : "AI Pick", color: "amber" }
+      case 'ai-search':
+        return { label: language === "ko" ? "검색 결과" : "Search", color: "purple" }
+      case 'related':
+        return { label: language === "ko" ? "연관 토픽" : "Related", color: "blue" }
+    }
+  }
+
+  // STEP 1: Target Selection View
+  if (currentStep === 'target') {
+    return (
+      <div className="p-6 h-[calc(100vh-64px)]">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          {/* Header with Action Button */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center">
+                <Target className="h-5 w-5 text-amber-400" />
               </div>
               <div>
-                <h2 className="text-lg font-medium text-white">
-                  {language === "ko"
-                    ? "🌍 Reddit 글로벌 트렌드"
-                    : "🌍 Reddit Global Trends"
-                  }
-                </h2>
-              </div>
-            </div>
-
-            {loadingReddit ? (
-              <div className="flex items-center justify-center py-6">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400 mr-3"></div>
-                <p className="text-zinc-400 text-sm">
-                  {language === "ko"
-                    ? "로딩 중..."
-                    : "Loading..."
-                  }
+                <h1 className="text-xl font-medium text-white">
+                  {language === "ko" ? "타겟 고객 설정" : "Set Target Audience"}
+                </h1>
+                <p className="text-sm text-zinc-500">
+                  {language === "ko" ? "토픽 제안을 받기 전에 타겟 고객을 먼저 설정하세요" : "Set your target audience before getting topic suggestions"}
                 </p>
               </div>
-            ) : redditTrends.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {redditTrends.slice(0, 8).map((post: any, idx: number) => (
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-500">Step 1/2</span>
+                <div className="flex gap-1">
+                  <div className="w-8 h-1 bg-amber-400 rounded"></div>
+                  <div className="w-8 h-1 bg-zinc-700 rounded"></div>
+                </div>
+              </div>
+              {/* Main Action Button - Always visible */}
+              <Button
+                onClick={handleProceedToTopics}
+                disabled={!getTargetAudienceDescription()}
+                size="lg"
+                className="bg-amber-400 text-black hover:bg-amber-500 font-medium"
+              >
+                {language === "ko" ? "토픽 추천받기" : "Get Topics"}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Selected Target Info Bar */}
+          {getTargetAudienceDescription() && (
+            <div className="mb-6 p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-amber-400" />
+                <span className="text-sm text-zinc-300">
+                  {language === "ko" ? "선택된 타겟:" : "Selected:"}
+                  <span className="text-white font-medium ml-1">{getTargetAudienceDescription()}</span>
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Target Selection */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Target Presets */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="h-4 w-4 text-amber-400" />
+                <h2 className="text-sm font-medium text-white">
+                  {language === "ko" ? "타겟 프리셋" : "Target Presets"}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Object.entries(DEFAULT_TARGET_PRESETS).map(([key, value]) => (
                   <button
-                    key={idx}
+                    key={key}
                     onClick={() => {
-                      setKeyword(post.title)
-                      setTrendData(null)
-                      analyzeTrends(post.title)
+                      setTargetPreset(key)
+                      setCustomTarget("")
+                      setUseCustomTarget(true)
                     }}
-                    className="p-2 bg-zinc-950 rounded border border-zinc-800 hover:border-orange-400/50 transition-all text-left cursor-pointer"
+                    className={`p-4 rounded-lg text-left transition-all ${
+                      useCustomTarget && targetPreset === key && !customTarget
+                        ? 'bg-amber-400/20 border-2 border-amber-400'
+                        : 'bg-zinc-900 border border-zinc-800 hover:border-zinc-700'
+                    }`}
                   >
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-sm">{post.icon}</span>
-                      <h3 className="text-white font-medium text-xs flex-1 line-clamp-2">
-                        {post.title}
-                      </h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-white">{value[language]}</span>
+                      {useCustomTarget && targetPreset === key && !customTarget && (
+                        <CheckCircle2 className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                      )}
                     </div>
                   </button>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-4 text-zinc-500 text-sm">
-                {language === "ko"
-                  ? "Reddit 데이터를 불러올 수 없습니다"
-                  : "Unable to load Reddit data"
-                }
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* Search Input */}
-        <Card className="p-6 bg-zinc-900 border-zinc-800 mb-8">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder={t("industryPlaceholder")}
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && analyzeTrends()}
-                className="bg-zinc-950 border-zinc-700 text-white"
-              />
             </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-zinc-800"></div>
+              <span className="text-xs text-zinc-500">
+                {language === "ko" ? "또는 직접 입력" : "Or enter custom"}
+              </span>
+              <div className="flex-1 h-px bg-zinc-800"></div>
+            </div>
+
+            {/* Custom Target Input */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Edit3 className="h-4 w-4 text-blue-400" />
+                <label className="text-sm font-medium text-white">
+                  {language === "ko" ? "커스텀 타겟" : "Custom Target"}
+                </label>
+              </div>
+              <Input
+                placeholder={language === "ko"
+                  ? "예: 30-40대 여성, 건강에 관심 있는 직장인"
+                  : "e.g., 30-40s women, health-conscious professionals"
+                }
+                value={customTarget}
+                onChange={(e) => {
+                  setCustomTarget(e.target.value)
+                  setUseCustomTarget(true)
+                }}
+                className="bg-zinc-900 border-zinc-700 text-white"
+              />
+              {customTarget && (
+                <div className="mt-2 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-blue-400" />
+                  <span className="text-xs text-zinc-400">
+                    {language === "ko" ? "커스텀 타겟이 적용됩니다" : "Custom target will be applied"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // STEP 2: Topics View
+  return (
+    <div className="p-6 h-[calc(100vh-64px)]">
+      <div className="max-w-7xl mx-auto h-full flex flex-col">
+
+        {/* Header with Target Info */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
             <Button
-              onClick={() => analyzeTrends()}
-              disabled={loading}
-              className="bg-amber-400 text-black hover:bg-amber-500"
+              onClick={() => setCurrentStep('target')}
+              variant="ghost"
+              size="sm"
+              className="text-zinc-400 hover:text-white"
             >
-              {loading ? (
-                <>
-                  <Search className="h-4 w-4 mr-2 animate-spin" />
-                  {t("analyzing")}
-                </>
+              <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
+              {language === "ko" ? "타겟 변경" : "Change Target"}
+            </Button>
+            <div className="h-4 w-px bg-zinc-700"></div>
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-amber-400" />
+              <span className="text-sm text-zinc-300 max-w-[300px] truncate">
+                {getTargetAudienceDescription()}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500">Step 2/2</span>
+            <div className="flex gap-1">
+              <div className="w-8 h-1 bg-amber-400 rounded"></div>
+              <div className="w-8 h-1 bg-amber-400 rounded"></div>
+            </div>
+            <Link href="/settings/prompts" className="ml-4">
+              <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-amber-400">
+                <Settings className="h-4 w-4 mr-1.5" />
+                {language === "ko" ? "프롬프트 설정" : "Prompt Settings"}
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Main Content - Two Column Layout */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-0">
+
+          {/* Left Panel - Topic List (2/5) */}
+          <div className="lg:col-span-2 flex flex-col min-h-0">
+            <Card className="flex-1 bg-zinc-900 border-zinc-800 flex flex-col overflow-hidden">
+              {/* Search Input */}
+              <div className="p-4 border-b border-zinc-800">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={language === "ko"
+                      ? "토픽 검색 (예: AI 마케팅, 인스타 전략...)"
+                      : "Search topics (e.g., AI marketing...)"
+                    }
+                    value={aiSearchQuery}
+                    onChange={(e) => setAiSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && performAIWebSearch()}
+                    className="bg-zinc-950 border-zinc-700 text-white text-sm"
+                  />
+                  <Button
+                    onClick={performAIWebSearch}
+                    disabled={aiSearchLoading}
+                    size="sm"
+                    className="bg-purple-500 hover:bg-purple-600 px-3"
+                  >
+                    {aiSearchLoading ? (
+                      <Globe className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Topic List Header */}
+              <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <span className="text-sm font-medium text-white">
+                    {language === "ko" ? "토픽 제안" : "Topic Suggestions"}
+                  </span>
+                  <span className="text-xs text-zinc-500">
+                    ({getAllTopics().length})
+                  </span>
+                </div>
+                <Button
+                  onClick={refreshSuggestions}
+                  disabled={loadingSuggestions}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-zinc-400 hover:text-amber-400"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${loadingSuggestions ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+
+              {/* Topic List */}
+              <div className="flex-1 overflow-y-auto p-2">
+                {loadingSuggestions ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-3"></div>
+                    <p className="text-zinc-400 text-sm">
+                      {language === "ko" ? "AI가 토픽을 생성 중..." : "AI generating topics..."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {getAllTopics().map((topic, idx) => {
+                      const typeInfo = getTopicTypeLabel(topic.type)
+                      const isSelected = selectedTopic?.keyword === topic.keyword
+
+                      return (
+                        <button
+                          key={`${topic.type}-${idx}`}
+                          onClick={() => handleTopicSelect(topic)}
+                          className={`w-full p-3 rounded-lg text-left transition-all ${
+                            isSelected
+                              ? 'bg-amber-400/20 border border-amber-400/50'
+                              : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className={`font-medium text-sm line-clamp-1 ${
+                              isSelected ? 'text-amber-400' : 'text-white'
+                            }`}>
+                              {topic.keyword}
+                            </h4>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
+                              typeInfo.color === 'amber' ? 'bg-amber-400/20 text-amber-400' :
+                              typeInfo.color === 'purple' ? 'bg-purple-400/20 text-purple-400' :
+                              'bg-blue-400/20 text-blue-400'
+                            }`}>
+                              {typeInfo.label}
+                            </span>
+                          </div>
+                          <p className="text-zinc-500 text-xs line-clamp-2">
+                            {topic.reason}
+                          </p>
+                          {topic.priority === 'high' && (
+                            <span className="inline-block mt-1.5 text-[10px] bg-amber-400 text-black px-1.5 py-0.5 rounded font-medium">
+                              HOT
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+
+                    {getAllTopics().length === 0 && !loadingSuggestions && (
+                      <div className="text-center py-8">
+                        <Lightbulb className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
+                        <p className="text-zinc-500 text-sm">
+                          {language === "ko"
+                            ? "토픽을 검색하거나 새로고침하세요"
+                            : "Search or refresh to get topics"
+                          }
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* AI Search Insights (if available) */}
+              {aiSearchResults?.webInsights && (
+                <div className="p-3 border-t border-zinc-800 bg-purple-400/5">
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-zinc-400 line-clamp-2">
+                      {aiSearchResults.webInsights}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Right Panel - Topic Details (3/5) */}
+          <div className="lg:col-span-3 flex flex-col min-h-0">
+            <Card className="flex-1 bg-zinc-900 border-zinc-800 flex flex-col overflow-hidden">
+              {!selectedTopic ? (
+                // Empty State
+                <div className="flex-1 flex flex-col items-center justify-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
+                    <ChevronRight className="h-8 w-8 text-zinc-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-white mb-2">
+                    {language === "ko" ? "토픽을 선택하세요" : "Select a Topic"}
+                  </h3>
+                  <p className="text-zinc-500 text-sm text-center max-w-sm">
+                    {language === "ko"
+                      ? "왼쪽에서 토픽을 선택하면 구체적인 콘텐츠 제목과 앵글을 제안해드립니다"
+                      : "Select a topic from the left to get specific content titles and angles"
+                    }
+                  </p>
+                </div>
               ) : (
+                // Topic Details View
                 <>
-                  <Search className="h-4 w-4 mr-2" />
-                  {t("analyzeTrends")}
+                  {/* Selected Topic Header */}
+                  <div className="p-4 border-b border-zinc-800">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h2 className="text-xl font-medium text-white mb-1">
+                          {selectedTopic.keyword}
+                        </h2>
+                        <p className="text-zinc-400 text-sm">
+                          {selectedTopic.reason}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          onClick={() => handleQuickGenerate()}
+                          size="sm"
+                          className="bg-amber-400 text-black hover:bg-amber-500"
+                        >
+                          <Zap className="h-4 w-4 mr-1.5" />
+                          {language === "ko" ? "빠른 생성" : "Quick"}
+                        </Button>
+                        <Button
+                          onClick={() => handleScenarioGenerate()}
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-400/50 text-blue-400 hover:bg-blue-400/10"
+                        >
+                          <BookOpen className="h-4 w-4 mr-1.5" />
+                          {language === "ko" ? "스토리" : "Story"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content Area */}
+                  <div className="flex-1 overflow-y-auto p-4">
+                    {topicDetails?.loading ? (
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-3"></div>
+                        <p className="text-zinc-400 text-sm">
+                          {language === "ko" ? "제목 아이디어 생성 중..." : "Generating title ideas..."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Title Ideas */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <FileText className="h-4 w-4 text-amber-400" />
+                            <h3 className="text-sm font-medium text-white">
+                              {language === "ko" ? "콘텐츠 제목 아이디어" : "Content Title Ideas"}
+                            </h3>
+                          </div>
+                          <div className="space-y-2">
+                            {topicDetails?.titles && topicDetails.titles.length > 0 ? (
+                              topicDetails.titles.map((item, idx) => (
+                                <div
+                                  key={idx}
+                                  className="p-3 bg-zinc-950 rounded-lg border border-zinc-800 hover:border-amber-400/30 transition-all group"
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1">
+                                      <h4 className="text-white font-medium text-sm mb-1">
+                                        {item.title}
+                                      </h4>
+                                      <p className="text-zinc-500 text-xs">
+                                        {item.angle}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      onClick={() => handleQuickGenerate(item.title)}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity h-7 px-2 text-amber-400 hover:text-amber-300 hover:bg-amber-400/10"
+                                    >
+                                      <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="p-4 bg-zinc-950 rounded-lg border border-dashed border-zinc-700 text-center">
+                                <p className="text-zinc-500 text-sm">
+                                  {language === "ko"
+                                    ? "제목 아이디어를 생성할 수 없습니다. 직접 콘텐츠를 생성해보세요."
+                                    : "Unable to generate title ideas. Try creating content directly."
+                                  }
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Hook Ideas */}
+                        {topicDetails?.hooks && topicDetails.hooks.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <Lightbulb className="h-4 w-4 text-purple-400" />
+                              <h3 className="text-sm font-medium text-white">
+                                {language === "ko" ? "오프닝 훅 아이디어" : "Opening Hook Ideas"}
+                              </h3>
+                            </div>
+                            <div className="space-y-2">
+                              {topicDetails.hooks.map((hook, idx) => (
+                                <div
+                                  key={idx}
+                                  className="p-3 bg-purple-400/5 rounded-lg border border-purple-400/20"
+                                >
+                                  <p className="text-zinc-300 text-sm">"{hook}"</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Keywords */}
+                        {topicDetails?.keywords && topicDetails.keywords.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <Hash className="h-4 w-4 text-blue-400" />
+                              <h3 className="text-sm font-medium text-white">
+                                {language === "ko" ? "추천 키워드" : "Recommended Keywords"}
+                              </h3>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {topicDetails.keywords.map((keyword, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-1 bg-blue-400/10 text-blue-400 text-xs rounded border border-blue-400/20"
+                                >
+                                  #{keyword}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Action Bar */}
+                  <div className="p-4 border-t border-zinc-800 bg-zinc-950/50">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-zinc-500">
+                        {language === "ko"
+                          ? "제목을 선택하거나 버튼을 눌러 콘텐츠를 생성하세요"
+                          : "Select a title or click buttons to create content"
+                        }
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleQuickGenerate()}
+                          className="bg-amber-400 text-black hover:bg-amber-500"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          {language === "ko" ? "콘텐츠 생성하기" : "Create Content"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </>
               )}
-            </Button>
+            </Card>
           </div>
-        </Card>
-
-        {/* Results */}
-        {!trendData && !loading && (
-          <div className="text-center py-16">
-            <BarChart3 className="h-16 w-16 text-zinc-700 mx-auto mb-4" />
-            <p className="text-zinc-500">{t("enterKeywordToAnalyze")}</p>
-          </div>
-        )}
-
-        {trendData && (
-          <div className="space-y-6">
-            {/* Unified Trend Cards */}
-            <div className="grid grid-cols-1 gap-4">
-              {/* Google Trends Topics */}
-              {trendData.googleTrends && trendData.googleTrends.topQueries.slice(0, 5).map((query, idx) => (
-                <Card key={`google-${idx}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-amber-400/50 transition-all cursor-pointer group/google"
-                  onClick={() => createContentWithTopic(query.query)}>
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded bg-amber-400/10 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="h-6 w-6 text-amber-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-medium text-white group-hover/google:text-amber-400 transition-colors flex-1">
-                          {query.query}
-                        </h3>
-                        <span className="text-xs bg-amber-400/20 text-amber-400 px-2 py-1 rounded border border-amber-400/30 ml-3 whitespace-nowrap">
-                          {language === "ko" ? "🌐 Google Trends (한국)" : "🌐 Google Trends (US)"}
-                        </span>
-                      </div>
-                      <p className="text-zinc-400 text-sm mb-3">
-                        {language === "ko"
-                          ? "검색 트렌드 급상승 키워드 · Google에서 인기 검색어로 선정"
-                          : "Rising search trend keyword · Selected as popular search by Google"
-                        }
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-amber-400 font-medium">{language === "ko" ? "검색량" : "Search Volume"}: {query.value}/100</span>
-                        </div>
-                        <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
-                          onClick={(e) => { e.stopPropagation(); createContentWithTopic(query.query) }}>
-                          <Sparkles className="h-4 w-4" />
-                          {language === "ko" ? "콘텐츠 생성" : "Create Content"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-              {/* Twitter/X Posts */}
-              {trendData.twitter && trendData.twitter.tweets && trendData.twitter.tweets.slice(0, 5).map((tweet) => (
-                <Card key={`twitter-${tweet.id}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-blue-400/50 transition-all cursor-pointer group/twitter"
-                  onClick={() => createContentWithTopic(tweet.text)}>
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {tweet.author[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-medium text-white group-hover/twitter:text-blue-400 transition-colors line-clamp-2 flex-1">
-                          {tweet.text.split('.')[0] || tweet.text.substring(0, 80)}
-                        </h3>
-                        <span className="text-xs bg-blue-400/20 text-blue-400 px-2 py-1 rounded border border-blue-400/30 ml-3 whitespace-nowrap">
-                          {language === "ko" ? "𝕏 Twitter (한국)" : "𝕏 Twitter (Global)"}
-                        </span>
-                      </div>
-                      <p className="text-zinc-400 text-sm mb-3 line-clamp-2">
-                        {tweet.text}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-blue-400 font-medium">{language === "ko" ? "좋아요" : "Likes"}: {tweet.likes.toLocaleString()} · {language === "ko" ? "리트윗" : "Retweets"}: {tweet.retweets.toLocaleString()}</span>
-                          <span className="text-zinc-500">@{tweet.author}</span>
-                        </div>
-                        <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
-                          onClick={(e) => { e.stopPropagation(); createContentWithTopic(tweet.text) }}>
-                          <Sparkles className="h-4 w-4" />
-                          {language === "ko" ? "콘텐츠 생성" : "Create Content"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-              {/* Reddit Posts */}
-              {trendData.reddit && trendData.reddit.posts.slice(0, 5).map((post, idx) => (
-                <Card key={`reddit-${idx}`} className="p-5 bg-zinc-900 border-zinc-800 hover:border-orange-400/50 transition-all cursor-pointer group/reddit"
-                  onClick={() => createContentWithTopic(post.title)}>
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-medium text-white group-hover/reddit:text-orange-400 transition-colors line-clamp-2 flex-1">
-                          {post.title}
-                        </h3>
-                        <span className="text-xs bg-orange-400/20 text-orange-400 px-2 py-1 rounded border border-orange-400/30 ml-3 whitespace-nowrap">
-                          {language === "ko" ? "🗨️ Reddit (한국 관련)" : "🗨️ Reddit (Global)"}
-                        </span>
-                      </div>
-                      <p className="text-zinc-400 text-sm mb-3 line-clamp-2">
-                        {post.preview || (language === "ko"
-                          ? `Reddit에서 ${post.score.toLocaleString()}명이 공감한 ${post.subreddit} 커뮤니티의 인기 토론 주제`
-                          : `Popular discussion topic in ${post.subreddit} community with ${post.score.toLocaleString()} upvotes on Reddit`
-                        )}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-orange-400 font-medium">{language === "ko" ? "추천" : "Upvotes"}: {post.score.toLocaleString()} · {language === "ko" ? "댓글" : "Comments"}: {post.comments.toLocaleString()}</span>
-                          <span className="text-zinc-500">r/{post.subreddit}</span>
-                        </div>
-                        <button className="px-4 py-2 bg-amber-400 text-black rounded hover:bg-amber-500 transition-colors flex items-center gap-2 text-sm font-medium"
-                          onClick={(e) => { e.stopPropagation(); createContentWithTopic(post.title) }}>
-                          <Sparkles className="h-4 w-4" />
-                          {language === "ko" ? "콘텐츠 생성" : "Create Content"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-            </div>
-          </div>
-        )}
-
-        {/* Content Type Selection Modal */}
-        <Dialog open={showContentTypeModal} onOpenChange={setShowContentTypeModal}>
-          <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-700">
-            <DialogHeader>
-              <DialogTitle className="text-white text-lg">
-                {language === "ko" ? "콘텐츠 생성 방식 선택" : "Select Content Type"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <p className="text-zinc-400 text-sm mb-4 line-clamp-2">
-                <span className="text-amber-400 font-medium">{language === "ko" ? "토픽" : "Topic"}:</span> {selectedTopic}
-              </p>
-              <div className="grid grid-cols-1 gap-3">
-                {/* Quick Generate */}
-                <button
-                  onClick={handleQuickGenerate}
-                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-amber-400/50 hover:bg-zinc-800/80 transition-all text-left group/quick"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-amber-400/10 flex items-center justify-center flex-shrink-0">
-                      <Zap className="h-5 w-5 text-amber-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-medium transition-colors group-hover/quick:text-amber-400">
-                        {language === "ko" ? "빠른 생성" : "Quick Generate"}
-                      </h3>
-                      <p className="text-zinc-500 text-sm mt-1">
-                        {language === "ko"
-                          ? "SEO 키워드 최적화와 함께 즉시 콘텐츠를 생성합니다"
-                          : "Generate content instantly with SEO keyword optimization"
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Scenario Generate */}
-                <button
-                  onClick={handleScenarioGenerate}
-                  className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg hover:border-blue-400/50 hover:bg-zinc-800/80 transition-all text-left group/scenario"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-400/10 flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-medium transition-colors group-hover/scenario:text-blue-400">
-                        {language === "ko" ? "시나리오 생성" : "Scenario Generate"}
-                      </h3>
-                      <p className="text-zinc-500 text-sm mt-1">
-                        {language === "ko"
-                          ? "스토리텔링 프레임을 선택하여 구조화된 콘텐츠를 생성합니다"
-                          : "Create structured content with storytelling framework"
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        </div>
       </div>
     </div>
   )

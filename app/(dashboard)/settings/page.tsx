@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { translations, TranslationKey } from "@/lib/translations"
 import { Button } from "@/components/ui/button"
-import { Settings as SettingsIcon, Link as LinkIcon, Users, Building2, Zap, CheckCircle2, XCircle } from "lucide-react"
+import { Settings as SettingsIcon, Link as LinkIcon, Users, Building2, Zap, CheckCircle2, XCircle, MessageSquareText, ChevronRight } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 
 const getPlatforms = (language: string) => [
@@ -307,6 +308,46 @@ export default function SettingsPage() {
               }
             </p>
           </div>
+        </div>
+
+        {/* AI Prompt Settings Section */}
+        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10">
+          <div className="flex items-center gap-3 mb-6">
+            <MessageSquareText className="w-6 h-6 text-amber-400" />
+            <h2 className="text-2xl font-light text-white tracking-wide">
+              {language === "ko" ? "AI 프롬프트 설정" : "AI Prompt Settings"}
+            </h2>
+          </div>
+          <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
+
+          <p className="text-zinc-400 font-normal mb-6">
+            {language === "ko"
+              ? "AI가 콘텐츠를 생성할 때 사용하는 프롬프트를 확인하고 커스터마이징할 수 있습니다."
+              : "View and customize the prompts used by AI when generating content."
+            }
+          </p>
+
+          <Link href="/settings/prompts">
+            <div className="group flex items-center justify-between p-4 bg-zinc-800/50 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-amber-500/10 rounded-lg">
+                  <MessageSquareText className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-normal text-white mb-1">
+                    {language === "ko" ? "프롬프트 관리" : "Manage Prompts"}
+                  </h3>
+                  <p className="text-sm text-zinc-400">
+                    {language === "ko"
+                      ? "토픽 선정, 콘텐츠 생성 프롬프트 확인 및 수정"
+                      : "View and edit topic selection, content generation prompts"
+                    }
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all duration-300" />
+            </div>
+          </Link>
         </div>
 
         {/* Team Section (Placeholder) */}

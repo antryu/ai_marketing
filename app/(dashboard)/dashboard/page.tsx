@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Building2, User, Sparkles, FileText, TrendingUp, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
+import { Building2, Sparkles, FileText, TrendingUp, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useBrand } from "@/contexts/BrandContext"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -16,7 +16,6 @@ export default function DashboardPage() {
   const t = (key: TranslationKey) => translations[key][language]
 
   const [brands, setBrands] = useState<any[]>([])
-  const [writerPersonas, setWriterPersonas] = useState<any[]>([])
   const [contents, setContents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -29,14 +28,12 @@ export default function DashboardPage() {
 
       const supabase = createClient()
 
-      const [brandsRes, writerPersonasRes, contentsRes] = await Promise.all([
+      const [brandsRes, contentsRes] = await Promise.all([
         supabase.from("brands").select("*").eq("id", selectedBrandId),
-        supabase.from("writer_personas").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }),
         supabase.from("contents").select("*").eq("brand_id", selectedBrandId).order("created_at", { ascending: false }).limit(5),
       ])
 
       if (brandsRes.data) setBrands(brandsRes.data)
-      if (writerPersonasRes.data) setWriterPersonas(writerPersonasRes.data)
       if (contentsRes.data) setContents(contentsRes.data)
 
       setLoading(false)
@@ -57,7 +54,6 @@ export default function DashboardPage() {
   }
 
   const hasBrand = brands.length > 0
-  const hasWriterPersonas = writerPersonas.length > 0
   const hasContent = contents.length > 0
 
   const setupSteps = [
@@ -70,18 +66,26 @@ export default function DashboardPage() {
       count: brands.length,
     },
     {
-      title: t("brandVoiceSettings"),
-      description: t("brandVoiceDesc"),
-      icon: User,
-      href: "/writer-personas",
-      completed: hasWriterPersonas,
-      count: writerPersonas.length,
+      title: language === "ko" ? "트렌드 확인" : "Check Trends",
+      description: language === "ko" ? "실시간 검색 트렌드를 확인하세요" : "Check real-time search trends",
+      icon: TrendingUp,
+      href: "/trends",
+      completed: true, // 트렌드는 항상 사용 가능
+      count: null,
     },
     {
       title: t("contentGenerationTitle"),
       description: t("contentGenerationDesc"),
       icon: Sparkles,
       href: "/content/create",
+      completed: hasContent,
+      count: contents.length,
+    },
+    {
+      title: language === "ko" ? "콘텐츠 관리" : "Content Management",
+      description: language === "ko" ? "생성된 콘텐츠를 관리하세요" : "Manage your generated content",
+      icon: FileText,
+      href: "/content",
       completed: hasContent,
       count: contents.length,
     },
@@ -145,9 +149,15 @@ export default function DashboardPage() {
                       {step.description}
                     </p>
 
-                    {step.completed && (
+                    {step.completed && step.count !== null && (
                       <div className="text-xs text-amber-400 font-medium">
                         {step.count}{t("registered")}
+                      </div>
+                    )}
+
+                    {step.completed && step.count === null && (
+                      <div className="text-xs text-green-400 font-medium">
+                        {language === "ko" ? "사용 가능" : "Available"}
                       </div>
                     )}
 
@@ -180,11 +190,13 @@ export default function DashboardPage() {
                 {contents.slice(0, 3).map((content) => (
                   <Link key={content.id} href={`/content/${content.id}`}>
                     <div className="border-l-2 border-amber-400 hover:border-amber-300 pl-4 md:pl-6 py-2 md:py-3 transition-all duration-300 hover:bg-zinc-800/50 cursor-pointer">
-                      <div className="font-normal text-sm md:text-base tracking-wide">
-                        {content.title || t("noTitle")}
+                      <div className="font-normal text-sm md:text-base tracking-wide text-white">
+                        {content.title || content.topic || (content.body ? content.body.substring(0, 30) + "..." : t("noTitle"))}
                       </div>
-                      <div className="text-zinc-400 text-xs md:text-sm mt-1">
-                        {content.created_at && new Date(content.created_at).toLocaleDateString(language === "en" ? "en-US" : "ko-KR")}
+                      <div className="text-zinc-400 text-xs md:text-sm mt-1 flex items-center gap-2">
+                        <span>{content.platform || "naver"}</span>
+                        <span>•</span>
+                        <span>{content.created_at && new Date(content.created_at).toLocaleDateString(language === "en" ? "en-US" : "ko-KR")}</span>
                       </div>
                     </div>
                   </Link>

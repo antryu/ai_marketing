@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles } from "lucide-react"
+import { Sparkles, Tag, X } from "lucide-react"
 import { MirraStyleSelector } from "@/components/content/MirraStyleSelector"
 import { ContentPreviewCard } from "@/components/content/ContentPreviewCard"
 import {
@@ -44,6 +44,13 @@ export default function CreateMirraPage() {
   const [contentId, setContentId] = useState("")
   const [contentStatus, setContentStatus] = useState<ContentStatus>("idea")
   const [loading, setLoading] = useState(false)
+
+  // SEO 키워드 관련
+  const [seoSuggestions, setSeoSuggestions] = useState<any>(null)
+  const [loadingSeo, setLoadingSeo] = useState(false)
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([])
+  const [manualKeyword, setManualKeyword] = useState("")
+  const [seoStep, setSeoStep] = useState(false)
 
   // 빠른 생성 모드 필드
   const [platform, setPlatform] = useState("naver")
@@ -87,6 +94,67 @@ export default function CreateMirraPage() {
     setLoadingBrands(false)
   }
 
+  // SEO 키워드 제안 함수
+  const handleSeoSuggestion = async () => {
+    if (!topic.trim()) {
+      toast.error("토픽을 입력하세요")
+      return
+    }
+
+    if (!selectedBrand) {
+      toast.error("브랜드를 선택하세요")
+      return
+    }
+
+    setLoadingSeo(true)
+    try {
+      const response = await fetch("/api/content/suggest-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: topic,
+          topic,
+          language: "ko",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "SEO 제안 실패")
+      }
+
+      setSeoSuggestions(data.data)
+      setSeoStep(true)
+      toast.success("SEO 키워드 분석 완료! 원하는 키워드를 선택하세요.")
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "SEO 분석 실패")
+    } finally {
+      setLoadingSeo(false)
+    }
+  }
+
+  const toggleKeyword = (keyword: string) => {
+    setSelectedKeywords(prev =>
+      prev.includes(keyword)
+        ? prev.filter(k => k !== keyword)
+        : [...prev, keyword]
+    )
+  }
+
+  const addManualKeyword = () => {
+    const trimmed = manualKeyword.trim()
+    if (trimmed && !selectedKeywords.includes(trimmed)) {
+      setSelectedKeywords(prev => [...prev, trimmed])
+      setManualKeyword("")
+    }
+  }
+
+  const removeKeyword = (keyword: string) => {
+    setSelectedKeywords(prev => prev.filter(k => k !== keyword))
+  }
+
   const handleMirraGenerate = async () => {
     if (!topic.trim()) {
       toast.error("토픽을 입력하세요")
@@ -126,6 +194,7 @@ export default function CreateMirraPage() {
           tone,
           language: "ko",
           targetAudience,
+          seoKeywords: selectedKeywords.length > 0 ? selectedKeywords : undefined,
           ...mirraConfig
         })
       })
@@ -292,6 +361,164 @@ export default function CreateMirraPage() {
                         onChange={(e) => setTopic(e.target.value)}
                       />
                     </div>
+
+                    {/* SEO 키워드 분석 버튼 */}
+                    {!seoStep && !generatedContent && (
+                      <button
+                        onClick={handleSeoSuggestion}
+                        disabled={loadingSeo || !topic.trim()}
+                        className="w-full flex items-center justify-center gap-2 p-3 rounded border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loadingSeo ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                            SEO 분석 중...
+                          </>
+                        ) : (
+                          <>
+                            <Tag className="w-4 h-4" />
+                            SEO 키워드 분석하기
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {/* SEO 키워드 선택 UI */}
+                    {seoStep && !generatedContent && seoSuggestions && (
+                      <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-lg p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-amber-400" />
+                            SEO 키워드 제안
+                          </h3>
+                          <button
+                            onClick={() => {
+                              setSeoStep(false)
+                              setSeoSuggestions(null)
+                              setSelectedKeywords([])
+                            }}
+                            className="text-xs text-zinc-400 hover:text-zinc-300"
+                          >
+                            다시 분석
+                          </button>
+                        </div>
+
+                        <p className="text-xs text-zinc-400">
+                          원하는 키워드를 클릭하여 선택하세요. 선택한 키워드가 콘텐츠에 반영됩니다.
+                        </p>
+
+                        {/* 추천 키워드 */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-zinc-300">추천 키워드</h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {seoSuggestions.keywords?.map((keyword: string, idx: number) => (
+                              <button
+                                key={`keyword-${idx}`}
+                                onClick={() => toggleKeyword(keyword)}
+                                className={`px-2 py-1 rounded text-xs transition-all ${
+                                  selectedKeywords.includes(keyword)
+                                    ? "bg-amber-500/20 border border-amber-500 text-amber-400"
+                                    : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-amber-500/50"
+                                }`}
+                              >
+                                {keyword}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 해시태그 */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-zinc-300">추천 해시태그</h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {seoSuggestions.hashtags?.map((hashtag: string, idx: number) => (
+                              <button
+                                key={`hashtag-${idx}`}
+                                onClick={() => toggleKeyword(hashtag)}
+                                className={`px-2 py-1 rounded text-xs transition-all ${
+                                  selectedKeywords.includes(hashtag)
+                                    ? "bg-blue-500/20 border border-blue-500 text-blue-400"
+                                    : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-blue-500/50"
+                                }`}
+                              >
+                                {hashtag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 연관 검색어 */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-zinc-300">연관 검색어</h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {seoSuggestions.relatedSearches?.map((search: string, idx: number) => (
+                              <button
+                                key={`search-${idx}`}
+                                onClick={() => toggleKeyword(search)}
+                                className={`px-2 py-1 rounded text-xs transition-all ${
+                                  selectedKeywords.includes(search)
+                                    ? "bg-green-500/20 border border-green-500 text-green-400"
+                                    : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-green-500/50"
+                                }`}
+                              >
+                                {search}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 직접 입력 */}
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-zinc-300">직접 입력</h4>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="키워드 입력..."
+                              value={manualKeyword}
+                              onChange={(e) => setManualKeyword(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  addManualKeyword()
+                                }
+                              }}
+                              className="flex-1 text-sm h-8"
+                            />
+                            <Button
+                              onClick={addManualKeyword}
+                              size="sm"
+                              className="bg-zinc-700 hover:bg-zinc-600 h-8 text-xs"
+                            >
+                              추가
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* 선택된 키워드 */}
+                        {selectedKeywords.length > 0 && (
+                          <div className="space-y-2 pt-3 border-t border-zinc-700">
+                            <h4 className="text-xs font-medium text-amber-400">
+                              선택된 키워드 ({selectedKeywords.length})
+                            </h4>
+                            <div className="flex flex-wrap gap-1.5">
+                              {selectedKeywords.map((keyword, idx) => (
+                                <div
+                                  key={`selected-${idx}`}
+                                  className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-300"
+                                >
+                                  <span>{keyword}</span>
+                                  <button
+                                    onClick={() => removeKeyword(keyword)}
+                                    className="hover:text-amber-100 transition-colors"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
