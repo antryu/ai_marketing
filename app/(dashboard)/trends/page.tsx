@@ -799,11 +799,11 @@ export default function TrendsPage() {
         </div>
 
         {/* Main Content - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 items-start">
 
           {/* Left Panel - Topic List */}
-          <div className="flex flex-col min-h-0 h-full">
-            <Card className="bg-zinc-900 border-zinc-800 flex flex-col flex-1 min-h-0">
+          <div className="flex flex-col min-h-0 max-h-full">
+            <Card className="bg-zinc-900 border-zinc-800 flex flex-col max-h-[calc(100vh-180px)]">
               {/* Topic List Header */}
               <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -922,8 +922,8 @@ export default function TrendsPage() {
           </div>
 
           {/* Right Panel - Topic Details */}
-          <div className="flex flex-col min-h-0 h-full">
-            <Card className="bg-zinc-900 border-zinc-800 flex flex-col flex-1 min-h-0">
+          <div className="flex flex-col min-h-0 max-h-full">
+            <Card className="bg-zinc-900 border-zinc-800 flex flex-col max-h-[calc(100vh-180px)]">
               {!selectedTopic ? (
                 // Empty State
                 <div className="flex-1 flex flex-col items-center justify-center p-8">
