@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw } from "lucide-react"
+import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, Lightbulb, ChevronDown, ChevronUp, Copy, Check } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -51,6 +51,12 @@ export default function ContentCreatePage() {
   const [contentId, setContentId] = useState<string | null>(null) // 생성된 콘텐츠 ID (수정용)
   const [refining, setRefining] = useState(false) // 콘텐츠 수정 중
 
+  // Suggestions from trends page
+  const [suggestedHooks, setSuggestedHooks] = useState<string[]>([])
+  const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(true)
+  const [copiedHook, setCopiedHook] = useState<number | null>(null)
+
   useEffect(() => {
     loadBrands()
 
@@ -65,6 +71,33 @@ export default function ContentCreatePage() {
     if (targetParam) {
       setTargetPreset(targetParam)
       setTargetFromTrends(true) // 트렌드에서 전달된 타겟임을 표시
+    }
+
+    // Load hooks from URL parameter (passed from trends page)
+    const hooksParam = searchParams.get('hooks')
+    if (hooksParam) {
+      try {
+        const parsedHooks = JSON.parse(hooksParam)
+        if (Array.isArray(parsedHooks)) {
+          setSuggestedHooks(parsedHooks)
+        }
+      } catch (e) {
+        console.error('Failed to parse hooks:', e)
+      }
+    }
+
+    // Load keywords from URL parameter (passed from trends page)
+    // Keywords will be shown as suggestions in SEO step, not auto-selected
+    const keywordsParam = searchParams.get('keywords')
+    if (keywordsParam) {
+      try {
+        const parsedKeywords = JSON.parse(keywordsParam)
+        if (Array.isArray(parsedKeywords)) {
+          setSuggestedKeywords(parsedKeywords)
+        }
+      } catch (e) {
+        console.error('Failed to parse keywords:', e)
+      }
     }
   }, [])
 
@@ -339,6 +372,18 @@ export default function ContentCreatePage() {
     setSelectedKeywords(prev => prev.filter(k => k !== keyword))
   }
 
+  // Copy hook to clipboard
+  const copyHook = async (hook: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(hook)
+      setCopiedHook(index)
+      toast.success(language === "ko" ? "훅이 복사되었습니다" : "Hook copied")
+      setTimeout(() => setCopiedHook(null), 2000)
+    } catch (e) {
+      toast.error(language === "ko" ? "복사 실패" : "Copy failed")
+    }
+  }
+
   const handleDownloadContent = () => {
     if (!generatedContent && !videoProject) {
       toast.error(language === "ko" ? "다운로드할 콘텐츠가 없습니다" : "No content to download")
@@ -605,6 +650,65 @@ export default function ContentCreatePage() {
                 onChange={(e) => setTopic(e.target.value)}
               />
             </div>
+
+            {/* Opening Hooks from Trends Page */}
+            {suggestedHooks.length > 0 && (
+              <div className="space-y-3">
+                {/* Collapsible Header */}
+                <button
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                  className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/10 to-amber-500/10 border border-purple-500/30 rounded-lg hover:from-purple-500/15 hover:to-amber-500/15 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4 text-purple-400" />
+                    <span className="text-sm font-medium text-white">
+                      {language === "ko" ? "오프닝 훅 제안" : "Suggested Opening Hooks"}
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      ({suggestedHooks.length})
+                    </span>
+                  </div>
+                  {showSuggestions ? (
+                    <ChevronUp className="h-4 w-4 text-zinc-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-zinc-400" />
+                  )}
+                </button>
+
+                {/* Collapsible Content */}
+                {showSuggestions && (
+                  <div className="space-y-2 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+                    {suggestedHooks.map((hook, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start justify-between gap-2 p-2.5 bg-zinc-900/50 rounded-lg group hover:bg-zinc-900 transition-colors"
+                      >
+                        <p className="text-zinc-300 text-sm italic flex-1">
+                          "{hook}"
+                        </p>
+                        <button
+                          onClick={() => copyHook(hook, idx)}
+                          className="p-1.5 text-zinc-500 hover:text-purple-400 hover:bg-purple-400/10 rounded transition-colors flex-shrink-0"
+                          title={language === "ko" ? "복사" : "Copy"}
+                        >
+                          {copiedHook === idx ? (
+                            <Check className="h-3.5 w-3.5 text-green-400" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                    <p className="text-[11px] text-zinc-500 mt-2">
+                      {language === "ko"
+                        ? "💡 콘텐츠 시작 부분에 사용하면 독자의 관심을 끌 수 있어요"
+                        : "💡 Use these at the beginning to grab reader attention"
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* AI Model Selection */}
             <div className="space-y-2">
@@ -967,6 +1071,34 @@ export default function ContentCreatePage() {
                   <p className="text-sm text-zinc-400">
                     {language === "ko" ? "토픽에 맞는 SEO 키워드를 선택하세요. 선택한 키워드가 콘텐츠에 자동으로 반영됩니다." : "Select SEO keywords for your topic. Selected keywords will be automatically reflected in the content."}
                   </p>
+
+                  {/* Keywords from Trends (if available) */}
+                  {suggestedKeywords.length > 0 && (
+                    <div className="space-y-2 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                      <h4 className="text-sm font-medium text-purple-400 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4" />
+                        {language === "ko" ? "트렌드에서 추천된 키워드" : "Keywords from Trends"}
+                        <span className="text-xs text-zinc-500">{language === "ko" ? "클릭하여 선택" : "Click to select"}</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedKeywords.map((keyword: string, idx: number) => (
+                          <button
+                            key={`trend-keyword-${idx}`}
+                            onClick={() => toggleKeyword(keyword)}
+                            className={`
+                              px-3 py-1.5 rounded text-sm transition-all
+                              ${selectedKeywords.includes(keyword)
+                                ? "bg-purple-500/20 border border-purple-500 text-purple-400"
+                                : "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-purple-500/50"
+                              }
+                            `}
+                          >
+                            #{keyword}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Suggested Keywords */}
                   <div className="space-y-2">

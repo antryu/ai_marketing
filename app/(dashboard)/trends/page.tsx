@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, Search, Sparkles, Target, Zap, BookOpen, RefreshCw, Globe, Lightbulb, Settings, ChevronRight, FileText, Hash, ArrowRight, Users, Edit3, CheckCircle2 } from "lucide-react"
+import { TrendingUp, Sparkles, Target, RefreshCw, Globe, Lightbulb, Settings, ChevronRight, FileText, Hash, ArrowRight, Users, Edit3, CheckCircle2, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -126,6 +126,24 @@ interface TopicDetails {
   loading: boolean
 }
 
+// 세션 스토리지 키
+const TRENDS_STATE_KEY = 'trends_page_state'
+
+// 저장할 상태 인터페이스
+interface SavedTrendsState {
+  brandId: string
+  currentStep: 'target' | 'topics'
+  selectedTargetIndex: number
+  customTarget: string
+  suggestions: any
+  aiSearchQuery: string
+  aiSearchResults: any
+  selectedTopic: TopicItem | null
+  topicDetails: TopicDetails | null
+  selectedTitleIndex: number | null
+  timestamp: number
+}
+
 export default function TrendsPage() {
   const router = useRouter()
   const { language } = useLanguage()
@@ -163,6 +181,90 @@ export default function TrendsPage() {
   // 선택된 토픽 상세 정보
   const [selectedTopic, setSelectedTopic] = useState<TopicItem | null>(null)
   const [topicDetails, setTopicDetails] = useState<TopicDetails | null>(null)
+  const [selectedTitleIndex, setSelectedTitleIndex] = useState<number | null>(null)
+  const [stateRestored, setStateRestored] = useState(false)
+  const [showContentTypeMenu, setShowContentTypeMenu] = useState(false)
+
+  // 세션 스토리지에서 상태 복원 (페이지 로드 시 한 번만)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !selectedBrandId || stateRestored) return
+
+    try {
+      const savedStateJson = sessionStorage.getItem(TRENDS_STATE_KEY)
+      if (savedStateJson) {
+        const savedState: SavedTrendsState = JSON.parse(savedStateJson)
+
+        // 같은 브랜드이고 1시간 이내의 데이터인 경우에만 복원
+        const oneHour = 60 * 60 * 1000
+        const isValid = savedState.brandId === selectedBrandId &&
+                       (Date.now() - savedState.timestamp) < oneHour
+
+        if (isValid) {
+          // 상태 복원
+          setCurrentStep(savedState.currentStep)
+          setSelectedTargetIndex(savedState.selectedTargetIndex)
+          setCustomTarget(savedState.customTarget)
+          setSuggestions(savedState.suggestions)
+          setAiSearchQuery(savedState.aiSearchQuery)
+          setAiSearchResults(savedState.aiSearchResults)
+          setSelectedTopic(savedState.selectedTopic)
+          setSelectedTitleIndex(savedState.selectedTitleIndex)
+
+          // topicDetails는 loading 상태 제외하고 복원
+          if (savedState.topicDetails) {
+            setTopicDetails({
+              ...savedState.topicDetails,
+              loading: false
+            })
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore trends state:', error)
+    }
+
+    setStateRestored(true)
+  }, [selectedBrandId, stateRestored])
+
+  // 상태 변경 시 세션 스토리지에 저장
+  useEffect(() => {
+    if (typeof window === 'undefined' || !selectedBrandId || !stateRestored) return
+
+    // loading 상태일 때는 저장하지 않음
+    if (topicDetails?.loading) return
+
+    const stateToSave: SavedTrendsState = {
+      brandId: selectedBrandId,
+      currentStep,
+      selectedTargetIndex,
+      customTarget,
+      suggestions,
+      aiSearchQuery,
+      aiSearchResults,
+      selectedTopic,
+      topicDetails,
+      selectedTitleIndex,
+      timestamp: Date.now()
+    }
+
+    try {
+      sessionStorage.setItem(TRENDS_STATE_KEY, JSON.stringify(stateToSave))
+    } catch (error) {
+      console.error('Failed to save trends state:', error)
+    }
+  }, [
+    selectedBrandId,
+    currentStep,
+    selectedTargetIndex,
+    customTarget,
+    suggestions,
+    aiSearchQuery,
+    aiSearchResults,
+    selectedTopic,
+    topicDetails,
+    selectedTitleIndex,
+    stateRestored
+  ])
 
   // Load brand and personas when brand changes
   useEffect(() => {
@@ -330,6 +432,7 @@ export default function TrendsPage() {
   // 토픽 선택 시 상세 정보 생성
   const handleTopicSelect = async (topic: TopicItem) => {
     setSelectedTopic(topic)
+    setSelectedTitleIndex(null) // 토픽 변경 시 제목 선택 초기화
     setTopicDetails({
       topic: topic.keyword,
       titles: [],
@@ -387,13 +490,31 @@ export default function TrendsPage() {
   const handleQuickGenerate = (title?: string) => {
     const topic = title || selectedTopic?.keyword || ""
     const personaParam = selectedPersonaId ? `&personaId=${selectedPersonaId}` : ""
-    router.push(`/content/create?topic=${encodeURIComponent(topic)}${personaParam}`)
+
+    // Pass hooks and keywords from topic details
+    const hooksParam = topicDetails?.hooks && topicDetails.hooks.length > 0
+      ? `&hooks=${encodeURIComponent(JSON.stringify(topicDetails.hooks))}`
+      : ""
+    const keywordsParam = topicDetails?.keywords && topicDetails.keywords.length > 0
+      ? `&keywords=${encodeURIComponent(JSON.stringify(topicDetails.keywords))}`
+      : ""
+
+    router.push(`/content/create?topic=${encodeURIComponent(topic)}${personaParam}${hooksParam}${keywordsParam}`)
   }
 
   const handleScenarioGenerate = (title?: string) => {
     const topic = title || selectedTopic?.keyword || ""
     const personaParam = selectedPersonaId ? `&personaId=${selectedPersonaId}` : ""
-    router.push(`/content/storytelling?topic=${encodeURIComponent(topic)}${personaParam}`)
+
+    // Pass hooks and keywords from topic details
+    const hooksParam = topicDetails?.hooks && topicDetails.hooks.length > 0
+      ? `&hooks=${encodeURIComponent(JSON.stringify(topicDetails.hooks))}`
+      : ""
+    const keywordsParam = topicDetails?.keywords && topicDetails.keywords.length > 0
+      ? `&keywords=${encodeURIComponent(JSON.stringify(topicDetails.keywords))}`
+      : ""
+
+    router.push(`/content/storytelling?topic=${encodeURIComponent(topic)}${personaParam}${hooksParam}${keywordsParam}`)
   }
 
   // 모든 토픽을 하나의 리스트로 통합
@@ -459,21 +580,21 @@ export default function TrendsPage() {
           {/* Header with Action Button */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center">
-                <Target className="h-5 w-5 text-amber-400" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-400/20 flex items-center justify-center">
+                <Target className="h-5 w-5 md:h-6 md:w-6 text-amber-400" />
               </div>
               <div>
-                <h1 className="text-xl font-medium text-white">
+                <h1 className="text-xl md:text-2xl font-medium text-white">
                   {language === "ko" ? "타겟 고객 설정" : "Set Target Audience"}
                 </h1>
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm md:text-base text-zinc-500">
                   {language === "ko" ? "토픽 제안을 받기 전에 타겟 고객을 먼저 설정하세요" : "Set your target audience before getting topic suggestions"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-500">Step 1/2</span>
+                <span className="text-xs md:text-sm text-zinc-500">Step 1/2</span>
                 <div className="flex gap-1">
                   <div className="w-8 h-1 bg-amber-400 rounded"></div>
                   <div className="w-8 h-1 bg-zinc-700 rounded"></div>
@@ -484,10 +605,10 @@ export default function TrendsPage() {
                 onClick={handleProceedToTopics}
                 disabled={!getTargetAudienceDescription()}
                 size="lg"
-                className="bg-amber-400 text-black hover:bg-amber-500 font-medium"
+                className="bg-amber-400 text-black hover:bg-amber-500 font-medium text-sm md:text-base"
               >
                 {language === "ko" ? "토픽 추천받기" : "Get Topics"}
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <ArrowRight className="h-4 w-4 md:h-5 md:w-5 ml-2" />
               </Button>
             </div>
           </div>
@@ -508,12 +629,12 @@ export default function TrendsPage() {
               {brandInfo && (
                 <div className="mb-6 p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-amber-400/20 flex items-center justify-center">
-                      <Sparkles className="h-5 w-5 text-amber-400" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-amber-400/20 flex items-center justify-center">
+                      <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-amber-400" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-white">{brandInfo.name}</h3>
-                      <p className="text-sm text-zinc-500">
+                      <h3 className="font-medium text-white text-base md:text-lg">{brandInfo.name}</h3>
+                      <p className="text-sm md:text-base text-zinc-500">
                         {brandInfo.description || (language === "ko" ? "브랜드 설명 없음" : "No description")}
                       </p>
                     </div>
@@ -525,8 +646,8 @@ export default function TrendsPage() {
               {getTargetAudienceDescription() && (
                 <div className="mb-6 p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-amber-400" />
-                    <span className="text-sm text-zinc-300">
+                    <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
+                    <span className="text-sm md:text-base text-zinc-300">
                       {language === "ko" ? "선택된 타겟:" : "Selected:"}
                       <span className="text-white font-medium ml-1">{getTargetAudienceDescription()}</span>
                     </span>
@@ -539,11 +660,11 @@ export default function TrendsPage() {
                 {/* Brand-specific Recommended Targets */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <Users className="h-4 w-4 text-amber-400" />
-                    <h2 className="text-sm font-medium text-white">
+                    <Users className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
+                    <h2 className="text-sm md:text-base font-medium text-white">
                       {language === "ko" ? "추천 타겟 고객" : "Recommended Targets"}
                     </h2>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs md:text-sm text-zinc-500">
                       ({language === "ko" ? `${brandInfo?.name || '브랜드'} 맞춤` : `for ${brandInfo?.name || 'brand'}`})
                     </span>
                   </div>
@@ -562,7 +683,7 @@ export default function TrendsPage() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-white">{target[language]}</span>
+                          <span className="text-sm md:text-base text-white">{target[language]}</span>
                           {selectedTargetIndex === idx && !customTarget && (
                             <CheckCircle2 className="h-4 w-4 text-amber-400 flex-shrink-0" />
                           )}
@@ -575,7 +696,7 @@ export default function TrendsPage() {
                 {/* Divider */}
                 <div className="flex items-center gap-3 my-6">
                   <div className="flex-1 h-px bg-zinc-800"></div>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs md:text-sm text-zinc-500">
                     {language === "ko" ? "또는 직접 입력" : "Or enter custom"}
                   </span>
                   <div className="flex-1 h-px bg-zinc-800"></div>
@@ -584,8 +705,8 @@ export default function TrendsPage() {
                 {/* Custom Target Input */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <Edit3 className="h-4 w-4 text-blue-400" />
-                    <label className="text-sm font-medium text-white">
+                    <Edit3 className="h-4 w-4 md:h-5 md:w-5 text-blue-400" />
+                    <label className="text-sm md:text-base font-medium text-white">
                       {language === "ko" ? "직접 입력" : "Custom Target"}
                     </label>
                   </div>
@@ -596,12 +717,12 @@ export default function TrendsPage() {
                     }
                     value={customTarget}
                     onChange={(e) => setCustomTarget(e.target.value)}
-                    className="bg-zinc-900 border-zinc-700 text-white"
+                    className="bg-zinc-900 border-zinc-700 text-white text-sm md:text-base"
                   />
                   {customTarget && (
                     <div className="mt-2 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                      <span className="text-xs text-zinc-400">
+                      <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-blue-400" />
+                      <span className="text-xs md:text-sm text-zinc-400">
                         {language === "ko" ? "직접 입력한 타겟이 적용됩니다" : "Custom target will be applied"}
                       </span>
                     </div>
@@ -617,37 +738,37 @@ export default function TrendsPage() {
 
   // STEP 2: Topics View
   return (
-    <div className="p-6 h-[calc(100vh-64px)]">
-      <div className="max-w-7xl mx-auto h-full flex flex-col">
+    <div className="p-6">
+      <div className="max-w-6xl mx-auto">
 
         {/* Header with Target Info */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <div className="flex items-center gap-4">
             <Button
               onClick={() => setCurrentStep('target')}
               variant="ghost"
               size="sm"
-              className="text-zinc-400 hover:text-white"
+              className="text-zinc-400 hover:text-white text-xs md:text-sm"
             >
               <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
               {language === "ko" ? "타겟 변경" : "Change Target"}
             </Button>
             <div className="h-4 w-px bg-zinc-700"></div>
             <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-amber-400" />
-              <span className="text-sm text-zinc-300 max-w-[300px] truncate">
+              <Target className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
+              <span className="text-sm md:text-base text-zinc-300 max-w-[300px] truncate">
                 {getTargetAudienceDescription()}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500">Step 2/2</span>
+            <span className="text-xs md:text-sm text-zinc-500">Step 2/2</span>
             <div className="flex gap-1">
               <div className="w-8 h-1 bg-amber-400 rounded"></div>
               <div className="w-8 h-1 bg-amber-400 rounded"></div>
             </div>
             <Link href="/settings/prompts" className="ml-4">
-              <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-amber-400">
+              <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-amber-400 text-xs md:text-sm">
                 <Settings className="h-4 w-4 mr-1.5" />
                 {language === "ko" ? "프롬프트 설정" : "Prompt Settings"}
               </Button>
@@ -656,47 +777,19 @@ export default function TrendsPage() {
         </div>
 
         {/* Main Content - Two Column Layout */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
-          {/* Left Panel - Topic List (2/5) */}
-          <div className="lg:col-span-2 flex flex-col min-h-0">
-            <Card className="flex-1 bg-zinc-900 border-zinc-800 flex flex-col overflow-hidden">
-              {/* Search Input */}
-              <div className="p-4 border-b border-zinc-800">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={language === "ko"
-                      ? "토픽 검색 (예: AI 마케팅, 인스타 전략...)"
-                      : "Search topics (e.g., AI marketing...)"
-                    }
-                    value={aiSearchQuery}
-                    onChange={(e) => setAiSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && performAIWebSearch()}
-                    className="bg-zinc-950 border-zinc-700 text-white text-sm"
-                  />
-                  <Button
-                    onClick={performAIWebSearch}
-                    disabled={aiSearchLoading}
-                    size="sm"
-                    className="bg-purple-500 hover:bg-purple-600 px-3"
-                  >
-                    {aiSearchLoading ? (
-                      <Globe className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
+          {/* Left Panel - Topic List */}
+          <div>
+            <Card className="bg-zinc-900 border-zinc-800">
               {/* Topic List Header */}
-              <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+              <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-amber-400" />
-                  <span className="text-sm font-medium text-white">
+                  <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
+                  <span className="text-sm md:text-base font-medium text-white">
                     {language === "ko" ? "토픽 제안" : "Topic Suggestions"}
                   </span>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs md:text-sm text-zinc-500">
                     ({getAllTopics().length})
                   </span>
                 </div>
@@ -712,7 +805,7 @@ export default function TrendsPage() {
               </div>
 
               {/* Topic List */}
-              <div className="flex-1 overflow-y-auto p-2">
+              <div className="p-3 max-h-[500px] overflow-y-auto">
                 {loadingSuggestions ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-3"></div>
@@ -721,7 +814,7 @@ export default function TrendsPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="flex flex-col gap-2">
                     {getAllTopics().map((topic, idx) => {
                       const typeInfo = getTopicTypeLabel(topic.type)
                       const isSelected = selectedTopic?.keyword === topic.keyword
@@ -732,31 +825,46 @@ export default function TrendsPage() {
                           onClick={() => handleTopicSelect(topic)}
                           className={`w-full p-3 rounded-lg text-left transition-all ${
                             isSelected
-                              ? 'bg-amber-400/20 border border-amber-400/50'
+                              ? 'bg-amber-400/20 border-2 border-amber-400'
                               : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className={`font-medium text-sm line-clamp-1 ${
+                          {/* Header: Title + Badge */}
+                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                            <h4 className={`font-medium text-sm md:text-base leading-snug ${
                               isSelected ? 'text-amber-400' : 'text-white'
                             }`}>
                               {topic.keyword}
                             </h4>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
-                              typeInfo.color === 'amber' ? 'bg-amber-400/20 text-amber-400' :
-                              typeInfo.color === 'purple' ? 'bg-purple-400/20 text-purple-400' :
-                              'bg-blue-400/20 text-blue-400'
-                            }`}>
-                              {typeInfo.label}
-                            </span>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {topic.priority === 'high' && (
+                                <span className="text-[10px] md:text-xs bg-amber-400 text-black px-1.5 py-0.5 rounded font-medium">
+                                  HOT
+                                </span>
+                              )}
+                              <span className={`text-[10px] md:text-xs px-1.5 py-0.5 rounded ${
+                                typeInfo.color === 'amber' ? 'bg-amber-400/20 text-amber-400' :
+                                typeInfo.color === 'purple' ? 'bg-purple-400/20 text-purple-400' :
+                                'bg-blue-400/20 text-blue-400'
+                              }`}>
+                                {typeInfo.label}
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-zinc-500 text-xs line-clamp-2">
+
+                          {/* Reason */}
+                          <p className="text-zinc-400 text-xs md:text-sm mb-1.5 line-clamp-2">
                             {topic.reason}
                           </p>
-                          {topic.priority === 'high' && (
-                            <span className="inline-block mt-1.5 text-[10px] bg-amber-400 text-black px-1.5 py-0.5 rounded font-medium">
-                              HOT
-                            </span>
+
+                          {/* Source/Category */}
+                          {(topic.source || topic.category) && (
+                            <div className="flex items-center gap-1.5">
+                              <Globe className="h-3 w-3 md:h-4 md:w-4 text-zinc-500" />
+                              <span className="text-[11px] md:text-xs text-zinc-500">
+                                {topic.source || topic.category}
+                              </span>
+                            </div>
                           )}
                         </button>
                       )
@@ -791,19 +899,19 @@ export default function TrendsPage() {
             </Card>
           </div>
 
-          {/* Right Panel - Topic Details (3/5) */}
-          <div className="lg:col-span-3 flex flex-col min-h-0">
-            <Card className="flex-1 bg-zinc-900 border-zinc-800 flex flex-col overflow-hidden">
+          {/* Right Panel - Topic Details */}
+          <div>
+            <Card className="bg-zinc-900 border-zinc-800">
               {!selectedTopic ? (
                 // Empty State
                 <div className="flex-1 flex flex-col items-center justify-center p-8">
                   <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
                     <ChevronRight className="h-8 w-8 text-zinc-600" />
                   </div>
-                  <h3 className="text-lg font-medium text-white mb-2">
+                  <h3 className="text-lg md:text-xl font-medium text-white mb-2">
                     {language === "ko" ? "토픽을 선택하세요" : "Select a Topic"}
                   </h3>
-                  <p className="text-zinc-500 text-sm text-center max-w-sm">
+                  <p className="text-zinc-500 text-sm md:text-base text-center max-w-sm">
                     {language === "ko"
                       ? "왼쪽에서 토픽을 선택하면 구체적인 콘텐츠 제목과 앵글을 제안해드립니다"
                       : "Select a topic from the left to get specific content titles and angles"
@@ -817,37 +925,18 @@ export default function TrendsPage() {
                   <div className="p-4 border-b border-zinc-800">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h2 className="text-xl font-medium text-white mb-1">
+                        <h2 className="text-lg md:text-xl font-medium text-white mb-1">
                           {selectedTopic.keyword}
                         </h2>
-                        <p className="text-zinc-400 text-sm">
+                        <p className="text-zinc-400 text-sm md:text-base line-clamp-2">
                           {selectedTopic.reason}
                         </p>
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        <Button
-                          onClick={() => handleQuickGenerate()}
-                          size="sm"
-                          className="bg-amber-400 text-black hover:bg-amber-500"
-                        >
-                          <Zap className="h-4 w-4 mr-1.5" />
-                          {language === "ko" ? "빠른 생성" : "Quick"}
-                        </Button>
-                        <Button
-                          onClick={() => handleScenarioGenerate()}
-                          size="sm"
-                          variant="outline"
-                          className="border-blue-400/50 text-blue-400 hover:bg-blue-400/10"
-                        >
-                          <BookOpen className="h-4 w-4 mr-1.5" />
-                          {language === "ko" ? "스토리" : "Story"}
-                        </Button>
                       </div>
                     </div>
                   </div>
 
                   {/* Content Area */}
-                  <div className="flex-1 overflow-y-auto p-4">
+                  <div className="p-4">
                     {topicDetails?.loading ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-3"></div>
@@ -860,37 +949,39 @@ export default function TrendsPage() {
                         {/* Title Ideas */}
                         <div>
                           <div className="flex items-center gap-2 mb-3">
-                            <FileText className="h-4 w-4 text-amber-400" />
-                            <h3 className="text-sm font-medium text-white">
+                            <FileText className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
+                            <h3 className="text-sm md:text-base font-medium text-white">
                               {language === "ko" ? "콘텐츠 제목 아이디어" : "Content Title Ideas"}
                             </h3>
                           </div>
                           <div className="space-y-2">
                             {topicDetails?.titles && topicDetails.titles.length > 0 ? (
                               topicDetails.titles.map((item, idx) => (
-                                <div
+                                <button
                                   key={idx}
-                                  className="p-3 bg-zinc-950 rounded-lg border border-zinc-800 hover:border-amber-400/30 transition-all group"
+                                  onClick={() => setSelectedTitleIndex(idx)}
+                                  className={`w-full p-3 rounded-lg text-left transition-all ${
+                                    selectedTitleIndex === idx
+                                      ? 'bg-amber-400/20 border-2 border-amber-400'
+                                      : 'bg-zinc-950 border border-zinc-800 hover:border-amber-400/30'
+                                  }`}
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1">
-                                      <h4 className="text-white font-medium text-sm mb-1">
+                                      <h4 className={`font-medium text-sm md:text-base mb-1 ${
+                                        selectedTitleIndex === idx ? 'text-amber-400' : 'text-white'
+                                      }`}>
                                         {item.title}
                                       </h4>
-                                      <p className="text-zinc-500 text-xs">
+                                      <p className="text-zinc-500 text-xs md:text-sm">
                                         {item.angle}
                                       </p>
                                     </div>
-                                    <Button
-                                      onClick={() => handleQuickGenerate(item.title)}
-                                      size="sm"
-                                      variant="ghost"
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity h-7 px-2 text-amber-400 hover:text-amber-300 hover:bg-amber-400/10"
-                                    >
-                                      <ArrowRight className="h-4 w-4" />
-                                    </Button>
+                                    {selectedTitleIndex === idx && (
+                                      <CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 text-amber-400 flex-shrink-0" />
+                                    )}
                                   </div>
-                                </div>
+                                </button>
                               ))
                             ) : (
                               <div className="p-4 bg-zinc-950 rounded-lg border border-dashed border-zinc-700 text-center">
@@ -905,47 +996,46 @@ export default function TrendsPage() {
                           </div>
                         </div>
 
-                        {/* Hook Ideas */}
-                        {topicDetails?.hooks && topicDetails.hooks.length > 0 && (
-                          <div>
-                            <div className="flex items-center gap-2 mb-3">
-                              <Lightbulb className="h-4 w-4 text-purple-400" />
-                              <h3 className="text-sm font-medium text-white">
-                                {language === "ko" ? "오프닝 훅 아이디어" : "Opening Hook Ideas"}
-                              </h3>
-                            </div>
-                            <div className="space-y-2">
-                              {topicDetails.hooks.map((hook, idx) => (
-                                <div
-                                  key={idx}
-                                  className="p-3 bg-purple-400/5 rounded-lg border border-purple-400/20"
-                                >
-                                  <p className="text-zinc-300 text-sm">"{hook}"</p>
+                        {/* Hook Ideas & Keywords - Compact */}
+                        {((topicDetails?.hooks && topicDetails.hooks.length > 0) ||
+                          (topicDetails?.keywords && topicDetails.keywords.length > 0)) && (
+                          <div className="pt-3 border-t border-zinc-800">
+                            {/* Hooks - Show only first one */}
+                            {topicDetails?.hooks && topicDetails.hooks.length > 0 && (
+                              <div className="mb-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Lightbulb className="h-3.5 w-3.5 md:h-4 md:w-4 text-purple-400" />
+                                  <h3 className="text-xs md:text-sm font-medium text-zinc-400">
+                                    {language === "ko" ? "오프닝 훅" : "Opening Hook"}
+                                  </h3>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                                <p className="text-zinc-400 text-xs md:text-sm italic line-clamp-2">
+                                  "{topicDetails.hooks[0]}"
+                                </p>
+                              </div>
+                            )}
 
-                        {/* Keywords */}
-                        {topicDetails?.keywords && topicDetails.keywords.length > 0 && (
-                          <div>
-                            <div className="flex items-center gap-2 mb-3">
-                              <Hash className="h-4 w-4 text-blue-400" />
-                              <h3 className="text-sm font-medium text-white">
-                                {language === "ko" ? "추천 키워드" : "Recommended Keywords"}
-                              </h3>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {topicDetails.keywords.map((keyword, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-2 py-1 bg-blue-400/10 text-blue-400 text-xs rounded border border-blue-400/20"
-                                >
-                                  #{keyword}
-                                </span>
-                              ))}
-                            </div>
+                            {/* Keywords */}
+                            {topicDetails?.keywords && topicDetails.keywords.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Hash className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-400" />
+                                  <h3 className="text-xs md:text-sm font-medium text-zinc-400">
+                                    {language === "ko" ? "키워드" : "Keywords"}
+                                  </h3>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {topicDetails.keywords.slice(0, 5).map((keyword, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="px-1.5 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] md:text-xs rounded"
+                                    >
+                                      #{keyword}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -953,22 +1043,105 @@ export default function TrendsPage() {
                   </div>
 
                   {/* Bottom Action Bar */}
-                  <div className="p-4 border-t border-zinc-800 bg-zinc-950/50">
+                  <div className="p-4 border-t border-zinc-800 bg-zinc-950/50 flex-shrink-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-zinc-500">
-                        {language === "ko"
-                          ? "제목을 선택하거나 버튼을 눌러 콘텐츠를 생성하세요"
-                          : "Select a title or click buttons to create content"
-                        }
-                      </p>
-                      <div className="flex gap-2">
+                      <div>
+                        {selectedTitleIndex !== null && topicDetails?.titles?.[selectedTitleIndex] ? (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
+                            <p className="text-xs md:text-sm text-zinc-300">
+                              {language === "ko" ? "선택됨:" : "Selected:"}
+                              <span className="text-white font-medium ml-1 line-clamp-1 max-w-[200px] md:max-w-[300px]">
+                                {topicDetails.titles[selectedTitleIndex].title}
+                              </span>
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-xs md:text-sm text-zinc-500">
+                            {language === "ko"
+                              ? "위에서 제목을 선택해주세요"
+                              : "Please select a title above"
+                            }
+                          </p>
+                        )}
+                      </div>
+                      <div className="relative">
                         <Button
-                          onClick={() => handleQuickGenerate()}
-                          className="bg-amber-400 text-black hover:bg-amber-500"
+                          onClick={() => setShowContentTypeMenu(!showContentTypeMenu)}
+                          disabled={selectedTitleIndex === null}
+                          className={`${
+                            selectedTitleIndex !== null
+                              ? 'bg-amber-400 text-black hover:bg-amber-500'
+                              : 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                          }`}
                         >
                           <Sparkles className="h-4 w-4 mr-2" />
                           {language === "ko" ? "콘텐츠 생성하기" : "Create Content"}
+                          <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${showContentTypeMenu ? 'rotate-90' : ''}`} />
                         </Button>
+
+                        {/* Content Type Selection Popup */}
+                        {showContentTypeMenu && selectedTitleIndex !== null && (
+                          <>
+                            {/* Backdrop */}
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setShowContentTypeMenu(false)}
+                            />
+                            {/* Menu */}
+                            <div className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                              <div className="p-2">
+                                <p className="text-xs text-zinc-500 px-2 py-1 mb-1">
+                                  {language === "ko" ? "콘텐츠 유형 선택" : "Select Content Type"}
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    const selectedTitle = topicDetails?.titles?.[selectedTitleIndex]?.title
+                                    handleQuickGenerate(selectedTitle)
+                                    setShowContentTypeMenu(false)
+                                  }}
+                                  className="w-full p-3 rounded-lg text-left hover:bg-zinc-800 transition-colors group"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-zinc-800 group-hover:bg-zinc-700 rounded-lg">
+                                      <FileText className="h-4 w-4 text-zinc-300" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-white">
+                                        {language === "ko" ? "일반 콘텐츠" : "Standard Content"}
+                                      </p>
+                                      <p className="text-xs text-zinc-500">
+                                        {language === "ko" ? "SNS 포스트, 블로그 글" : "SNS posts, blog articles"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const selectedTitle = topicDetails?.titles?.[selectedTitleIndex]?.title
+                                    handleScenarioGenerate(selectedTitle)
+                                    setShowContentTypeMenu(false)
+                                  }}
+                                  className="w-full p-3 rounded-lg text-left hover:bg-zinc-800 transition-colors group"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-400/20 group-hover:bg-amber-400/30 rounded-lg">
+                                      <BookOpen className="h-4 w-4 text-amber-400" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-white">
+                                        {language === "ko" ? "스토리텔링" : "Storytelling"}
+                                      </p>
+                                      <p className="text-xs text-zinc-500">
+                                        {language === "ko" ? "브랜드 스토리, 시나리오" : "Brand stories, scenarios"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

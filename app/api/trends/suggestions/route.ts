@@ -305,7 +305,7 @@ async function generateAISuggestions(
   brand: Brand | null,
   targetAudience: TargetAudience | null,
   language: string
-): Promise<Array<{ keyword: string; reason: string; priority: string }>> {
+): Promise<Array<{ keyword: string; reason: string; priority: string; source: string }>> {
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   })
@@ -360,7 +360,8 @@ JSON 형식으로 응답해주세요:
     {
       "keyword": "구체적인 마케팅 주제 (예: 필라테스 스튜디오를 위한 인스타그램 릴스 활용법)",
       "reason": "이 주제가 왜 효과적인지 구체적인 이유 (실시간 트렌드, 타겟 고객, 브랜드 특성 언급)",
-      "priority": "high/medium/low"
+      "priority": "high/medium/low",
+      "source": "이 토픽의 출처/근거 (예: 네이버 블로그, 인스타그램, 유튜브, 뉴스, Google 트렌드, AI 분석 등)"
     }
   ]
 }
@@ -392,7 +393,8 @@ Respond in JSON format:
     {
       "keyword": "Specific marketing topic (e.g., Instagram Reels Strategy for Pilates Studios)",
       "reason": "Specific reason why this topic is effective (mention real-time trends, target audience, brand characteristics)",
-      "priority": "high/medium/low"
+      "priority": "high/medium/low",
+      "source": "Source/basis for this topic (e.g., Instagram, YouTube, News, Google Trends, AI Analysis, etc.)"
     }
   ]
 }
@@ -427,33 +429,38 @@ Respond in JSON format:
   }
 }
 
-function getDefaultSuggestions(language: string): Array<{ keyword: string; reason: string; priority: string }> {
+function getDefaultSuggestions(language: string): Array<{ keyword: string; reason: string; priority: string; source: string }> {
   if (language === 'ko') {
     return [
       {
         keyword: '소셜미디어 참여율 3배 높이는 콘텐츠 기획법',
         reason: '타겟 고객의 실질적인 문제 해결에 집중한 실용적 주제로, 높은 콘텐츠 참여율이 예상됩니다',
-        priority: 'high'
+        priority: 'high',
+        source: 'AI 분석'
       },
       {
         keyword: '브랜드 인지도 구축을 위한 스토리텔링 전략',
         reason: '경쟁사 분석 결과 아직 많이 다루지 않은 차별화 가능한 토픽입니다',
-        priority: 'high'
+        priority: 'high',
+        source: 'AI 분석'
       },
       {
         keyword: '광고 비용 없이 유기적 도달률 높이는 방법',
         reason: '검색 의도가 명확해 구체적인 솔루션을 제공하면 고객 전환율이 높습니다',
-        priority: 'high'
+        priority: 'high',
+        source: 'AI 분석'
       },
       {
         keyword: '고객 충성도 높이는 커뮤니티 운영 전략',
         reason: '실행 가능한 전략을 담아 공유와 저장이 많이 발생하는 바이럴 잠재력이 높은 주제입니다',
-        priority: 'medium'
+        priority: 'medium',
+        source: 'AI 분석'
       },
       {
         keyword: 'ROI 측정 가능한 디지털 마케팅 KPI 설정법',
         reason: '최근 업계의 공통 pain point를 해결하는 시의성 있는 콘텐츠입니다',
-        priority: 'medium'
+        priority: 'medium',
+        source: 'AI 분석'
       }
     ]
   } else {
@@ -461,27 +468,32 @@ function getDefaultSuggestions(language: string): Array<{ keyword: string; reaso
       {
         keyword: 'Content Planning Method to Triple Social Media Engagement',
         reason: 'Practical topic focused on solving real customer problems, expected high content engagement',
-        priority: 'high'
+        priority: 'high',
+        source: 'AI Analysis'
       },
       {
         keyword: 'Storytelling Strategy to Build Brand Awareness',
         reason: 'Differentiated topic not widely covered by competitors yet based on competitive analysis',
-        priority: 'high'
+        priority: 'high',
+        source: 'AI Analysis'
       },
       {
         keyword: 'How to Increase Organic Reach Without Advertising Cost',
         reason: 'Clear search intent leads to high customer conversion when providing specific solutions',
-        priority: 'high'
+        priority: 'high',
+        source: 'AI Analysis'
       },
       {
         keyword: 'Community Management Strategy to Increase Customer Loyalty',
         reason: 'High viral potential with actionable strategies that generate shares and saves',
-        priority: 'medium'
+        priority: 'medium',
+        source: 'AI Analysis'
       },
       {
         keyword: 'Setting Measurable Digital Marketing KPIs for ROI Tracking',
         reason: 'Timely content addressing common pain points in the industry',
-        priority: 'medium'
+        priority: 'medium',
+        source: 'AI Analysis'
       }
     ]
   }
