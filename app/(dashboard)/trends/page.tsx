@@ -16,32 +16,85 @@ import { toast } from "sonner"
 
 export const dynamic = 'force-dynamic'
 
-// 기본 타겟 프리셋 (브랜드 페르소나가 없을 때 사용)
-const DEFAULT_TARGET_PRESETS = {
-  office_30s: {
-    ko: "30대 직장인 (커리어 성장, 워라밸 중시)",
-    en: "30s Professionals (career growth, work-life balance)"
-  },
-  gen_mz: {
-    ko: "MZ세대 (트렌드 민감, SNS 활발)",
-    en: "Gen MZ (trend-sensitive, social media active)"
-  },
-  parents: {
-    ko: "부모/가족 (육아, 가정에 관심)",
-    en: "Parents/Family (parenting, family-focused)"
-  },
-  students: {
-    ko: "대학생/취준생 (비용 민감, 성장 지향)",
-    en: "Students/Job Seekers (budget-conscious, growth-oriented)"
-  },
-  business: {
-    ko: "사업가 (효율, ROI 중시)",
-    en: "Business Owners (efficiency, ROI-focused)"
-  },
-  senior: {
-    ko: "50대 이상 (건강, 여유로운 삶 추구)",
-    en: "50s+ (health, quality of life)"
+// 브랜드 타입별 추천 타겟 매핑
+const BRAND_TYPE_TARGET_MAP: Record<string, { ko: string; en: string }[]> = {
+  // 정부/공공 서비스
+  government: [
+    { ko: "스타트업 대표/창업자 (투자, 자금조달 관심)", en: "Startup Founders (funding, investment)" },
+    { ko: "중소기업 대표 (R&D, 사업확장 목표)", en: "SMB CEOs (R&D, business expansion)" },
+    { ko: "예비 창업자 (사업 아이디어, 초기 자금)", en: "Pre-entrepreneurs (business ideas, initial funding)" },
+    { ko: "기업 연구소장/CTO (기술개발, 정부지원)", en: "R&D Directors/CTOs (tech development, gov support)" },
+  ],
+  // 건강/웰니스
+  health: [
+    { ko: "30-50대 건강 관심층 (자세교정, 통증관리)", en: "30-50s Health-conscious (posture, pain management)" },
+    { ko: "직장인 (사무직 피로, 스트레스 관리)", en: "Office workers (fatigue, stress management)" },
+    { ko: "운동 입문자 (체형관리, 건강습관)", en: "Exercise beginners (body management, healthy habits)" },
+    { ko: "시니어 (건강유지, 활력 회복)", en: "Seniors (health maintenance, vitality)" },
+  ],
+  // 교육/코칭
+  education: [
+    { ko: "학부모 (자녀 교육, 성장 지원)", en: "Parents (child education, growth support)" },
+    { ko: "직장인 (자기계발, 커리어 전환)", en: "Professionals (self-improvement, career change)" },
+    { ko: "대학생/취준생 (취업준비, 스킬업)", en: "Students (job preparation, skill building)" },
+    { ko: "창업 준비자 (비즈니스 스킬, 멘토링)", en: "Aspiring entrepreneurs (business skills, mentoring)" },
+  ],
+  // 뷰티/패션
+  beauty: [
+    { ko: "20-30대 여성 (트렌드, 셀프케어)", en: "20-30s Women (trends, self-care)" },
+    { ko: "피부 고민층 (트러블, 안티에이징)", en: "Skin-conscious (acne, anti-aging)" },
+    { ko: "직장인 (데일리 메이크업, 시간절약)", en: "Professionals (daily makeup, time-saving)" },
+    { ko: "뷰티 입문자 (기초, 추천 제품)", en: "Beauty beginners (basics, product recommendations)" },
+  ],
+  // 음식/외식
+  food: [
+    { ko: "맛집 탐방족 (신상 맛집, 데이트)", en: "Foodies (new restaurants, dating spots)" },
+    { ko: "혼밥족 (1인 식사, 가성비)", en: "Solo diners (single meals, value)" },
+    { ko: "건강식 관심층 (다이어트, 클린푸드)", en: "Health-conscious eaters (diet, clean food)" },
+    { ko: "요리 입문자 (홈쿡, 간단 레시피)", en: "Cooking beginners (home cooking, simple recipes)" },
+  ],
+  // IT/테크
+  tech: [
+    { ko: "개발자/엔지니어 (기술 트렌드, 툴)", en: "Developers/Engineers (tech trends, tools)" },
+    { ko: "IT 기업 의사결정자 (솔루션, ROI)", en: "IT Decision makers (solutions, ROI)" },
+    { ko: "디지털 전환 담당자 (DX, 자동화)", en: "Digital transformation leads (DX, automation)" },
+    { ko: "테크 얼리어답터 (신기술, 리뷰)", en: "Tech early adopters (new tech, reviews)" },
+  ],
+  // 기본값
+  default: [
+    { ko: "타겟 고객층 A (주요 니즈 중심)", en: "Target Audience A (main needs)" },
+    { ko: "타겟 고객층 B (보조 니즈 중심)", en: "Target Audience B (secondary needs)" },
+    { ko: "잠재 고객층 (인지도 확산)", en: "Potential customers (awareness)" },
+    { ko: "직접 입력으로 세부 타겟 설정", en: "Enter custom target details" },
+  ]
+}
+
+// 브랜드 정보로부터 타입 추론
+const inferBrandType = (brand: { name: string; description?: string; product_type?: string; target_market?: string[] } | null): string => {
+  if (!brand) return 'default'
+
+  const text = `${brand.name} ${brand.description || ''} ${brand.product_type || ''} ${(brand.target_market || []).join(' ')}`.toLowerCase()
+
+  if (text.includes('정부') || text.includes('과제') || text.includes('지원사업') || text.includes('r&d') || text.includes('창업지원') || text.includes('government')) {
+    return 'government'
   }
+  if (text.includes('필라테스') || text.includes('헬스') || text.includes('건강') || text.includes('피트니스') || text.includes('요가') || text.includes('health') || text.includes('fitness')) {
+    return 'health'
+  }
+  if (text.includes('교육') || text.includes('코칭') || text.includes('강의') || text.includes('academy') || text.includes('education') || text.includes('학원')) {
+    return 'education'
+  }
+  if (text.includes('뷰티') || text.includes('화장품') || text.includes('스킨케어') || text.includes('패션') || text.includes('beauty') || text.includes('cosmetic')) {
+    return 'beauty'
+  }
+  if (text.includes('음식') || text.includes('레스토랑') || text.includes('카페') || text.includes('맛집') || text.includes('food') || text.includes('restaurant')) {
+    return 'food'
+  }
+  if (text.includes('it') || text.includes('테크') || text.includes('소프트웨어') || text.includes('앱') || text.includes('tech') || text.includes('software') || text.includes('saas')) {
+    return 'tech'
+  }
+
+  return 'default'
 }
 
 interface BrandPersona {
@@ -83,16 +136,15 @@ export default function TrendsPage() {
   // Step state: 'target' | 'topics'
   const [currentStep, setCurrentStep] = useState<'target' | 'topics'>('target')
 
-  // Brand and persona state (kept for API compatibility)
-  const [brandInfo, setBrandInfo] = useState<{ name: string; description: string } | null>(null)
+  // Brand and persona state
+  const [brandInfo, setBrandInfo] = useState<{ name: string; description: string; product_type?: string; target_market?: string[] } | null>(null)
   const [personas, setPersonas] = useState<BrandPersona[]>([])
-  const [loadingPersonas, setLoadingPersonas] = useState(false)
+  const [loadingBrand, setLoadingBrand] = useState(true)
+  const [selectedTargetIndex, setSelectedTargetIndex] = useState<number>(0)
 
   // Target state
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null)
-  const [useCustomTarget, setUseCustomTarget] = useState(true)
   const [customTarget, setCustomTarget] = useState("")
-  const [targetPreset, setTargetPreset] = useState<string>("office_30s")
 
   // Topic state
   const [suggestions, setSuggestions] = useState<any>(null)
@@ -122,20 +174,21 @@ export default function TrendsPage() {
   const loadBrandAndPersonas = async () => {
     if (!selectedBrandId) return
 
-    setLoadingPersonas(true)
+    setLoadingBrand(true)
     try {
-      // Load brand info
+      // Load brand info with more fields
       const { data: brand } = await supabase
         .from('brands')
-        .select('name, description')
+        .select('name, description, product_type, target_market')
         .eq('id', selectedBrandId)
         .single()
 
       if (brand) {
         setBrandInfo(brand)
+        setSelectedTargetIndex(0) // Reset target selection when brand changes
       }
 
-      // Load personas
+      // Load personas (kept for API compatibility)
       const { data: personaData } = await supabase
         .from('personas')
         .select('*')
@@ -145,43 +198,39 @@ export default function TrendsPage() {
       if (personaData && personaData.length > 0) {
         const typedPersonas = personaData as BrandPersona[]
         setPersonas(typedPersonas)
-        // 기본적으로 primary persona 또는 첫 번째 선택
         const primary = typedPersonas.find(p => p.is_primary) || typedPersonas[0]
         setSelectedPersonaId(primary.id)
-        setUseCustomTarget(false)
       } else {
         setPersonas([])
         setSelectedPersonaId(null)
-        setUseCustomTarget(true)
       }
     } catch (error) {
       console.error("Failed to load brand data:", error)
     } finally {
-      setLoadingPersonas(false)
+      setLoadingBrand(false)
     }
+  }
+
+  // Get recommended targets based on brand type
+  const getRecommendedTargets = () => {
+    const brandType = inferBrandType(brandInfo)
+    return BRAND_TYPE_TARGET_MAP[brandType] || BRAND_TYPE_TARGET_MAP.default
   }
 
   // Get target audience description based on current selection
   const getTargetAudienceDescription = (): string => {
-    if (useCustomTarget && customTarget.trim()) {
+    // Custom input takes priority
+    if (customTarget.trim()) {
       return customTarget.trim()
     }
 
-    if (selectedPersonaId) {
-      const persona = personas.find(p => p.id === selectedPersonaId)
-      if (persona) {
-        const parts = []
-        if (persona.name) parts.push(persona.name)
-        if (persona.age_range) parts.push(`${persona.age_range}세`)
-        if (persona.job_title?.length) parts.push(persona.job_title.join(', '))
-        if (persona.pain_points?.length) parts.push(`고민: ${persona.pain_points.slice(0, 2).join(', ')}`)
-        if (persona.goals?.length) parts.push(`목표: ${persona.goals.slice(0, 2).join(', ')}`)
-        return parts.join(' | ')
-      }
+    // Use brand-specific recommended target
+    const targets = getRecommendedTargets()
+    if (targets[selectedTargetIndex]) {
+      return targets[selectedTargetIndex][language]
     }
 
-    // Fallback to preset
-    return DEFAULT_TARGET_PRESETS[targetPreset as keyof typeof DEFAULT_TARGET_PRESETS]?.[language] || ""
+    return ""
   }
 
   // Proceed to topics step
@@ -443,94 +492,124 @@ export default function TrendsPage() {
             </div>
           </div>
 
-          {/* Selected Target Info Bar */}
-          {getTargetAudienceDescription() && (
-            <div className="mb-6 p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-amber-400" />
-                <span className="text-sm text-zinc-300">
-                  {language === "ko" ? "선택된 타겟:" : "Selected:"}
-                  <span className="text-white font-medium ml-1">{getTargetAudienceDescription()}</span>
-                </span>
+          {/* Loading State */}
+          {loadingBrand ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-3 mx-auto"></div>
+                <p className="text-zinc-400 text-sm">
+                  {language === "ko" ? "브랜드 정보 로딩 중..." : "Loading brand info..."}
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Target Selection */}
-          <div className="flex-1 overflow-y-auto">
-            {/* Target Presets */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="h-4 w-4 text-amber-400" />
-                <h2 className="text-sm font-medium text-white">
-                  {language === "ko" ? "타겟 프리셋" : "Target Presets"}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.entries(DEFAULT_TARGET_PRESETS).map(([key, value]) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setTargetPreset(key)
-                      setCustomTarget("")
-                      setUseCustomTarget(true)
-                    }}
-                    className={`p-4 rounded-lg text-left transition-all ${
-                      useCustomTarget && targetPreset === key && !customTarget
-                        ? 'bg-amber-400/20 border-2 border-amber-400'
-                        : 'bg-zinc-900 border border-zinc-800 hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-white">{value[language]}</span>
-                      {useCustomTarget && targetPreset === key && !customTarget && (
-                        <CheckCircle2 className="h-4 w-4 text-amber-400 flex-shrink-0" />
-                      )}
+          ) : (
+            <>
+              {/* Brand Info Banner */}
+              {brandInfo && (
+                <div className="mb-6 p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-amber-400/20 flex items-center justify-center">
+                      <Sparkles className="h-5 w-5 text-amber-400" />
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-zinc-800"></div>
-              <span className="text-xs text-zinc-500">
-                {language === "ko" ? "또는 직접 입력" : "Or enter custom"}
-              </span>
-              <div className="flex-1 h-px bg-zinc-800"></div>
-            </div>
-
-            {/* Custom Target Input */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Edit3 className="h-4 w-4 text-blue-400" />
-                <label className="text-sm font-medium text-white">
-                  {language === "ko" ? "커스텀 타겟" : "Custom Target"}
-                </label>
-              </div>
-              <Input
-                placeholder={language === "ko"
-                  ? "예: 30-40대 여성, 건강에 관심 있는 직장인"
-                  : "e.g., 30-40s women, health-conscious professionals"
-                }
-                value={customTarget}
-                onChange={(e) => {
-                  setCustomTarget(e.target.value)
-                  setUseCustomTarget(true)
-                }}
-                className="bg-zinc-900 border-zinc-700 text-white"
-              />
-              {customTarget && (
-                <div className="mt-2 flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                  <span className="text-xs text-zinc-400">
-                    {language === "ko" ? "커스텀 타겟이 적용됩니다" : "Custom target will be applied"}
-                  </span>
+                    <div>
+                      <h3 className="font-medium text-white">{brandInfo.name}</h3>
+                      <p className="text-sm text-zinc-500">
+                        {brandInfo.description || (language === "ko" ? "브랜드 설명 없음" : "No description")}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
-          </div>
+
+              {/* Selected Target Info Bar */}
+              {getTargetAudienceDescription() && (
+                <div className="mb-6 p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-amber-400" />
+                    <span className="text-sm text-zinc-300">
+                      {language === "ko" ? "선택된 타겟:" : "Selected:"}
+                      <span className="text-white font-medium ml-1">{getTargetAudienceDescription()}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Target Selection */}
+              <div className="flex-1 overflow-y-auto">
+                {/* Brand-specific Recommended Targets */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="h-4 w-4 text-amber-400" />
+                    <h2 className="text-sm font-medium text-white">
+                      {language === "ko" ? "추천 타겟 고객" : "Recommended Targets"}
+                    </h2>
+                    <span className="text-xs text-zinc-500">
+                      ({language === "ko" ? `${brandInfo?.name || '브랜드'} 맞춤` : `for ${brandInfo?.name || 'brand'}`})
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {getRecommendedTargets().map((target, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedTargetIndex(idx)
+                          setCustomTarget("") // Clear custom input when selecting preset
+                        }}
+                        className={`p-4 rounded-lg text-left transition-all ${
+                          selectedTargetIndex === idx && !customTarget
+                            ? 'bg-amber-400/20 border-2 border-amber-400'
+                            : 'bg-zinc-900 border border-zinc-800 hover:border-zinc-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-white">{target[language]}</span>
+                          {selectedTargetIndex === idx && !customTarget && (
+                            <CheckCircle2 className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 my-6">
+                  <div className="flex-1 h-px bg-zinc-800"></div>
+                  <span className="text-xs text-zinc-500">
+                    {language === "ko" ? "또는 직접 입력" : "Or enter custom"}
+                  </span>
+                  <div className="flex-1 h-px bg-zinc-800"></div>
+                </div>
+
+                {/* Custom Target Input */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Edit3 className="h-4 w-4 text-blue-400" />
+                    <label className="text-sm font-medium text-white">
+                      {language === "ko" ? "직접 입력" : "Custom Target"}
+                    </label>
+                  </div>
+                  <Input
+                    placeholder={language === "ko"
+                      ? "예: 30-40대 여성, 건강에 관심 있는 직장인"
+                      : "e.g., 30-40s women, health-conscious professionals"
+                    }
+                    value={customTarget}
+                    onChange={(e) => setCustomTarget(e.target.value)}
+                    className="bg-zinc-900 border-zinc-700 text-white"
+                  />
+                  {customTarget && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-400" />
+                      <span className="text-xs text-zinc-400">
+                        {language === "ko" ? "직접 입력한 타겟이 적용됩니다" : "Custom target will be applied"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     )
