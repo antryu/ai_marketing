@@ -342,6 +342,14 @@ export default function TrendsPage() {
       toast.error(language === "ko" ? "타겟을 선택하거나 직접 입력해주세요" : "Please select or enter a target audience")
       return
     }
+
+    // Reset topic-related state when target changes
+    setSuggestions(null)
+    setAiSearchResults(null)
+    setSelectedTopic(null)
+    setTopicDetails(null)
+    setSelectedTitleIndex(null)
+
     setCurrentStep('topics')
     loadSuggestions()
   }
