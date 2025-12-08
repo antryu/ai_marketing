@@ -141,6 +141,7 @@ interface SavedTrendsState {
   selectedTopic: TopicItem | null
   topicDetails: TopicDetails | null
   selectedTitleIndex: number | null
+  lastUsedTarget: string
   timestamp: number
 }
 
@@ -185,6 +186,9 @@ export default function TrendsPage() {
   const [stateRestored, setStateRestored] = useState(false)
   const [showContentTypeMenu, setShowContentTypeMenu] = useState(false)
 
+  // 마지막으로 사용한 타겟 (변경 감지용)
+  const [lastUsedTarget, setLastUsedTarget] = useState<string>("")
+
   // 세션 스토리지에서 상태 복원 (페이지 로드 시 한 번만)
   useEffect(() => {
     if (typeof window === 'undefined' || !selectedBrandId || stateRestored) return
@@ -209,6 +213,7 @@ export default function TrendsPage() {
           setAiSearchResults(savedState.aiSearchResults)
           setSelectedTopic(savedState.selectedTopic)
           setSelectedTitleIndex(savedState.selectedTitleIndex)
+          setLastUsedTarget(savedState.lastUsedTarget || "")
 
           // topicDetails는 loading 상태 제외하고 복원
           if (savedState.topicDetails) {
@@ -244,6 +249,7 @@ export default function TrendsPage() {
       selectedTopic,
       topicDetails,
       selectedTitleIndex,
+      lastUsedTarget,
       timestamp: Date.now()
     }
 
@@ -263,6 +269,7 @@ export default function TrendsPage() {
     selectedTopic,
     topicDetails,
     selectedTitleIndex,
+    lastUsedTarget,
     stateRestored
   ])
 
@@ -343,15 +350,22 @@ export default function TrendsPage() {
       return
     }
 
-    // Reset topic-related state when target changes
-    setSuggestions(null)
-    setAiSearchResults(null)
-    setSelectedTopic(null)
-    setTopicDetails(null)
-    setSelectedTitleIndex(null)
+    // 타겟이 변경된 경우에만 토픽 관련 상태 초기화
+    if (lastUsedTarget !== target) {
+      setSuggestions(null)
+      setAiSearchResults(null)
+      setSelectedTopic(null)
+      setTopicDetails(null)
+      setSelectedTitleIndex(null)
+      setLastUsedTarget(target)
+    }
 
     setCurrentStep('topics')
-    loadSuggestions()
+
+    // 토픽이 없는 경우에만 새로 로드
+    if (!suggestions || lastUsedTarget !== target) {
+      loadSuggestions()
+    }
   }
 
   const loadSuggestions = async () => {
