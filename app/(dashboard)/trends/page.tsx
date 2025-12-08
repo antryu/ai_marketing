@@ -746,8 +746,8 @@ export default function TrendsPage() {
 
   // STEP 2: Topics View
   return (
-    <div className="p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="p-6 h-[calc(100vh-64px)] flex flex-col">
+      <div className="max-w-6xl mx-auto w-full flex flex-col flex-1 min-h-0">
 
         {/* Header with Target Info */}
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
@@ -785,11 +785,11 @@ export default function TrendsPage() {
         </div>
 
         {/* Main Content - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
 
           {/* Left Panel - Topic List */}
-          <div>
-            <Card className="bg-zinc-900 border-zinc-800">
+          <div className="flex flex-col min-h-0 h-full">
+            <Card className="bg-zinc-900 border-zinc-800 flex flex-col flex-1 min-h-0">
               {/* Topic List Header */}
               <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -813,7 +813,7 @@ export default function TrendsPage() {
               </div>
 
               {/* Topic List */}
-              <div className="p-3 max-h-[500px] overflow-y-auto">
+              <div className="p-3 flex-1 overflow-y-auto min-h-0">
                 {loadingSuggestions ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-3"></div>
@@ -908,8 +908,8 @@ export default function TrendsPage() {
           </div>
 
           {/* Right Panel - Topic Details */}
-          <div>
-            <Card className="bg-zinc-900 border-zinc-800">
+          <div className="flex flex-col min-h-0 h-full">
+            <Card className="bg-zinc-900 border-zinc-800 flex flex-col flex-1 min-h-0">
               {!selectedTopic ? (
                 // Empty State
                 <div className="flex-1 flex flex-col items-center justify-center p-8">
@@ -944,7 +944,7 @@ export default function TrendsPage() {
                   </div>
 
                   {/* Content Area */}
-                  <div className="p-4">
+                  <div className="p-4 flex-1 overflow-y-auto min-h-0">
                     {topicDetails?.loading ? (
                       <div className="flex flex-col items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400 mb-3"></div>
@@ -1162,3 +1162,4 @@ export default function TrendsPage() {
     </div>
   )
 }
+
