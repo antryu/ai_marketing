@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, Lightbulb, ChevronDown, ChevronUp, Copy, Check } from "lucide-react"
+import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, Lightbulb, ChevronDown, ChevronUp, Copy, Check, Edit3 } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -35,9 +35,6 @@ export default function ContentCreatePage() {
   const [videoProject, setVideoProject] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [loadingBrands, setLoadingBrands] = useState(true)
-  const [compareMode, setCompareMode] = useState(false)
-  const [comparison, setComparison] = useState<any>(null)
-  const [ollamaModel, setOllamaModel] = useState("claude")
   const [usedAiModel, setUsedAiModel] = useState("")
   const [seoSuggestions, setSeoSuggestions] = useState<any>(null)
   const [loadingSeo, setLoadingSeo] = useState(false)
@@ -45,11 +42,17 @@ export default function ContentCreatePage() {
   const [manualKeyword, setManualKeyword] = useState("")
   const [saving, setSaving] = useState(false)
   const [seoStep, setSeoStep] = useState(false) // SEO 단계 활성화 여부
-  const [targetPreset, setTargetPreset] = useState("") // 타겟 프리셋
-  const [customTarget, setCustomTarget] = useState("") // 직접 입력 타겟
-  const [targetFromTrends, setTargetFromTrends] = useState(false) // 트렌드 페이지에서 타겟이 전달되었는지 여부
   const [contentId, setContentId] = useState<string | null>(null) // 생성된 콘텐츠 ID (수정용)
   const [refining, setRefining] = useState(false) // 콘텐츠 수정 중
+  const [isEditing, setIsEditing] = useState(false) // 직접 수정 모드
+  const [editedContent, setEditedContent] = useState("") // 수정 중인 콘텐츠
+
+  // Image generation states
+  const [imagePrompt, setImagePrompt] = useState("")
+  const [imageStyle, setImageStyle] = useState<"realistic" | "illustration" | "minimal" | "vibrant">("realistic")
+  const [imageAspectRatio, setImageAspectRatio] = useState<"1:1" | "16:9" | "9:16" | "4:3">("1:1")
+  const [generatedImageUrl, setGeneratedImageUrl] = useState("")
+  const [generatingImage, setGeneratingImage] = useState(false)
 
   // Suggestions from trends page
   const [suggestedHooks, setSuggestedHooks] = useState<string[]>([])
@@ -64,13 +67,6 @@ export default function ContentCreatePage() {
     const topicParam = searchParams.get('topic')
     if (topicParam) {
       setTopic(topicParam)
-    }
-
-    // Load target from URL parameter (passed from trends page)
-    const targetParam = searchParams.get('target')
-    if (targetParam) {
-      setTargetPreset(targetParam)
-      setTargetFromTrends(true) // 트렌드에서 전달된 타겟임을 표시
     }
 
     // Load hooks from URL parameter (passed from trends page)
@@ -206,26 +202,13 @@ export default function ContentCreatePage() {
     }
 
     setLoading(true)
-    setComparison(null)
 
     try {
       if (contentType === "text") {
-        const endpoint = compareMode ? "/api/content/compare" : "/api/content/generate"
-
         // "all" 플랫폼인 경우 네이버 블로그 기준으로 생성
         const targetPlatform = platform === "all" ? "naver" : platform
 
-        // 타겟 정보 구성
-        const targetAudience = customTarget || (targetPreset ? {
-          office_30s: language === "ko" ? "30대 직장인 (커리어 성장, 워라밸 중시)" : "30s Professionals (career growth, work-life balance)",
-          gen_mz: language === "ko" ? "MZ세대 (트렌드 민감, SNS 활발)" : "Gen MZ (trend-sensitive, social media active)",
-          parents: language === "ko" ? "부모/가족 (육아, 가정에 관심)" : "Parents/Family (parenting, family-focused)",
-          students: language === "ko" ? "대학생/취준생 (비용 민감, 성장 지향)" : "Students/Job Seekers (budget-conscious, growth-oriented)",
-          business: language === "ko" ? "사업가 (효율, ROI 중시)" : "Business Owners (efficiency, ROI-focused)",
-          senior: language === "ko" ? "50대 이상 (건강, 여유로운 삶 추구)" : "50s+ (health, quality of life)",
-        }[targetPreset] : null)
-
-        const response = await fetch(endpoint, {
+        const response = await fetch("/api/content/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -235,11 +218,8 @@ export default function ContentCreatePage() {
             tone,
             length,
             writerPersonaId: selectedWriterPersona || null,
-            aiModel: ollamaModel === "claude" ? null : ollamaModel, // claude 선택 시 null, 나머지는 모델명 전달
-            language, // 언어 추가
-            seoKeywords: selectedKeywords.length > 0 ? selectedKeywords : null, // SEO 키워드 추가
-            targetAudience, // 타겟 고객 추가
-            ...(compareMode && { ollamaModel: ollamaModel === "claude" ? "qwen2.5:7b" : ollamaModel })
+            language,
+            seoKeywords: selectedKeywords.length > 0 ? selectedKeywords : null,
           })
         })
 
@@ -249,22 +229,13 @@ export default function ContentCreatePage() {
           throw new Error(data.error || t("contentGenerationFailed"))
         }
 
-        if (compareMode) {
-          setComparison(data.comparison)
-          toast.success(`${t("comparisonComplete")} (${(data.comparison.generationTime / 1000).toFixed(1)}초)`)
-        } else {
-          setGeneratedContent(data.generated)
-          // 생성된 콘텐츠 ID 저장 (수정 기능용)
-          if (data.content?.id) {
-            setContentId(data.content.id)
-          }
-          // 사용된 AI 모델 표시
-          const modelUsed = ollamaModel === "claude" ? "Claude (Haiku)" :
-                           ollamaModel === "qwen2.5:7b" ? "Qwen 2.5 7B" :
-                           ollamaModel === "gemma2:2b" ? "Gemma2 2B" : ollamaModel
-          setUsedAiModel(modelUsed)
-          toast.success(`${t("contentGenerated")} (${language === "ko" ? "모델" : "Model"}: ${modelUsed})`)
+        setGeneratedContent(data.generated)
+        // 생성된 콘텐츠 ID 저장 (수정 기능용)
+        if (data.content?.id) {
+          setContentId(data.content.id)
         }
+        setUsedAiModel("Claude")
+        toast.success(t("contentGenerated"))
       } else {
         // Video generation
         // "all" 플랫폼인 경우 네이버 블로그 기준으로 생성
@@ -279,7 +250,6 @@ export default function ContentCreatePage() {
             platform: targetPlatform,
             duration: 15,
             style: tone,
-            aiModel: ollamaModel
           })
         })
 
@@ -303,6 +273,75 @@ export default function ContentCreatePage() {
 
   const handlePublish = async () => {
     toast.success(t("publishSoon"))
+  }
+
+  // Image generation handler
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim()) {
+      toast.error(language === "ko" ? "이미지 설명을 입력해주세요" : "Please enter image description")
+      return
+    }
+
+    if (!selectedBrand) {
+      toast.error(t("productSelectRequired"))
+      return
+    }
+
+    setGeneratingImage(true)
+    setGeneratedImageUrl("")
+
+    try {
+      const response = await fetch("/api/image/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: imagePrompt,
+          brandId: selectedBrand,
+          style: imageStyle,
+          aspectRatio: imageAspectRatio,
+          language,
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || (language === "ko" ? "이미지 생성 실패" : "Image generation failed"))
+      }
+
+      setGeneratedImageUrl(data.imageUrl)
+      if (data.content?.id) {
+        setContentId(data.content.id)
+      }
+      toast.success(language === "ko" ? "이미지가 생성되었습니다!" : "Image generated!")
+
+    } catch (error: any) {
+      console.error("Image generation error:", error)
+      toast.error(error.message || (language === "ko" ? "이미지 생성 실패" : "Image generation failed"))
+    } finally {
+      setGeneratingImage(false)
+    }
+  }
+
+  // Download generated image
+  const handleDownloadImage = async () => {
+    if (!generatedImageUrl) return
+
+    try {
+      const response = await fetch(generatedImageUrl)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${imagePrompt.slice(0, 30) || 'image'}-${Date.now()}.webp`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success(language === "ko" ? "이미지 다운로드 완료" : "Image downloaded")
+    } catch (error) {
+      toast.error(language === "ko" ? "다운로드 실패" : "Download failed")
+    }
   }
 
   // 콘텐츠 수정 함수
@@ -561,13 +600,9 @@ export default function ContentCreatePage() {
                       : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
                     }
                   `}
-                  disabled
                 >
                   <Image className="w-5 h-5" />
                   <span className="font-medium text-sm">{language === "ko" ? "이미지" : "Image"}</span>
-                  <span className="absolute top-1 right-1 text-[10px] bg-zinc-700 text-zinc-400 px-2 py-0.5 rounded">
-                    {language === "ko" ? "준비중" : "Soon"}
-                  </span>
                 </button>
                 <button
                   onClick={() => setContentType("video")}
@@ -605,6 +640,118 @@ export default function ContentCreatePage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Image Generation Options - Only show when image type is selected */}
+            {contentType === "image" && (
+              <>
+                {/* Image Prompt */}
+                <div className="space-y-2">
+                  <Label>{language === "ko" ? "이미지 설명" : "Image Description"}</Label>
+                  <Textarea
+                    placeholder={language === "ko" ? "생성하고 싶은 이미지를 자세히 설명해주세요...\n예: 커피숍에서 노트북으로 일하는 젊은 직장인의 모습" : "Describe the image you want to create...\nExample: A young professional working on a laptop in a coffee shop"}
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                {/* Image Style Selection */}
+                <div className="space-y-2">
+                  <Label>{language === "ko" ? "이미지 스타일" : "Image Style"}</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: "realistic", emoji: "📷", labelKo: "사실적", labelEn: "Realistic", descKo: "실제 사진같은 스타일", descEn: "Photo-realistic style" },
+                      { value: "illustration", emoji: "🎨", labelKo: "일러스트", labelEn: "Illustration", descKo: "디지털 아트 스타일", descEn: "Digital art style" },
+                      { value: "minimal", emoji: "⬜", labelKo: "미니멀", labelEn: "Minimal", descKo: "깔끔하고 심플한", descEn: "Clean and simple" },
+                      { value: "vibrant", emoji: "🌈", labelKo: "생동감", labelEn: "Vibrant", descKo: "선명한 색상과 다이나믹", descEn: "Bold colors and dynamic" },
+                    ].map((style) => (
+                      <button
+                        key={style.value}
+                        onClick={() => setImageStyle(style.value as any)}
+                        className={`
+                          p-3 rounded border transition-all text-left
+                          ${imageStyle === style.value
+                            ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                            : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{style.emoji}</span>
+                          <span className={`text-sm font-medium ${imageStyle === style.value ? "text-amber-400" : "text-zinc-300"}`}>
+                            {language === "ko" ? style.labelKo : style.labelEn}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-500 ml-7">
+                          {language === "ko" ? style.descKo : style.descEn}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Aspect Ratio Selection */}
+                <div className="space-y-2">
+                  <Label>{language === "ko" ? "이미지 비율" : "Aspect Ratio"}</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { value: "1:1", labelKo: "정사각형", labelEn: "Square", icon: "⬜" },
+                      { value: "16:9", labelKo: "가로형", labelEn: "Landscape", icon: "🖼️" },
+                      { value: "9:16", labelKo: "세로형", labelEn: "Portrait", icon: "📱" },
+                      { value: "4:3", labelKo: "표준", labelEn: "Standard", icon: "🖥️" },
+                    ].map((ratio) => (
+                      <button
+                        key={ratio.value}
+                        onClick={() => setImageAspectRatio(ratio.value as any)}
+                        className={`
+                          p-3 rounded border transition-all text-center
+                          ${imageAspectRatio === ratio.value
+                            ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                            : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                          }
+                        `}
+                      >
+                        <span className="text-lg block mb-1">{ratio.icon}</span>
+                        <span className="text-xs font-medium">
+                          {language === "ko" ? ratio.labelKo : ratio.labelEn}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 block">{ratio.value}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Generate Image Button */}
+                <Button
+                  onClick={handleGenerateImage}
+                  disabled={generatingImage || !imagePrompt.trim()}
+                  className="w-full h-12 text-base group bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400"
+                >
+                  {generatingImage ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
+                    </>
+                  ) : (
+                    <>
+                      <Image className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      {language === "ko" ? "이미지 생성" : "Generate Image"}
+                    </>
+                  )}
+                </Button>
+
+                {/* Info */}
+                <div className="p-3 bg-zinc-800/50 border border-zinc-700 rounded text-xs text-zinc-400">
+                  <p className="flex items-center gap-2">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    {language === "ko"
+                      ? "FLUX.1 schnell 모델을 사용하여 고품질 이미지를 빠르게 생성합니다."
+                      : "Uses FLUX.1 schnell model for fast, high-quality image generation."
+                    }
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* Brand Voice Selection */}
             {contentType === "text" && writerPersonas.length > 0 && (
@@ -710,90 +857,6 @@ export default function ContentCreatePage() {
               </div>
             )}
 
-            {/* AI Model Selection */}
-            <div className="space-y-2">
-              {contentType === "text" && (
-                <>
-                  {/* AI 모델 비교 토글 */}
-                  <div className="flex items-center justify-between">
-                    <Label>{t("aiModelComparison")}</Label>
-                    <div className="flex gap-1 bg-zinc-900/50 border border-zinc-700 rounded p-0.5">
-                      <button
-                        onClick={() => setCompareMode(false)}
-                        className={`
-                          px-3 py-1 text-xs rounded transition-all
-                          ${!compareMode
-                            ? "bg-zinc-800 border border-zinc-600 text-white"
-                            : "text-zinc-400 hover:text-zinc-300"
-                          }
-                        `}
-                      >
-                        OFF
-                      </button>
-                      <button
-                        onClick={() => setCompareMode(true)}
-                        className={`
-                          px-3 py-1 text-xs rounded transition-all
-                          ${compareMode
-                            ? "bg-amber-500/20 border border-amber-500 text-amber-400"
-                            : "text-zinc-400 hover:text-zinc-300"
-                          }
-                        `}
-                      >
-                        ON
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 비교 모드 OFF: 모델 선택 */}
-                  {!compareMode && (
-                    <>
-                      <Label>{t("aiModel")}</Label>
-                      <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded">
-                        <p className="text-sm text-white font-medium flex items-center gap-2">
-                          🟣 Claude
-                        </p>
-                        <p className="text-xs text-zinc-400 mt-1">
-                          {language === "ko" ? "Anthropic의 Claude Opus 4.5 모델을 사용합니다" : "Powered by Anthropic's Claude Opus 4.5"}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* 비교 모드 ON: Ollama 모델 선택 */}
-                  {compareMode && (
-                    <>
-                      <Label>{t("compareOllamaModel")}</Label>
-                      <div className="p-4 bg-zinc-800/50 border border-amber-500/30 rounded space-y-2">
-                        <p className="text-sm text-amber-400 font-medium flex items-center gap-2">
-                          ⚠️ {language === "ko" ? "비교 모드 사용 불가" : "Comparison Mode Unavailable"}
-                        </p>
-                        <p className="text-xs text-zinc-400">
-                          {language === "ko"
-                            ? "Ollama 모델은 Vercel 서버에서 작동하지 않습니다. 로컬 환경에서만 사용 가능합니다."
-                            : "Ollama models don't work on Vercel servers. Available only in local environment."
-                          }
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-              {contentType === "video" && (
-                <>
-                  <Label>{t("aiModel")}</Label>
-                  <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded">
-                    <p className="text-sm text-white font-medium flex items-center gap-2">
-                      🟣 Claude
-                    </p>
-                    <p className="text-xs text-zinc-400 mt-1">
-                      {language === "ko" ? "Anthropic의 Claude Opus 4.5 모델을 사용합니다" : "Powered by Anthropic's Claude Opus 4.5"}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-
             {/* Platform Selection */}
             <div className="space-y-2">
               <Label>{t("platform")}</Label>
@@ -811,129 +874,6 @@ export default function ContentCreatePage() {
                   <SelectItem value="tistory">{t("platformTistory")}</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Target Selection - Visual Preset Style */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>{language === "ko" ? "타겟 고객" : "Target Audience"}</Label>
-                {targetFromTrends ? (
-                  <span className="text-xs text-amber-400">
-                    {language === "ko" ? "✓ 트렌드에서 선택됨" : "✓ From Trends"}
-                  </span>
-                ) : (
-                  <span className="text-xs text-zinc-500">
-                    {language === "ko" ? "선택 사항" : "Optional"}
-                  </span>
-                )}
-              </div>
-
-              {/* 트렌드에서 전달된 타겟이 있으면 간단한 표시만 */}
-              {targetFromTrends && targetPreset ? (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                  {(() => {
-                    const targetOptions = [
-                      { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", labelEn: "30s Professionals", descKo: "커리어 성장, 워라밸 중시", descEn: "Career growth, work-life balance" },
-                      { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", labelEn: "Gen MZ", descKo: "트렌드 민감, SNS 활발", descEn: "Trend-sensitive, social media active" },
-                      { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", labelEn: "Parents/Family", descKo: "육아, 가정에 관심", descEn: "Parenting, family-focused" },
-                      { value: "students", emoji: "🎓", labelKo: "대학생/취준생", labelEn: "Students/Job Seekers", descKo: "비용 민감, 성장 지향", descEn: "Budget-conscious, growth-oriented" },
-                      { value: "business", emoji: "💼", labelKo: "사업가", labelEn: "Business Owners", descKo: "효율, ROI 중시", descEn: "Efficiency, ROI-focused" },
-                      { value: "senior", emoji: "👴", labelKo: "50대+", labelEn: "50s+", descKo: "건강, 여유로운 삶 추구", descEn: "Health, quality of life" },
-                    ]
-                    const selected = targetOptions.find(t => t.value === targetPreset)
-                    if (!selected) return null
-                    return (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{selected.emoji}</span>
-                          <div>
-                            <p className="text-amber-400 font-medium">
-                              {language === "ko" ? selected.labelKo : selected.labelEn}
-                            </p>
-                            <p className="text-xs text-zinc-400">
-                              {language === "ko" ? selected.descKo : selected.descEn}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setTargetFromTrends(false)
-                            setTargetPreset("")
-                          }}
-                          className="text-xs text-zinc-400 hover:text-zinc-300 underline"
-                        >
-                          {language === "ko" ? "변경" : "Change"}
-                        </button>
-                      </div>
-                    )
-                  })()}
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "office_30s", emoji: "👩‍💼", labelKo: "30대 직장인", labelEn: "30s Professionals", descKo: "커리어 성장, 워라밸", descEn: "Career growth, work-life balance" },
-                      { value: "gen_mz", emoji: "✨", labelKo: "MZ세대", labelEn: "Gen MZ", descKo: "트렌드 민감, SNS 활발", descEn: "Trend-sensitive, social media active" },
-                      { value: "parents", emoji: "👨‍👩‍👧", labelKo: "부모/가족", labelEn: "Parents/Family", descKo: "육아, 가정 관심", descEn: "Parenting, family-focused" },
-                      { value: "students", emoji: "🎓", labelKo: "대학생/취준생", labelEn: "Students/Job Seekers", descKo: "비용 민감, 성장 지향", descEn: "Budget-conscious, growth-oriented" },
-                      { value: "business", emoji: "💼", labelKo: "사업가", labelEn: "Business Owners", descKo: "효율, ROI 중시", descEn: "Efficiency, ROI-focused" },
-                      { value: "senior", emoji: "👴", labelKo: "50대+", labelEn: "50s+", descKo: "건강, 여유로운 삶", descEn: "Health, quality of life" },
-                    ].map((targetOption) => (
-                      <button
-                        key={targetOption.value}
-                        onClick={() => {
-                          setTargetPreset(targetPreset === targetOption.value ? "" : targetOption.value)
-                          if (targetPreset !== targetOption.value) setCustomTarget("") // 프리셋 선택 시 직접 입력 초기화
-                        }}
-                        className={`
-                          p-3 rounded border transition-all text-left
-                          ${targetPreset === targetOption.value
-                            ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                            : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                          }
-                        `}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">{targetOption.emoji}</span>
-                          <span className={`text-sm font-medium ${targetPreset === targetOption.value ? "text-amber-400" : "text-zinc-300"}`}>
-                            {language === "ko" ? targetOption.labelKo : targetOption.labelEn}
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-500 ml-7">
-                          {language === "ko" ? targetOption.descKo : targetOption.descEn}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Custom Target Input */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-px bg-zinc-700"></div>
-                      <span className="text-xs text-zinc-500">{language === "ko" ? "또는 직접 입력" : "or enter manually"}</span>
-                      <div className="flex-1 h-px bg-zinc-700"></div>
-                    </div>
-                    <Input
-                      placeholder={language === "ko" ? "예: 첫 창업을 준비하는 20대 후반 직장인" : "e.g., Late 20s professionals preparing for first startup"}
-                      value={customTarget}
-                      onChange={(e) => {
-                        setCustomTarget(e.target.value)
-                        if (e.target.value) setTargetPreset("") // 직접 입력 시 프리셋 선택 해제
-                      }}
-                      className="text-sm"
-                    />
-                  </div>
-
-                  {/* Empty State Hint */}
-                  {!targetPreset && !customTarget && (
-                    <p className="text-xs text-zinc-500 bg-zinc-800/30 p-2 rounded border border-zinc-700/50">
-                      💡 {language === "ko"
-                        ? "비워두면 브랜드 설명에서 AI가 자동으로 타겟을 추론합니다"
-                        : "Leave empty and AI will auto-infer target from brand description"}
-                    </p>
-                  )}
-                </>
-              )}
             </div>
 
             {/* Tone Selection - Visual Preset Style */}
@@ -1009,20 +949,35 @@ export default function ContentCreatePage() {
                   </>
                 )}
               </Button>
-            ) : contentType === "text" && seoStep ? (
+            ) : contentType === "text" && seoStep && !generatedContent ? (
+              // SEO 단계에서는 왼쪽에 "1단계로 돌아가기" 버튼만 표시 (2단계 버튼은 오른쪽 패널에)
               <Button
-                onClick={handleGenerate}
-                disabled={loading}
-                className="w-full h-12 text-base group"
+                onClick={() => {
+                  setSeoStep(false)
+                  setSeoSuggestions(null)
+                  setSelectedKeywords([])
+                }}
+                variant="outline"
+                className="w-full h-12 text-base group border-zinc-600 hover:border-zinc-500"
               >
-                {loading ? (
-                  <>{t("generating")}</>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                    {language === "ko" ? "2단계: 콘텐츠 생성" : "Step 2: Generate Content"}
-                  </>
-                )}
+                <Tag className="w-5 h-5 mr-2" />
+                {language === "ko" ? "← 1단계로 돌아가기" : "← Back to Step 1"}
+              </Button>
+            ) : contentType === "text" && generatedContent ? (
+              // 콘텐츠 생성 후에는 "새로 시작" 버튼
+              <Button
+                onClick={() => {
+                  setSeoStep(false)
+                  setSeoSuggestions(null)
+                  setSelectedKeywords([])
+                  setGeneratedContent("")
+                  setContentId(null)
+                }}
+                variant="outline"
+                className="w-full h-12 text-base group border-zinc-600 hover:border-zinc-500"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                {language === "ko" ? "새로 시작하기" : "Start Over"}
               </Button>
             ) : (
               <Button
@@ -1047,10 +1002,10 @@ export default function ContentCreatePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-light text-white tracking-wide">
-                  {compareMode && comparison ? t("aiComparison") : seoStep && !generatedContent ? (language === "ko" ? "SEO 키워드 선택" : "Select SEO Keywords") : t("preview")}
+                  {seoStep && !generatedContent ? (language === "ko" ? "SEO 키워드 선택" : "Select SEO Keywords") : t("preview")}
                 </h2>
                 <p className="text-zinc-400 text-xs font-normal tracking-wide mt-1">
-                  {compareMode && comparison ? "Claude vs Ollama" : seoStep && !generatedContent ? (language === "ko" ? "원하는 키워드를 선택하고 콘텐츠를 생성하세요" : "Select keywords and generate content") : t("generatedContentPreview")}
+                  {seoStep && !generatedContent ? (language === "ko" ? "원하는 키워드를 선택하고 콘텐츠를 생성하세요" : "Select keywords and generate content") : t("generatedContentPreview")}
                 </p>
               </div>
               <Sparkles className="w-5 h-5 text-amber-400" />
@@ -1224,75 +1179,23 @@ export default function ContentCreatePage() {
                   )}
 
                   {/* Continue Button */}
-                  <div className="pt-4 border-t border-zinc-700">
-                    <p className="text-xs text-zinc-400 mb-3">
+                  <div className="pt-4 border-t border-zinc-700 space-y-3">
+                    <p className="text-xs text-zinc-400">
                       {language === "ko" ? "키워드를 선택하지 않고 진행하면 SEO 최적화 없이 콘텐츠가 생성됩니다." : "If you proceed without selecting keywords, content will be generated without SEO optimization."}
                     </p>
-                  </div>
-                </div>
-              </div>
-            ) : comparison ? (
-              <div className="space-y-4">
-                {/* Claude Result */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-amber-400">Claude (Haiku)</h3>
-                    {comparison.claude.error && (
-                      <span className="text-xs text-red-400">❌ {comparison.claude.error}</span>
-                    )}
-                  </div>
-                  {comparison.claude.content && (
-                    <Textarea
-                      value={comparison.claude.content}
-                      readOnly
-                      rows={8}
-                      className="resize-none text-sm"
-                    />
-                  )}
-                </div>
-
-                {/* Ollama Result */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-blue-400">Ollama ({comparison.ollama.model})</h3>
-                    {comparison.ollama.error && (
-                      <span className="text-xs text-red-400">❌ {comparison.ollama.error}</span>
-                    )}
-                  </div>
-                  {comparison.ollama.content && (
-                    <Textarea
-                      value={comparison.ollama.content}
-                      readOnly
-                      rows={8}
-                      className="resize-none text-sm"
-                    />
-                  )}
-                </div>
-
-                {/* Stats */}
-                <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
-                  <div className="flex justify-between items-center text-xs text-zinc-400">
-                    <span>{t("generationTime")} {(comparison.generationTime / 1000).toFixed(2)}{language === "ko" ? "초" : "s"}</span>
-                    <button
-                      onClick={() => {
-                        setComparison(null)
-                        setCompareMode(false)
-                      }}
-                      className="text-amber-400 hover:text-amber-300"
-                    >
-                      {t("closeComparison")}
-                    </button>
-                  </div>
-                  <div className="pt-3 border-t border-zinc-700">
-                    <p className="text-xs text-zinc-400 mb-3">
-                      {t("comparisonTip")}
-                    </p>
                     <Button
-                      onClick={() => router.push('/content')}
-                      className="w-full bg-amber-500/20 border border-amber-500 text-amber-400 hover:bg-amber-500/30"
+                      onClick={handleGenerate}
+                      disabled={loading}
+                      className="w-full h-12 text-base group bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400"
                     >
-                      <FileText className="w-4 h-4 mr-2" />
-                      {t("goToContentList")}
+                      {loading ? (
+                        <>{t("generating")}</>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                          {language === "ko" ? "2단계: 콘텐츠 생성" : "Step 2: Generate Content"}
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -1300,12 +1203,82 @@ export default function ContentCreatePage() {
             ) : generatedContent ? (
               <div className="space-y-6">
                 <div className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+                  {/* Content Header with Edit Toggle */}
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-900/50">
+                    <span className="text-xs text-zinc-400">
+                      {isEditing
+                        ? (language === "ko" ? "직접 수정 모드" : "Edit Mode")
+                        : (language === "ko" ? "미리보기" : "Preview")
+                      }
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (!isEditing) {
+                          setEditedContent(generatedContent)
+                        }
+                        setIsEditing(!isEditing)
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs transition-all ${
+                        isEditing
+                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/50"
+                          : "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
+                      }`}
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      {isEditing
+                        ? (language === "ko" ? "미리보기" : "Preview")
+                        : (language === "ko" ? "직접 수정" : "Edit")
+                      }
+                    </button>
+                  </div>
+
                   {/* Content */}
                   <div className="p-6 max-h-[500px] overflow-y-auto">
-                    <div className="text-white prose prose-invert prose-sm max-w-none break-words [overflow-wrap:anywhere] [word-break:break-word]">
-                      <ReactMarkdown>{generatedContent}</ReactMarkdown>
-                    </div>
+                    {isEditing ? (
+                      <Textarea
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className="min-h-[400px] bg-zinc-900 border-zinc-700 text-white resize-none font-mono text-sm"
+                        placeholder={language === "ko" ? "콘텐츠를 수정하세요..." : "Edit your content..."}
+                      />
+                    ) : (
+                      <div className="text-white prose prose-invert prose-sm max-w-none break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                        <ReactMarkdown>{generatedContent}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Save Edit Button */}
+                  {isEditing && editedContent !== generatedContent && (
+                    <div className="px-4 py-3 border-t border-zinc-700 bg-zinc-900/50 flex items-center justify-between">
+                      <span className="text-xs text-amber-400">
+                        {language === "ko" ? "변경사항이 있습니다" : "You have unsaved changes"}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            setEditedContent(generatedContent)
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs border-zinc-600"
+                        >
+                          {language === "ko" ? "취소" : "Cancel"}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setGeneratedContent(editedContent)
+                            setIsEditing(false)
+                            toast.success(language === "ko" ? "수정 내용이 적용되었습니다" : "Changes applied")
+                          }}
+                          size="sm"
+                          className="text-xs bg-amber-500 hover:bg-amber-600"
+                        >
+                          {language === "ko" ? "적용" : "Apply"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* SEO Keywords at bottom of content box */}
                   {selectedKeywords.length > 0 && (
@@ -1465,8 +1438,79 @@ export default function ContentCreatePage() {
                   </div>
                 </div>
               </div>
+            ) : contentType === "image" ? (
+              /* Image Preview Section */
+              generatedImageUrl ? (
+                <div className="space-y-6">
+                  {/* Generated Image Display */}
+                  <div className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-900/50">
+                      <span className="text-xs text-zinc-400">
+                        {language === "ko" ? "생성된 이미지" : "Generated Image"}
+                      </span>
+                      <span className="text-xs text-amber-400">
+                        {imageAspectRatio}
+                      </span>
+                    </div>
+                    <div className="p-4 flex items-center justify-center bg-zinc-900/30">
+                      <img
+                        src={generatedImageUrl}
+                        alt="Generated marketing image"
+                        className="max-w-full max-h-[400px] object-contain rounded"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Image Actions */}
+                  <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-zinc-300">
+                      <Image className="w-4 h-4 text-amber-400" />
+                      <span>{imagePrompt.length > 50 ? imagePrompt.slice(0, 50) + "..." : imagePrompt}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={handleDownloadImage}
+                        className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "다운로드" : "Download"}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setGeneratedImageUrl("")
+                          setImagePrompt("")
+                        }}
+                        variant="outline"
+                        className="w-full border-zinc-600 hover:border-zinc-500"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "새로 생성" : "Generate New"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : generatingImage ? (
+                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-amber-500/30 rounded-lg bg-amber-500/5">
+                  <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-amber-400 font-medium">
+                    {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
+                  </p>
+                  <p className="text-zinc-500 text-sm mt-2">
+                    {language === "ko" ? "약 10-20초 정도 소요됩니다" : "This takes about 10-20 seconds"}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 border-2 border-dashed border-zinc-700 rounded-lg">
+                  <div className="text-center">
+                    <Image className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+                    <p className="text-zinc-400 font-normal">
+                      {language === "ko" ? "이미지 설명을 입력하고\n생성 버튼을 클릭하세요" : "Enter image description\nand click generate"}
+                    </p>
+                  </div>
+                </div>
+              )
             ) : (
-              <div className="flex items-center justify-center h-64 border-2 border-dashed border-zinc-700">
+              <div className="flex items-center justify-center h-64 border-2 border-dashed border-zinc-700 rounded-lg">
                 <div className="text-center">
                   <Sparkles className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
                   <p className="text-zinc-400 font-normal">
