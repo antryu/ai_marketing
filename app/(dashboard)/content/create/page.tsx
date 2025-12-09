@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Zap, Video, FileText, Tag, X, Image, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, Lightbulb, ChevronDown, ChevronUp, Copy, Check, Edit3 } from "lucide-react"
+import { Sparkles, Zap, Video, FileText, Tag, X, Image as ImageIcon, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, Lightbulb, ChevronDown, ChevronUp, Copy, Check, Edit3 } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -601,7 +601,7 @@ export default function ContentCreatePage() {
                     }
                   `}
                 >
-                  <Image className="w-5 h-5" />
+                  <ImageIcon className="w-5 h-5" />
                   <span className="font-medium text-sm">{language === "ko" ? "이미지" : "Image"}</span>
                 </button>
                 <button
@@ -734,7 +734,7 @@ export default function ContentCreatePage() {
                     </>
                   ) : (
                     <>
-                      <Image className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      <ImageIcon className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
                       {language === "ko" ? "이미지 생성" : "Generate Image"}
                     </>
                   )}
@@ -1012,7 +1012,78 @@ export default function ContentCreatePage() {
             </div>
             <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
-            {seoStep && !generatedContent && seoSuggestions ? (
+            {contentType === "image" ? (
+              /* Image Preview Section */
+              generatedImageUrl ? (
+                <div className="space-y-6">
+                  {/* Generated Image Display */}
+                  <div className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-900/50">
+                      <span className="text-xs text-zinc-400">
+                        {language === "ko" ? "생성된 이미지" : "Generated Image"}
+                      </span>
+                      <span className="text-xs text-amber-400">
+                        {imageAspectRatio}
+                      </span>
+                    </div>
+                    <div className="p-4 flex items-center justify-center bg-zinc-900/30">
+                      <img
+                        src={generatedImageUrl}
+                        alt="Generated marketing image"
+                        className="max-w-full max-h-[400px] object-contain rounded"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Image Actions */}
+                  <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-zinc-300">
+                      <ImageIcon className="w-4 h-4 text-amber-400" />
+                      <span>{imagePrompt.length > 50 ? imagePrompt.slice(0, 50) + "..." : imagePrompt}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={handleDownloadImage}
+                        className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "다운로드" : "Download"}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setGeneratedImageUrl("")
+                          setImagePrompt("")
+                        }}
+                        variant="outline"
+                        className="w-full border-zinc-600 hover:border-zinc-500"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "새로 생성" : "Generate New"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : generatingImage ? (
+                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-amber-500/30 rounded-lg bg-amber-500/5">
+                  <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-amber-400 font-medium">
+                    {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
+                  </p>
+                  <p className="text-zinc-500 text-sm mt-2">
+                    {language === "ko" ? "약 10-20초 정도 소요됩니다" : "This takes about 10-20 seconds"}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 border-2 border-dashed border-zinc-700 rounded-lg">
+                  <div className="text-center">
+                    <ImageIcon className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+                    <p className="text-zinc-400 font-normal whitespace-pre-line">
+                      {language === "ko" ? "이미지 설명을 입력하고\n생성 버튼을 클릭하세요" : "Enter image description\nand click generate"}
+                    </p>
+                  </div>
+                </div>
+              )
+            ) : seoStep && !generatedContent && seoSuggestions ? (
               <div className="space-y-6">
                 {/* SEO Selection UI */}
                 <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-lg p-6 space-y-6">
@@ -1438,77 +1509,6 @@ export default function ContentCreatePage() {
                   </div>
                 </div>
               </div>
-            ) : contentType === "image" ? (
-              /* Image Preview Section */
-              generatedImageUrl ? (
-                <div className="space-y-6">
-                  {/* Generated Image Display */}
-                  <div className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-900/50">
-                      <span className="text-xs text-zinc-400">
-                        {language === "ko" ? "생성된 이미지" : "Generated Image"}
-                      </span>
-                      <span className="text-xs text-amber-400">
-                        {imageAspectRatio}
-                      </span>
-                    </div>
-                    <div className="p-4 flex items-center justify-center bg-zinc-900/30">
-                      <img
-                        src={generatedImageUrl}
-                        alt="Generated marketing image"
-                        className="max-w-full max-h-[400px] object-contain rounded"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Image Actions */}
-                  <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-zinc-300">
-                      <Image className="w-4 h-4 text-amber-400" />
-                      <span>{imagePrompt.length > 50 ? imagePrompt.slice(0, 50) + "..." : imagePrompt}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        onClick={handleDownloadImage}
-                        className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        {language === "ko" ? "다운로드" : "Download"}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setGeneratedImageUrl("")
-                          setImagePrompt("")
-                        }}
-                        variant="outline"
-                        className="w-full border-zinc-600 hover:border-zinc-500"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        {language === "ko" ? "새로 생성" : "Generate New"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : generatingImage ? (
-                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-amber-500/30 rounded-lg bg-amber-500/5">
-                  <div className="w-16 h-16 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-amber-400 font-medium">
-                    {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
-                  </p>
-                  <p className="text-zinc-500 text-sm mt-2">
-                    {language === "ko" ? "약 10-20초 정도 소요됩니다" : "This takes about 10-20 seconds"}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-64 border-2 border-dashed border-zinc-700 rounded-lg">
-                  <div className="text-center">
-                    <Image className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-                    <p className="text-zinc-400 font-normal">
-                      {language === "ko" ? "이미지 설명을 입력하고\n생성 버튼을 클릭하세요" : "Enter image description\nand click generate"}
-                    </p>
-                  </div>
-                </div>
-              )
             ) : (
               <div className="flex items-center justify-center h-64 border-2 border-dashed border-zinc-700 rounded-lg">
                 <div className="text-center">
