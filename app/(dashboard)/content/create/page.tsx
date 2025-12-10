@@ -65,8 +65,151 @@ export default function ContentCreatePage() {
   const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [copiedHook, setCopiedHook] = useState<number | null>(null)
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [restoringContent, setRestoringContent] = useState(false)
+
+  // Auto-save function
+  const autoSaveContent = async (overrides?: {
+    body?: string
+    imageUrl?: string
+    videoUrl?: string
+    contentType?: string
+  }) => {
+    if (!selectedBrandId || !topic.trim()) return null
+
+    setAutoSaving(true)
+    try {
+      const savePlatform = platform === "all" ? "naver" : platform
+
+      // Build platform_variations
+      const platformVariations: Record<string, any> = {
+        [savePlatform]: {
+          text: overrides?.body || generatedContent || ""
+        }
+      }
+
+      // Add image URL if available
+      const imgUrl = overrides?.imageUrl || generatedImageUrl
+      if (imgUrl) {
+        platformVariations[savePlatform].imageUrl = imgUrl
+      }
+
+      // Add video URL if available
+      const vidUrl = overrides?.videoUrl || generatedVideoUrl
+      if (vidUrl) {
+        platformVariations[savePlatform].videoUrl = vidUrl
+      }
+
+      // Determine content type
+      let saveContentType = overrides?.contentType || "text"
+      if (vidUrl) {
+        saveContentType = "full_package"
+      } else if (imgUrl && (overrides?.body || generatedContent)) {
+        saveContentType = "bundle"
+      } else if (imgUrl) {
+        saveContentType = "image"
+      }
+
+      const response = await fetch("/api/content/auto-save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentId: contentId || undefined,
+          brandId: selectedBrandId,
+          writerPersonaId: selectedWriterPersona || undefined,
+          topic,
+          body: overrides?.body || generatedContent || "",
+          contentType: saveContentType,
+          aiModel: usedAiModel || "claude",
+          seoKeywords: selectedKeywords,
+          platformVariations,
+          language,
+        })
+      })
+
+      const data = await response.json()
+      if (response.ok && data.contentId) {
+        // Save contentId for future updates
+        if (!contentId) {
+          setContentId(data.contentId)
+        }
+        console.log("Auto-saved content ID:", data.contentId)
+        return data.contentId
+      }
+      return null
+    } catch (error) {
+      console.error("Auto-save failed:", error)
+      return null
+    } finally {
+      setAutoSaving(false)
+    }
+  }
+
+  // Restore content from URL parameter (when returning from video editor)
+  const restoreContent = async (id: string) => {
+    setRestoringContent(true)
+    try {
+      const response = await fetch(`/api/content/auto-save?contentId=${id}`)
+      const data = await response.json()
+
+      if (response.ok && data.content) {
+        const content = data.content
+        setContentId(content.id)
+        setTopic(content.topic || "")
+        setGeneratedContent(content.body || "")
+        setSelectedKeywords(content.seoKeywords || [])
+        setUsedAiModel(content.aiModel || "")
+
+        // Restore platform variations
+        if (content.platformVariations) {
+          const platforms = Object.keys(content.platformVariations)
+          if (platforms.length > 0) {
+            const platformData = content.platformVariations[platforms[0]]
+            if (platformData?.imageUrl) {
+              setGeneratedImageUrl(platformData.imageUrl)
+            }
+            if (platformData?.videoUrl) {
+              setGeneratedVideoUrl(platformData.videoUrl)
+            }
+          }
+        }
+
+        // Set content type based on what was restored
+        if (content.contentType === "full_package" || content.contentType === "ai_video") {
+          setContentType("full")
+          setBundleStep("done")
+        } else if (content.contentType === "bundle") {
+          setContentType("bundle")
+          setBundleStep("done")
+        } else if (content.contentType === "image") {
+          setContentType("image")
+        } else {
+          setContentType("text")
+        }
+
+        // Enable SEO step if keywords exist
+        if (content.seoKeywords && content.seoKeywords.length > 0) {
+          setSeoStep(true)
+        }
+
+        toast.success(language === "ko" ? "이전 작업을 복원했습니다" : "Previous work restored")
+      }
+    } catch (error) {
+      console.error("Failed to restore content:", error)
+      toast.error(language === "ko" ? "콘텐츠 복원 실패" : "Failed to restore content")
+    } finally {
+      setRestoringContent(false)
+    }
+  }
 
   useEffect(() => {
+    // Check for contentId in URL (returning from video editor)
+    const contentIdParam = searchParams.get('contentId')
+    if (contentIdParam) {
+      restoreContent(contentIdParam)
+      return // Skip other URL params if restoring
+    }
+
     // Load topic from URL parameter
     const topicParam = searchParams.get('topic')
     if (topicParam) {
@@ -99,7 +242,7 @@ export default function ContentCreatePage() {
         console.error('Failed to parse keywords:', e)
       }
     }
-  }, [])
+  }, [searchParams])
 
   // Load writer personas when selected brand changes
   useEffect(() => {
@@ -376,6 +519,10 @@ export default function ContentCreatePage() {
 
       if (data.videoUrl) {
         setGeneratedVideoUrl(data.videoUrl)
+
+        // Auto-save after video generation
+        await autoSaveContent({ videoUrl: data.videoUrl })
+
         toast.success(language === "ko" ? "AI 비디오가 생성되었습니다!" : "AI Video generated!")
       } else {
         throw new Error(language === "ko" ? "비디오 URL을 받지 못했습니다" : "No video URL received")
@@ -460,6 +607,9 @@ export default function ContentCreatePage() {
       setUsedAiModel(textData.aiModel || "")
       setBundleStep("done") // Text done, ready for next step
 
+      // Auto-save after text generation
+      await autoSaveContent({ body: generatedText })
+
       toast.success(language === "ko" ? "텍스트 생성 완료! 이미지를 생성하려면 버튼을 클릭하세요." : "Text generated! Click to generate image.")
 
     } catch (error: any) {
@@ -525,6 +675,10 @@ export default function ContentCreatePage() {
       if (!imageResponse.ok) throw new Error(imageData.error || "Image generation failed")
 
       setGeneratedImageUrl(imageData.imageUrl)
+
+      // Auto-save after image generation
+      await autoSaveContent({ imageUrl: imageData.imageUrl })
+
       toast.success(language === "ko" ? "이미지 생성 완료! 비디오를 생성하려면 버튼을 클릭하세요." : "Image generated! Click to generate video.")
 
     } catch (error: any) {
@@ -2385,10 +2539,16 @@ export default function ContentCreatePage() {
             setShowVideoEditor(false)
             toast.success(language === "ko" ? "비디오 편집 완료!" : "Video editing complete!")
           }}
-          onOpenAdvanced={() => {
+          onOpenAdvanced={async () => {
             setShowVideoEditor(false)
-            // Navigate to advanced editor page with video URL
-            router.push(`/video-editor?videoUrl=${encodeURIComponent(generatedVideoUrl)}`)
+            // Save current state before navigating
+            const savedContentId = await autoSaveContent({ videoUrl: generatedVideoUrl })
+            // Navigate to advanced editor page with video URL and contentId for restoration
+            const params = new URLSearchParams({
+              videoUrl: generatedVideoUrl,
+              ...(savedContentId && { contentId: savedContentId })
+            })
+            router.push(`/video-editor?${params.toString()}`)
           }}
         />
       )}

@@ -17,7 +17,17 @@ function VideoEditorContent() {
 
   const videoUrl = searchParams.get('videoUrl')
   const videoDuration = parseFloat(searchParams.get('duration') || '3')
+  const contentId = searchParams.get('contentId') // For returning to content creation
   const [isLoading, setIsLoading] = useState(true)
+
+  // Navigate back to content creation with contentId for state restoration
+  const handleBack = () => {
+    if (contentId) {
+      router.push(`/content/create?contentId=${contentId}`)
+    } else {
+      router.back()
+    }
+  }
 
   useEffect(() => {
     // Simulate loading
@@ -63,7 +73,7 @@ function VideoEditorContent() {
     <AdvancedVideoEditor
       videoUrl={videoUrl}
       videoDuration={videoDuration}
-      onBack={() => router.back()}
+      onBack={handleBack}
       onSave={(projectData) => {
         toast.success(language === "ko" ? "프로젝트 저장됨" : "Project saved")
         console.log('Saved project:', projectData)
