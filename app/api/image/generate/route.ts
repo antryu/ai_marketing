@@ -83,67 +83,120 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Build enhanced prompt
-    const styleModifier = STYLE_MODIFIERS[style] || STYLE_MODIFIERS.realistic
+    // Build enhanced prompt - 사용자 프롬프트를 최우선으로
     const dimensions = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS['1:1']
 
-    // 브랜드 컨텍스트를 프롬프트에 추가
-    const brandContext = brand.brand_voice?.style
-      ? `, ${brand.brand_voice.style} style`
-      : ''
+    // 스타일에 따른 간단한 품질 키워드만 추가
+    const qualityKeyword = style === 'realistic' ? 'photorealistic' :
+                          style === 'illustration' ? 'digital illustration' :
+                          style === 'minimal' ? 'minimalist design' :
+                          style === 'vibrant' ? 'vibrant colors' : 'high quality'
 
-    const enhancedPrompt = `${prompt}, ${styleModifier}${brandContext}, marketing image, professional`
+    // 한국어 프롬프트를 영어로 번역 (Claude 사용)
+    let englishPrompt = prompt
+
+    // 한국어가 포함되어 있는지 확인
+    const hasKorean = /[가-힣]/.test(prompt)
+
+    if (hasKorean) {
+      try {
+        const { default: Anthropic } = await import('@anthropic-ai/sdk')
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+        const translation = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          messages: [
+            {
+              role: 'user',
+              content: `Translate the following Korean text to English for AI image generation. Create a detailed, vivid description that captures the essence and visual elements. Output ONLY the English translation, nothing else.
+
+Korean: ${prompt}`
+            }
+          ]
+        })
+
+        const content = translation.content[0]
+        if (content.type === 'text') {
+          englishPrompt = content.text.trim()
+        }
+        console.log(`Translated prompt: ${prompt} -> ${englishPrompt}`)
+      } catch (translateError) {
+        console.error('Translation failed, using original:', translateError)
+        englishPrompt = prompt
+      }
+    }
+
+    // 영어 프롬프트 + 품질 키워드 + 텍스트 없음 지시
+    // IMPORTANT: 이미지에 텍스트가 포함되지 않도록 명시적으로 지시
+    const cleanPrompt = `${englishPrompt}, ${qualityKeyword}, high quality, no text, no letters, no words, no writing, no typography, no watermark, no signature, clean image without any text or characters`
 
     console.log('=== Image Generation Started ===')
-    console.log(`Prompt: ${enhancedPrompt}`)
+    console.log(`User Prompt: ${prompt}`)
+    console.log(`English Prompt: ${englishPrompt}`)
+    console.log(`Final Prompt: ${cleanPrompt}`)
     console.log(`Style: ${style}, Aspect Ratio: ${aspectRatio}`)
 
-    // FLUX.1 schnell 모델 사용 (빠르고 무료 친화적)
+    // FLUX.1 dev 모델 - guidance를 높여서 프롬프트 준수 강화
     console.log('Calling Replicate API...')
     console.log('API Token exists:', !!process.env.REPLICATE_API_TOKEN)
 
     const output = await replicate.run(
-      "black-forest-labs/flux-schnell",
+      "black-forest-labs/flux-dev",
       {
         input: {
-          prompt: enhancedPrompt,
+          prompt: cleanPrompt,
           num_outputs: 1,
           aspect_ratio: aspectRatio,
           output_format: "webp",
           output_quality: 90,
-          go_fast: true,
+          guidance: 7.5,  // 높은 guidance = 프롬프트를 더 정확히 따름
+          num_inference_steps: 30,
         }
       }
     )
 
     console.log('Replicate output type:', typeof output)
-    console.log('Replicate output:', JSON.stringify(output, null, 2))
+    console.log('Replicate output (raw):', output)
 
-    // output 형식 처리 - 배열이거나 단일 URL이거나 FileOutput 객체일 수 있음
-    let imageUrl: string
+    // Replicate SDK v1.0+ returns FileOutput objects that need special handling
+    // FileOutput extends URL, so we can access the href property directly
+    let imageUrl: string = ''
 
-    if (Array.isArray(output)) {
-      // 배열인 경우
+    if (Array.isArray(output) && output.length > 0) {
       const firstItem = output[0]
-      if (typeof firstItem === 'string') {
+      console.log('First item:', firstItem)
+      console.log('First item type:', typeof firstItem)
+      console.log('First item constructor:', firstItem?.constructor?.name)
+
+      // FileOutput is a URL subclass, check for href property
+      if (firstItem && typeof firstItem === 'object' && 'href' in firstItem) {
+        imageUrl = (firstItem as URL).href
+        console.log('Got URL from href:', imageUrl)
+      } else if (typeof firstItem === 'string') {
         imageUrl = firstItem
-      } else if (firstItem && typeof firstItem === 'object') {
-        // FileOutput 객체인 경우
-        imageUrl = (firstItem as any).url || (firstItem as any).toString()
-      } else {
-        throw new Error('Invalid output format from Replicate')
+        console.log('Got string URL:', imageUrl)
+      } else if (firstItem && firstItem.toString) {
+        // Try toString() which should return the URL for FileOutput
+        const strValue = firstItem.toString()
+        if (strValue.startsWith('http')) {
+          imageUrl = strValue
+          console.log('Got URL from toString:', imageUrl)
+        }
       }
     } else if (typeof output === 'string') {
       imageUrl = output
-    } else if (output && typeof output === 'object') {
-      // 단일 FileOutput 객체인 경우
-      imageUrl = (output as any).url || (output as any).toString()
-    } else {
-      throw new Error('No image generated - unexpected output format')
+      console.log('Output is string:', imageUrl)
+    } else if (output && typeof output === 'object' && 'href' in output) {
+      imageUrl = (output as URL).href
+      console.log('Got URL from single object href:', imageUrl)
     }
 
-    if (!imageUrl) {
-      throw new Error('No image URL in response')
+    // Final validation
+    if (!imageUrl || !imageUrl.startsWith('http')) {
+      console.error('Failed to extract valid URL. Output was:', output)
+      console.error('Output keys:', output && typeof output === 'object' ? Object.keys(output) : 'N/A')
+      throw new Error(`No valid image URL extracted from Replicate response`)
     }
 
     console.log('=== Image Generation Completed ===')
@@ -157,11 +210,11 @@ export async function POST(request: NextRequest) {
         topic: prompt,
         body: imageUrl,
         content_type: 'image',
-        ai_model: 'flux-schnell',
+        ai_model: 'flux-dev',
         platform_variations: {
           default: {
             imageUrl,
-            prompt: enhancedPrompt,
+            prompt: cleanPrompt,
             style,
             aspectRatio,
             dimensions,
@@ -177,18 +230,27 @@ export async function POST(request: NextRequest) {
       // 이미지는 생성되었지만 DB 저장 실패 - 이미지는 반환
     }
 
-    return NextResponse.json({
+    console.log('=== Preparing Response ===')
+    console.log('imageUrl to return:', imageUrl)
+    console.log('imageUrl type:', typeof imageUrl)
+    console.log('imageUrl length:', imageUrl?.length)
+
+    const responseData = {
       success: true,
-      imageUrl,
+      imageUrl: imageUrl,
       content,
       metadata: {
-        prompt: enhancedPrompt,
+        prompt: cleanPrompt,
         style,
         aspectRatio,
         dimensions,
-        model: 'flux-schnell',
+        model: 'flux-dev',
       }
-    })
+    }
+
+    console.log('Full response:', JSON.stringify(responseData, null, 2))
+
+    return NextResponse.json(responseData)
 
   } catch (error) {
     console.error('Image generation error:', error)

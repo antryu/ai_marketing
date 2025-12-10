@@ -11,30 +11,30 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Sparkles, Zap, Video, FileText, Tag, X, Image as ImageIcon, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, Lightbulb, ChevronDown, ChevronUp, Copy, Check, Edit3 } from "lucide-react"
+import { Sparkles, Zap, Video, FileText, Tag, X, Image as ImageIcon, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, RotateCcw, Lightbulb, ChevronDown, ChevronUp, Copy, Check, Edit3, Scissors } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
+import { AIVideoEditor } from "@/components/video/AIVideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useBrand } from "@/contexts/BrandContext"
 import { translations, TranslationKey } from "@/lib/translations"
 
 export default function ContentCreatePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { language } = useLanguage()
+  const { selectedBrandId, brands, loading: loadingBrands } = useBrand()
   const t = (key: TranslationKey) => translations[key][language]
-  const [brands, setBrands] = useState<any[]>([])
   const [writerPersonas, setWriterPersonas] = useState<any[]>([])
-  const [selectedBrand, setSelectedBrand] = useState("")
   const [selectedWriterPersona, setSelectedWriterPersona] = useState("")
   const [topic, setTopic] = useState("")
   const [platform, setPlatform] = useState("all")
   const [tone, setTone] = useState("professional")
   const [length, setLength] = useState("medium")
-  const [contentType, setContentType] = useState<"text" | "image" | "video">("text")
+  const [contentType, setContentType] = useState<"text" | "image" | "video" | "bundle" | "full">("text")
   const [generatedContent, setGeneratedContent] = useState("")
   const [videoProject, setVideoProject] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const [loadingBrands, setLoadingBrands] = useState(true)
   const [usedAiModel, setUsedAiModel] = useState("")
   const [seoSuggestions, setSeoSuggestions] = useState<any>(null)
   const [loadingSeo, setLoadingSeo] = useState(false)
@@ -54,6 +54,12 @@ export default function ContentCreatePage() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState("")
   const [generatingImage, setGeneratingImage] = useState(false)
 
+  // AI Video generation states
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState("")
+  const [generatingVideo, setGeneratingVideo] = useState(false)
+  const [videoMotion, setVideoMotion] = useState<"low" | "medium" | "high">("medium")
+  const [showVideoEditor, setShowVideoEditor] = useState(false)
+
   // Suggestions from trends page
   const [suggestedHooks, setSuggestedHooks] = useState<string[]>([])
   const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([])
@@ -61,8 +67,6 @@ export default function ContentCreatePage() {
   const [copiedHook, setCopiedHook] = useState<number | null>(null)
 
   useEffect(() => {
-    loadBrands()
-
     // Load topic from URL parameter
     const topicParam = searchParams.get('topic')
     if (topicParam) {
@@ -99,36 +103,19 @@ export default function ContentCreatePage() {
 
   // Load writer personas when selected brand changes
   useEffect(() => {
-    if (selectedBrand) {
+    if (selectedBrandId) {
       loadWriterPersonas()
     }
-  }, [selectedBrand])
-
-  const loadBrands = async () => {
-    const supabase = createClient()
-    const result = await (supabase as any)
-      .from("brands")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    const data = result.data as any[]
-    if (data) {
-      setBrands(data)
-      if (data.length > 0) {
-        setSelectedBrand(data[0].id)
-      }
-    }
-    setLoadingBrands(false)
-  }
+  }, [selectedBrandId])
 
   const loadWriterPersonas = async () => {
-    if (!selectedBrand) return
+    if (!selectedBrandId) return
 
     const supabase = createClient()
     const result = await (supabase as any)
       .from("writer_personas")
       .select("*")
-      .eq("brand_id", selectedBrand)
+      .eq("brand_id", selectedBrandId)
       .order("is_default", { ascending: false })
       .order("usage_count", { ascending: false })
 
@@ -156,7 +143,7 @@ export default function ContentCreatePage() {
       return
     }
 
-    if (!selectedBrand) {
+    if (!selectedBrandId) {
       toast.error(t("productSelectRequired"))
       return
     }
@@ -196,7 +183,7 @@ export default function ContentCreatePage() {
       return
     }
 
-    if (!selectedBrand) {
+    if (!selectedBrandId) {
       toast.error(t("productSelectRequired"))
       return
     }
@@ -213,7 +200,7 @@ export default function ContentCreatePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             topic,
-            brandId: selectedBrand,
+            brandId: selectedBrandId,
             platform: targetPlatform,
             tone,
             length,
@@ -246,7 +233,7 @@ export default function ContentCreatePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             topic,
-            brandId: selectedBrand,
+            brandId: selectedBrandId,
             platform: targetPlatform,
             duration: 15,
             style: tone,
@@ -275,14 +262,14 @@ export default function ContentCreatePage() {
     toast.success(t("publishSoon"))
   }
 
-  // Image generation handler
+  // Image generation handler - now uses topic instead of imagePrompt
   const handleGenerateImage = async () => {
-    if (!imagePrompt.trim()) {
-      toast.error(language === "ko" ? "이미지 설명을 입력해주세요" : "Please enter image description")
+    if (!topic.trim()) {
+      toast.error(language === "ko" ? "토픽을 입력해주세요" : "Please enter a topic")
       return
     }
 
-    if (!selectedBrand) {
+    if (!selectedBrandId) {
       toast.error(t("productSelectRequired"))
       return
     }
@@ -291,12 +278,13 @@ export default function ContentCreatePage() {
     setGeneratedImageUrl("")
 
     try {
+      // Use topic as the image prompt
       const response = await fetch("/api/image/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: imagePrompt,
-          brandId: selectedBrand,
+          prompt: topic,
+          brandId: selectedBrandId,
           style: imageStyle,
           aspectRatio: imageAspectRatio,
           language,
@@ -304,12 +292,20 @@ export default function ContentCreatePage() {
       })
 
       const data = await response.json()
+      console.log("=== Image API Response ===", JSON.stringify(data, null, 2))
 
       if (!response.ok) {
         throw new Error(data.error || (language === "ko" ? "이미지 생성 실패" : "Image generation failed"))
       }
 
-      setGeneratedImageUrl(data.imageUrl)
+      console.log("Setting imageUrl:", data.imageUrl)
+      if (data.imageUrl) {
+        setGeneratedImageUrl(data.imageUrl)
+      } else {
+        console.error("No imageUrl in response!")
+        throw new Error(language === "ko" ? "이미지 URL을 받지 못했습니다" : "No image URL received")
+      }
+
       if (data.content?.id) {
         setContentId(data.content.id)
       }
@@ -333,7 +329,7 @@ export default function ContentCreatePage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${imagePrompt.slice(0, 30) || 'image'}-${Date.now()}.webp`
+      a.download = `${topic.slice(0, 30) || 'image'}-${Date.now()}.webp`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -342,6 +338,183 @@ export default function ContentCreatePage() {
     } catch (error) {
       toast.error(language === "ko" ? "다운로드 실패" : "Download failed")
     }
+  }
+
+  // AI Video generation handler (Image to Video)
+  const handleGenerateVideo = async () => {
+    if (!generatedImageUrl) {
+      toast.error(language === "ko" ? "먼저 이미지를 생성해주세요" : "Please generate an image first")
+      return
+    }
+
+    if (!selectedBrandId) {
+      toast.error(t("productSelectRequired"))
+      return
+    }
+
+    setGeneratingVideo(true)
+    setGeneratedVideoUrl("")
+
+    try {
+      const response = await fetch("/api/video/generate-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: generatedImageUrl,
+          brandId: selectedBrandId,
+          motion: videoMotion,
+          language,
+        })
+      })
+
+      const data = await response.json()
+      console.log("=== AI Video API Response ===", JSON.stringify(data, null, 2))
+
+      if (!response.ok) {
+        throw new Error(data.error || (language === "ko" ? "비디오 생성 실패" : "Video generation failed"))
+      }
+
+      if (data.videoUrl) {
+        setGeneratedVideoUrl(data.videoUrl)
+        toast.success(language === "ko" ? "AI 비디오가 생성되었습니다!" : "AI Video generated!")
+      } else {
+        throw new Error(language === "ko" ? "비디오 URL을 받지 못했습니다" : "No video URL received")
+      }
+
+    } catch (error: any) {
+      console.error("AI Video generation error:", error)
+      toast.error(error.message || (language === "ko" ? "비디오 생성 실패" : "Video generation failed"))
+    } finally {
+      setGeneratingVideo(false)
+    }
+  }
+
+  // Download generated video
+  const handleDownloadVideo = async () => {
+    if (!generatedVideoUrl) return
+
+    try {
+      const response = await fetch(generatedVideoUrl)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ai-video-${Date.now()}.mp4`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success(language === "ko" ? "비디오 다운로드 완료" : "Video downloaded")
+    } catch (error) {
+      toast.error(language === "ko" ? "다운로드 실패" : "Download failed")
+    }
+  }
+
+  // Bundle/Full Package generation handler - Step by step manual progression
+  const [bundleStep, setBundleStep] = useState<"idle" | "text" | "image" | "video" | "done">("idle")
+  // Note: generatingImage state is defined at line ~55
+
+  // Step 1: Generate text only
+  const handleGenerateBundleText = async () => {
+    if (!selectedBrandId) {
+      toast.error(t("productSelectRequired"))
+      return
+    }
+
+    if (!topic.trim()) {
+      toast.error(t("topicRequired"))
+      return
+    }
+
+    // Reset states
+    setGeneratedContent("")
+    setGeneratedImageUrl("")
+    setGeneratedVideoUrl("")
+    setBundleStep("text")
+    setLoading(true)
+
+    try {
+      toast.info(language === "ko" ? "텍스트 생성 중..." : "Generating text...")
+
+      const textResponse = await fetch("/api/content/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandId: selectedBrandId,
+          topic,
+          platform,
+          tone,
+          length,
+          writerPersonaId: selectedWriterPersona || undefined,
+          seoKeywords: selectedKeywords.length > 0 ? selectedKeywords : undefined,
+          contentType: "text",
+        })
+      })
+
+      const textData = await textResponse.json()
+      if (!textResponse.ok) throw new Error(textData.error || "Text generation failed")
+
+      const generatedText = textData.generated || ""
+      setGeneratedContent(generatedText)
+      setContentId(textData.content?.id || null)
+      setUsedAiModel(textData.aiModel || "")
+      setBundleStep("done") // Text done, ready for next step
+
+      toast.success(language === "ko" ? "텍스트 생성 완료! 이미지를 생성하려면 버튼을 클릭하세요." : "Text generated! Click to generate image.")
+
+    } catch (error: any) {
+      console.error("Text generation error:", error)
+      toast.error(error.message || (language === "ko" ? "텍스트 생성 실패" : "Text generation failed"))
+      setBundleStep("idle")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Step 2: Generate image from text
+  const handleGenerateBundleImage = async () => {
+    if (!generatedContent) {
+      toast.error(language === "ko" ? "먼저 텍스트를 생성해주세요" : "Please generate text first")
+      return
+    }
+
+    setGeneratingImage(true)
+
+    try {
+      toast.info(language === "ko" ? "이미지 생성 중... (10-20초)" : "Generating image... (10-20s)")
+
+      const contentSummary = generatedContent.slice(0, 500).replace(/[#*_\n]/g, ' ').trim()
+      const imagePromptFromContent = `${topic}: ${contentSummary}`
+
+      const imageResponse = await fetch("/api/image/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: imagePromptFromContent,
+          brandId: selectedBrandId,
+          style: imageStyle,
+          aspectRatio: imageAspectRatio,
+          language,
+        })
+      })
+
+      const imageData = await imageResponse.json()
+      if (!imageResponse.ok) throw new Error(imageData.error || "Image generation failed")
+
+      setGeneratedImageUrl(imageData.imageUrl)
+      toast.success(language === "ko" ? "이미지 생성 완료! 비디오를 생성하려면 버튼을 클릭하세요." : "Image generated! Click to generate video.")
+
+    } catch (error: any) {
+      console.error("Image generation error:", error)
+      toast.error(error.message || (language === "ko" ? "이미지 생성 실패" : "Image generation failed"))
+    } finally {
+      setGeneratingImage(false)
+    }
+  }
+
+  // Legacy function for backwards compatibility (now just calls text generation)
+  const handleGenerateBundle = async () => {
+    await handleGenerateBundleText()
   }
 
   // 콘텐츠 수정 함수
@@ -430,8 +603,8 @@ export default function ContentCreatePage() {
     }
 
     try {
-      if (contentType === "text") {
-        // Download as markdown file
+      // Download text content as markdown for all content types that have text
+      if (generatedContent) {
         const blob = new Blob([generatedContent], { type: 'text/markdown' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -442,12 +615,8 @@ export default function ContentCreatePage() {
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
         toast.success(language === "ko" ? "텍스트 파일 다운로드 완료" : "Text file downloaded")
-      } else if (contentType === "image") {
-        // Future: Download generated image
-        toast.info(language === "ko" ? "이미지 다운로드 기능 준비중" : "Image download coming soon")
-      } else if (contentType === "video") {
-        // Future: Download generated video
-        toast.info(language === "ko" ? "비디오 다운로드 기능 준비중" : "Video download coming soon")
+      } else {
+        toast.error(language === "ko" ? "다운로드할 텍스트가 없습니다" : "No text to download")
       }
     } catch (error) {
       toast.error(language === "ko" ? "다운로드 실패" : "Download failed")
@@ -455,7 +624,7 @@ export default function ContentCreatePage() {
   }
 
   const handleSaveContent = async () => {
-    if (!generatedContent || !selectedBrand) {
+    if (!generatedContent || !selectedBrandId) {
       toast.error(language === "ko" ? "콘텐츠와 브랜드를 선택해주세요" : "Please select content and brand")
       return
     }
@@ -467,21 +636,46 @@ export default function ContentCreatePage() {
       // "all" 플랫폼인 경우 네이버 블로그로 저장
       const savePlatform = platform === "all" ? "naver" : platform
 
+      // Determine content type based on what was generated
+      let saveContentType = "text"
+      if (contentType === "full" && generatedVideoUrl) {
+        saveContentType = "full_package"
+      } else if (contentType === "bundle" && generatedImageUrl) {
+        saveContentType = "bundle"
+      } else if (contentType === "image") {
+        saveContentType = "image"
+      } else if (contentType === "video") {
+        saveContentType = "video"
+      }
+
+      // Build platform_variations with all generated content
+      const platformVariations: Record<string, any> = {
+        [savePlatform]: {
+          text: generatedContent
+        }
+      }
+
+      // Add image URL if available
+      if (generatedImageUrl) {
+        platformVariations[savePlatform].imageUrl = generatedImageUrl
+      }
+
+      // Add video URL if available
+      if (generatedVideoUrl) {
+        platformVariations[savePlatform].videoUrl = generatedVideoUrl
+      }
+
       const { data, error} = await (supabase as any)
         .from("contents")
         .insert({
-          brand_id: selectedBrand,
+          brand_id: selectedBrandId,
           writer_persona_id: selectedWriterPersona || null,
           topic,
           body: generatedContent,
-          content_type: "text",
+          content_type: saveContentType,
           ai_model: usedAiModel || "claude",
           seo_keywords: selectedKeywords,
-          platform_variations: {
-            [savePlatform]: {
-              text: generatedContent
-            }
-          },
+          platform_variations: platformVariations,
           status: "draft"
         })
         .select()
@@ -504,9 +698,12 @@ export default function ContentCreatePage() {
 
       // Reset form
       setGeneratedContent("")
+      setGeneratedImageUrl("")
+      setGeneratedVideoUrl("")
       setTopic("")
       setSelectedKeywords([])
       setSeoSuggestions(null)
+      setBundleStep("idle")
 
     } catch (error: any) {
       console.error("Save error:", error)
@@ -568,370 +765,408 @@ export default function ContentCreatePage() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: Input Form */}
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-10 space-y-6">
-            <div>
-              <h2 className="text-xl font-light text-white mb-6 tracking-wide">{t("configuration")}</h2>
-              <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
+          <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 p-8 space-y-5">
+            {/* Section 1: 주제 입력 */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase tracking-wider">
+                <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">1</span>
+                {language === "ko" ? "주제 입력" : "Topic Input"}
+              </div>
+
+              {/* Topic Input */}
+              <div className="space-y-1.5">
+                <Label className="text-sm">{t("topic")}</Label>
+                <Input
+                  className="h-10"
+                  placeholder={contentType === "image"
+                    ? (language === "ko" ? "예: 커피숍에서 일하는 직장인" : "e.g., professional working in a coffee shop")
+                    : contentType === "video"
+                    ? (language === "ko" ? "예: 바다 위의 석양" : "e.g., sunset over the ocean")
+                    : t("topicPlaceholder")
+                  }
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Content Type Selection */}
-            <div className="space-y-2">
-              <Label>{t("contentType")}</Label>
+            <div className="border-t border-zinc-700/50" />
+
+            {/* Section 2: 콘텐츠 타입 */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase tracking-wider">
+                <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">2</span>
+                {language === "ko" ? "콘텐츠 타입" : "Content Type"}
+              </div>
+
+              {/* Content Type Selection - Compact 3 Column Grid */}
               <div className="grid grid-cols-3 gap-2">
+                {/* 텍스트 Only */}
                 <button
                   onClick={() => setContentType("text")}
                   className={`
-                    flex flex-col items-center justify-center gap-2 p-4 rounded border transition-all
+                    relative flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all
                     ${contentType === "text"
-                      ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                      : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                      ? "bg-amber-500/10 border-amber-500"
+                      : "bg-zinc-800/30 border-zinc-700/50 hover:border-zinc-600"
                     }
                   `}
                 >
-                  <FileText className="w-5 h-5" />
-                  <span className="font-medium text-sm">{t("text")}</span>
-                </button>
-                <button
-                  onClick={() => setContentType("image")}
-                  className={`
-                    relative flex flex-col items-center justify-center gap-2 p-4 rounded border transition-all
-                    ${contentType === "image"
-                      ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                      : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                    }
-                  `}
-                >
-                  <ImageIcon className="w-5 h-5" />
-                  <span className="font-medium text-sm">{language === "ko" ? "이미지" : "Image"}</span>
-                </button>
-                <button
-                  onClick={() => setContentType("video")}
-                  className={`
-                    relative flex flex-col items-center justify-center gap-2 p-4 rounded border transition-all
-                    ${contentType === "video"
-                      ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                      : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                    }
-                  `}
-                  disabled
-                >
-                  <Video className="w-5 h-5" />
-                  <span className="font-medium text-sm">{t("video")}</span>
-                  <span className="absolute top-1 right-1 text-[10px] bg-zinc-700 text-zinc-400 px-2 py-0.5 rounded">
-                    {language === "ko" ? "준비중" : "Soon"}
+                  <FileText className={`w-5 h-5 ${contentType === "text" ? "text-amber-400" : "text-zinc-400"}`} />
+                  <span className={`text-xs font-medium ${contentType === "text" ? "text-amber-400" : "text-zinc-300"}`}>
+                    {language === "ko" ? "텍스트" : "Text"}
                   </span>
+                </button>
+
+                {/* 텍스트 + 이미지 번들 */}
+                <button
+                  onClick={() => setContentType("bundle")}
+                  className={`
+                    relative flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all
+                    ${contentType === "bundle"
+                      ? "bg-amber-500/10 border-amber-500"
+                      : "bg-zinc-800/30 border-zinc-700/50 hover:border-zinc-600"
+                    }
+                  `}
+                >
+                  <div className="flex items-center -space-x-1">
+                    <FileText className={`w-4 h-4 ${contentType === "bundle" ? "text-amber-400" : "text-zinc-400"}`} />
+                    <ImageIcon className={`w-4 h-4 ${contentType === "bundle" ? "text-blue-400" : "text-zinc-400"}`} />
+                  </div>
+                  <span className={`text-xs font-medium ${contentType === "bundle" ? "text-amber-400" : "text-zinc-300"}`}>
+                    {language === "ko" ? "텍스트+이미지" : "Text+Image"}
+                  </span>
+                </button>
+
+                {/* 풀 패키지 */}
+                <button
+                  onClick={() => setContentType("full")}
+                  className={`
+                    relative flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all
+                    ${contentType === "full"
+                      ? "bg-purple-500/10 border-purple-500"
+                      : "bg-zinc-800/30 border-zinc-700/50 hover:border-zinc-600"
+                    }
+                  `}
+                >
+                  <div className="flex items-center -space-x-1">
+                    <FileText className={`w-3.5 h-3.5 ${contentType === "full" ? "text-amber-400" : "text-zinc-400"}`} />
+                    <ImageIcon className={`w-3.5 h-3.5 ${contentType === "full" ? "text-blue-400" : "text-zinc-400"}`} />
+                    <Video className={`w-3.5 h-3.5 ${contentType === "full" ? "text-purple-400" : "text-zinc-400"}`} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={`text-xs font-medium ${contentType === "full" ? "text-purple-400" : "text-zinc-300"}`}>
+                      {language === "ko" ? "풀패키지" : "Full"}
+                    </span>
+                    <span className="px-1 py-0.5 text-[8px] font-bold bg-purple-500/20 text-purple-400 rounded">PRO</span>
+                  </div>
                 </button>
               </div>
             </div>
 
-            {/* Brand Selection */}
-            <div className="space-y-2">
-              <Label>{t("product")}</Label>
-              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Image Generation Options - Only show when image type is selected */}
-            {contentType === "image" && (
+            {/* Section 3: 세부 옵션 (Content Type에 따라 다름) */}
+            {(contentType !== "text" || writerPersonas.length > 0 || suggestedHooks.length > 0) && (
               <>
-                {/* Image Prompt */}
-                <div className="space-y-2">
-                  <Label>{language === "ko" ? "이미지 설명" : "Image Description"}</Label>
-                  <Textarea
-                    placeholder={language === "ko" ? "생성하고 싶은 이미지를 자세히 설명해주세요...\n예: 커피숍에서 노트북으로 일하는 젊은 직장인의 모습" : "Describe the image you want to create...\nExample: A young professional working on a laptop in a coffee shop"}
-                    value={imagePrompt}
-                    onChange={(e) => setImagePrompt(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                </div>
+                <div className="border-t border-zinc-700/50" />
 
-                {/* Image Style Selection */}
-                <div className="space-y-2">
-                  <Label>{language === "ko" ? "이미지 스타일" : "Image Style"}</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "realistic", emoji: "📷", labelKo: "사실적", labelEn: "Realistic", descKo: "실제 사진같은 스타일", descEn: "Photo-realistic style" },
-                      { value: "illustration", emoji: "🎨", labelKo: "일러스트", labelEn: "Illustration", descKo: "디지털 아트 스타일", descEn: "Digital art style" },
-                      { value: "minimal", emoji: "⬜", labelKo: "미니멀", labelEn: "Minimal", descKo: "깔끔하고 심플한", descEn: "Clean and simple" },
-                      { value: "vibrant", emoji: "🌈", labelKo: "생동감", labelEn: "Vibrant", descKo: "선명한 색상과 다이나믹", descEn: "Bold colors and dynamic" },
-                    ].map((style) => (
-                      <button
-                        key={style.value}
-                        onClick={() => setImageStyle(style.value as any)}
-                        className={`
-                          p-3 rounded border transition-all text-left
-                          ${imageStyle === style.value
-                            ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                            : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                          }
-                        `}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">{style.emoji}</span>
-                          <span className={`text-sm font-medium ${imageStyle === style.value ? "text-amber-400" : "text-zinc-300"}`}>
-                            {language === "ko" ? style.labelKo : style.labelEn}
-                          </span>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">3</span>
+                    {language === "ko" ? "세부 옵션" : "Options"}
+                  </div>
+
+                  {/* Image Options */}
+                  {contentType === "image" && (
+                    <div className="space-y-4">
+                      {/* Style + Aspect Ratio in one row */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-zinc-500">{language === "ko" ? "스타일" : "Style"}</Label>
+                          <Select value={imageStyle} onValueChange={(v) => setImageStyle(v as any)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="realistic">📷 {language === "ko" ? "사실적" : "Realistic"}</SelectItem>
+                              <SelectItem value="illustration">🎨 {language === "ko" ? "일러스트" : "Illustration"}</SelectItem>
+                              <SelectItem value="minimal">⬜ {language === "ko" ? "미니멀" : "Minimal"}</SelectItem>
+                              <SelectItem value="vibrant">🌈 {language === "ko" ? "생동감" : "Vibrant"}</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <p className="text-xs text-zinc-500 ml-7">
-                          {language === "ko" ? style.descKo : style.descEn}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-zinc-500">{language === "ko" ? "비율" : "Ratio"}</Label>
+                          <Select value={imageAspectRatio} onValueChange={(v) => setImageAspectRatio(v as any)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1:1">⬜ 1:1 {language === "ko" ? "정사각형" : "Square"}</SelectItem>
+                              <SelectItem value="16:9">🖼️ 16:9 {language === "ko" ? "가로형" : "Landscape"}</SelectItem>
+                              <SelectItem value="9:16">📱 9:16 {language === "ko" ? "세로형" : "Portrait"}</SelectItem>
+                              <SelectItem value="4:3">🖥️ 4:3 {language === "ko" ? "표준" : "Standard"}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-                {/* Aspect Ratio Selection */}
-                <div className="space-y-2">
-                  <Label>{language === "ko" ? "이미지 비율" : "Aspect Ratio"}</Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { value: "1:1", labelKo: "정사각형", labelEn: "Square", icon: "⬜" },
-                      { value: "16:9", labelKo: "가로형", labelEn: "Landscape", icon: "🖼️" },
-                      { value: "9:16", labelKo: "세로형", labelEn: "Portrait", icon: "📱" },
-                      { value: "4:3", labelKo: "표준", labelEn: "Standard", icon: "🖥️" },
-                    ].map((ratio) => (
-                      <button
-                        key={ratio.value}
-                        onClick={() => setImageAspectRatio(ratio.value as any)}
-                        className={`
-                          p-3 rounded border transition-all text-center
-                          ${imageAspectRatio === ratio.value
-                            ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                            : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                          }
-                        `}
+                      {/* Generate Image Button */}
+                      <Button
+                        onClick={handleGenerateImage}
+                        disabled={generatingImage || !topic.trim() || !selectedBrandId}
+                        className="w-full h-11 text-base group bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400"
                       >
-                        <span className="text-lg block mb-1">{ratio.icon}</span>
-                        <span className="text-xs font-medium">
-                          {language === "ko" ? ratio.labelKo : ratio.labelEn}
-                        </span>
-                        <span className="text-[10px] text-zinc-500 block">{ratio.value}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Generate Image Button */}
-                <Button
-                  onClick={handleGenerateImage}
-                  disabled={generatingImage || !imagePrompt.trim()}
-                  className="w-full h-12 text-base group bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400"
-                >
-                  {generatingImage ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                      {language === "ko" ? "이미지 생성" : "Generate Image"}
-                    </>
+                        {generatingImage ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                            {language === "ko" ? "생성 중..." : "Generating..."}
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className="w-4 h-4 mr-2" />
+                            {language === "ko" ? "이미지 생성" : "Generate Image"}
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   )}
-                </Button>
 
-                {/* Info */}
-                <div className="p-3 bg-zinc-800/50 border border-zinc-700 rounded text-xs text-zinc-400">
-                  <p className="flex items-center gap-2">
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    {language === "ko"
-                      ? "FLUX.1 schnell 모델을 사용하여 고품질 이미지를 빠르게 생성합니다."
-                      : "Uses FLUX.1 schnell model for fast, high-quality image generation."
-                    }
-                  </p>
+                  {/* Video Options */}
+                  {contentType === "video" && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-zinc-500">{language === "ko" ? "이미지 스타일" : "Image Style"}</Label>
+                          <Select value={imageStyle} onValueChange={(v) => setImageStyle(v as any)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="realistic">📷 {language === "ko" ? "사실적" : "Realistic"}</SelectItem>
+                              <SelectItem value="illustration">🎨 {language === "ko" ? "일러스트" : "Illustration"}</SelectItem>
+                              <SelectItem value="minimal">⬜ {language === "ko" ? "미니멀" : "Minimal"}</SelectItem>
+                              <SelectItem value="vibrant">🌈 {language === "ko" ? "생동감" : "Vibrant"}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-zinc-500">{language === "ko" ? "모션 강도" : "Motion"}</Label>
+                          <Select value={videoMotion} onValueChange={(v) => setVideoMotion(v as any)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">🌊 {language === "ko" ? "약함" : "Low"}</SelectItem>
+                              <SelectItem value="medium">🌀 {language === "ko" ? "보통" : "Medium"}</SelectItem>
+                              <SelectItem value="high">💫 {language === "ko" ? "강함" : "High"}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-purple-400/70 flex items-center gap-1.5">
+                        <Video className="w-3 h-3" />
+                        {language === "ko" ? "이미지 생성 후 비디오로 변환됩니다 (1-3분)" : "Image → Video conversion (1-3 min)"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Bundle/Full Options */}
+                  {(contentType === "bundle" || contentType === "full") && (
+                    <div className="space-y-4">
+                      {/* Info Banner - Compact */}
+                      <div className={`p-3 rounded-lg ${contentType === "full" ? "bg-purple-500/10 border border-purple-500/20" : "bg-amber-500/10 border border-amber-500/20"}`}>
+                        <p className="text-xs text-zinc-400">
+                          {contentType === "full"
+                            ? (language === "ko" ? "텍스트 → 이미지 → 비디오 순차 생성" : "Text → Image → Video sequential generation")
+                            : (language === "ko" ? "텍스트와 이미지를 함께 생성합니다" : "Generate text and image together")
+                          }
+                        </p>
+                      </div>
+
+                      <div className={`grid ${contentType === "full" ? "grid-cols-3" : "grid-cols-2"} gap-3`}>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-zinc-500">{language === "ko" ? "이미지 스타일" : "Style"}</Label>
+                          <Select value={imageStyle} onValueChange={(v) => setImageStyle(v as any)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="realistic">📷 {language === "ko" ? "사실적" : "Realistic"}</SelectItem>
+                              <SelectItem value="illustration">🎨 {language === "ko" ? "일러스트" : "Illustration"}</SelectItem>
+                              <SelectItem value="minimal">⬜ {language === "ko" ? "미니멀" : "Minimal"}</SelectItem>
+                              <SelectItem value="vibrant">🌈 {language === "ko" ? "생동감" : "Vibrant"}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-zinc-500">{language === "ko" ? "이미지 비율" : "Ratio"}</Label>
+                          <Select value={imageAspectRatio} onValueChange={(v) => setImageAspectRatio(v as any)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1:1">⬜ 1:1</SelectItem>
+                              <SelectItem value="16:9">🖼️ 16:9</SelectItem>
+                              <SelectItem value="9:16">📱 9:16</SelectItem>
+                              <SelectItem value="4:3">🖥️ 4:3</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {contentType === "full" && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-zinc-500">{language === "ko" ? "비디오 모션" : "Motion"}</Label>
+                            <Select value={videoMotion} onValueChange={(v) => setVideoMotion(v as any)}>
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low">🐢 {language === "ko" ? "약하게" : "Low"}</SelectItem>
+                                <SelectItem value="medium">🚶 {language === "ko" ? "보통" : "Medium"}</SelectItem>
+                                <SelectItem value="high">🏃 {language === "ko" ? "강하게" : "High"}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Text Options */}
+                  {contentType === "text" && (
+                    <div className="space-y-4">
+                      {/* Brand Voice - Compact */}
+                      {writerPersonas.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-zinc-500">{language === "ko" ? "브랜드 보이스" : "Brand Voice"}</Label>
+                            <a href="/writer-personas" className="text-[10px] text-amber-400 hover:text-amber-300">{t("manage")}</a>
+                          </div>
+                          <Select value={selectedWriterPersona || "default"} onValueChange={(value) => setSelectedWriterPersona(value === "default" ? "" : value)}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder={language === "ko" ? "브랜드 보이스 선택" : "Select Brand Voice"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="default">{language === "ko" ? "기본 스타일" : "Default Style"}</SelectItem>
+                              {writerPersonas.map((persona) => (
+                                <SelectItem key={persona.id} value={persona.id}>
+                                  {persona.name} {persona.is_default && "⭐"}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {/* Opening Hooks - Collapsible */}
+                      {suggestedHooks.length > 0 && (
+                        <div>
+                          <button
+                            onClick={() => setShowSuggestions(!showSuggestions)}
+                            className="w-full flex items-center justify-between p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-lg hover:bg-purple-500/15 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Lightbulb className="h-3.5 w-3.5 text-purple-400" />
+                              <span className="text-xs text-zinc-300">{language === "ko" ? "오프닝 훅 제안" : "Opening Hooks"} ({suggestedHooks.length})</span>
+                            </div>
+                            {showSuggestions ? <ChevronUp className="h-3.5 w-3.5 text-zinc-500" /> : <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />}
+                          </button>
+                          {showSuggestions && (
+                            <div className="mt-2 space-y-1.5 p-3 bg-zinc-800/30 rounded-lg">
+                              {suggestedHooks.map((hook, idx) => (
+                                <div key={idx} className="flex items-start justify-between gap-2 p-2 bg-zinc-900/50 rounded group hover:bg-zinc-900 transition-colors">
+                                  <p className="text-zinc-400 text-xs italic flex-1">"{hook}"</p>
+                                  <button onClick={() => copyHook(hook, idx)} className="p-1 text-zinc-600 hover:text-purple-400 transition-colors">
+                                    {copiedHook === idx ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}
 
-            {/* Brand Voice Selection */}
-            {contentType === "text" && writerPersonas.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>{language === "ko" ? "브랜드 보이스" : "Brand Voice"}</Label>
-                  <a
-                    href="/writer-personas"
-                    className="text-xs text-amber-400 hover:text-amber-300"
-                  >
-                    {t("manage")}
-                  </a>
-                </div>
-                <Select value={selectedWriterPersona || "default"} onValueChange={(value) => setSelectedWriterPersona(value === "default" ? "" : value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={language === "ko" ? "브랜드 보이스 선택" : "Select Brand Voice"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">
-                      {language === "ko" ? "기본 스타일 (브랜드 보이스 미적용)" : "Default Style (No Brand Voice)"}
-                    </SelectItem>
-                    {writerPersonas.map((persona) => (
-                      <SelectItem key={persona.id} value={persona.id}>
-                        {persona.name} {persona.is_default && "⭐"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedWriterPersona && writerPersonas.find(p => p.id === selectedWriterPersona) && (
-                  <p className="text-xs text-zinc-500">
-                    {writerPersonas.find(p => p.id === selectedWriterPersona)?.description}
-                  </p>
-                )}
-              </div>
-            )}
+            {/* Section 4: 텍스트 전용 옵션 (플랫폼, 톤, 길이) */}
+            {contentType === "text" && (
+              <>
+                <div className="border-t border-zinc-700/50" />
 
-            {/* Topic Input */}
-            <div className="space-y-2">
-              <Label>{t("topic")}</Label>
-              <Input
-                placeholder={t("topicPlaceholder")}
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              />
-            </div>
-
-            {/* Opening Hooks from Trends Page */}
-            {suggestedHooks.length > 0 && (
-              <div className="space-y-3">
-                {/* Collapsible Header */}
-                <button
-                  onClick={() => setShowSuggestions(!showSuggestions)}
-                  className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/10 to-amber-500/10 border border-purple-500/30 rounded-lg hover:from-purple-500/15 hover:to-amber-500/15 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-purple-400" />
-                    <span className="text-sm font-medium text-white">
-                      {language === "ko" ? "오프닝 훅 제안" : "Suggested Opening Hooks"}
-                    </span>
-                    <span className="text-xs text-zinc-500">
-                      ({suggestedHooks.length})
-                    </span>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-zinc-400 text-xs uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">{writerPersonas.length > 0 || suggestedHooks.length > 0 ? "4" : "3"}</span>
+                    {language === "ko" ? "글 설정" : "Writing Settings"}
                   </div>
-                  {showSuggestions ? (
-                    <ChevronUp className="h-4 w-4 text-zinc-400" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-zinc-400" />
-                  )}
-                </button>
 
-                {/* Collapsible Content */}
-                {showSuggestions && (
-                  <div className="space-y-2 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
-                    {suggestedHooks.map((hook, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start justify-between gap-2 p-2.5 bg-zinc-900/50 rounded-lg group hover:bg-zinc-900 transition-colors"
-                      >
-                        <p className="text-zinc-300 text-sm italic flex-1">
-                          "{hook}"
-                        </p>
-                        <button
-                          onClick={() => copyHook(hook, idx)}
-                          className="p-1.5 text-zinc-500 hover:text-purple-400 hover:bg-purple-400/10 rounded transition-colors flex-shrink-0"
-                          title={language === "ko" ? "복사" : "Copy"}
-                        >
-                          {copiedHook === idx ? (
-                            <Check className="h-3.5 w-3.5 text-green-400" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                    <p className="text-[11px] text-zinc-500 mt-2">
-                      {language === "ko"
-                        ? "💡 콘텐츠 시작 부분에 사용하면 독자의 관심을 끌 수 있어요"
-                        : "💡 Use these at the beginning to grab reader attention"
-                      }
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Platform Selection */}
-            <div className="space-y-2">
-              <Label>{t("platform")}</Label>
-              <Select value={platform} onValueChange={setPlatform}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("platformAll")}</SelectItem>
-                  <SelectItem value="thread">{t("platformThread")}</SelectItem>
-                  <SelectItem value="linkedin">{t("platformLinkedIn")}</SelectItem>
-                  <SelectItem value="instagram">{t("platformInstagram")}</SelectItem>
-                  <SelectItem value="twitter">{t("platformTwitter")}</SelectItem>
-                  <SelectItem value="naver">{t("platformNaver")}</SelectItem>
-                  <SelectItem value="tistory">{t("platformTistory")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Tone Selection - Visual Preset Style */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>{t("toneField")}</Label>
-                <span className="text-xs text-zinc-500">
-                  {language === "ko" ? "콘텐츠 분위기를 결정합니다" : "Sets the content mood"}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: "friendly", emoji: "😊", labelKo: "친근하고 따뜻한", labelEn: "Friendly & Warm", descKo: "편안한 대화체, 이모티콘 활용", descEn: "Conversational, uses emojis" },
-                  { value: "professional", emoji: "💼", labelKo: "전문적이고 신뢰감", labelEn: "Professional", descKo: "객관적 정보, 전문 용어 사용", descEn: "Objective, uses industry terms" },
-                  { value: "casual", emoji: "🎯", labelKo: "직설적이고 명확한", labelEn: "Direct & Clear", descKo: "핵심만 간결하게, 실용적", descEn: "Concise, practical" },
-                  { value: "trendy", emoji: "✨", labelKo: "트렌디하고 감각적", labelEn: "Trendy & Stylish", descKo: "최신 트렌드, MZ세대 어투", descEn: "Modern trends, Gen-Z style" },
-                  { value: "educational", emoji: "📚", labelKo: "교육적이고 정보중심", labelEn: "Educational", descKo: "단계별 설명, 쉬운 이해", descEn: "Step-by-step, easy to understand" },
-                  { value: "humorous", emoji: "😄", labelKo: "유머러스하고 재치", labelEn: "Humorous", descKo: "재치있는 표현, 가벼운 톤", descEn: "Witty expressions, light tone" },
-                ].map((toneOption) => (
-                  <button
-                    key={toneOption.value}
-                    onClick={() => setTone(toneOption.value)}
-                    className={`
-                      p-3 rounded border transition-all text-left
-                      ${tone === toneOption.value
-                        ? "bg-amber-500/20 border-amber-500 text-amber-400"
-                        : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{toneOption.emoji}</span>
-                      <span className={`text-sm font-medium ${tone === toneOption.value ? "text-amber-400" : "text-zinc-300"}`}>
-                        {language === "ko" ? toneOption.labelKo : toneOption.labelEn}
-                      </span>
+                  {/* Platform & Length in one row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-zinc-500">{t("platform")}</Label>
+                      <Select value={platform} onValueChange={setPlatform}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t("platformAll")}</SelectItem>
+                          <SelectItem value="thread">{t("platformThread")}</SelectItem>
+                          <SelectItem value="linkedin">{t("platformLinkedIn")}</SelectItem>
+                          <SelectItem value="instagram">{t("platformInstagram")}</SelectItem>
+                          <SelectItem value="twitter">{t("platformTwitter")}</SelectItem>
+                          <SelectItem value="naver">{t("platformNaver")}</SelectItem>
+                          <SelectItem value="tistory">{t("platformTistory")}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <p className="text-xs text-zinc-500 ml-7">
-                      {language === "ko" ? toneOption.descKo : toneOption.descEn}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-zinc-500">{t("length")}</Label>
+                      <Select value={length} onValueChange={setLength}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="short">{t("lengthShort")}</SelectItem>
+                          <SelectItem value="medium">{t("lengthMedium")}</SelectItem>
+                          <SelectItem value="long">{t("lengthLong")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-            {/* Length Selection */}
-            <div className="space-y-2">
-              <Label>{t("length")}</Label>
-              <Select value={length} onValueChange={setLength}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="short">{t("lengthShort")}</SelectItem>
-                  <SelectItem value="medium">{t("lengthMedium")}</SelectItem>
-                  <SelectItem value="long">{t("lengthLong")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                  {/* Tone Selection - Compact chips */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-zinc-500">{t("toneField")}</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: "friendly", emoji: "😊", labelKo: "친근한", labelEn: "Friendly" },
+                        { value: "professional", emoji: "💼", labelKo: "전문적", labelEn: "Professional" },
+                        { value: "casual", emoji: "🎯", labelKo: "직설적", labelEn: "Direct" },
+                        { value: "trendy", emoji: "✨", labelKo: "트렌디", labelEn: "Trendy" },
+                        { value: "educational", emoji: "📚", labelKo: "교육적", labelEn: "Educational" },
+                        { value: "humorous", emoji: "😄", labelKo: "유머러스", labelEn: "Humorous" },
+                      ].map((toneOption) => (
+                        <button
+                          key={toneOption.value}
+                          onClick={() => setTone(toneOption.value)}
+                          className={`
+                            px-3 py-1.5 rounded-full border transition-all text-xs
+                            ${tone === toneOption.value
+                              ? "bg-amber-500/20 border-amber-500 text-amber-400"
+                              : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                            }
+                          `}
+                        >
+                          {toneOption.emoji} {language === "ko" ? toneOption.labelKo : toneOption.labelEn}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Generate Buttons */}
             {contentType === "text" && !seoStep ? (
@@ -979,22 +1214,119 @@ export default function ContentCreatePage() {
                 <RefreshCw className="w-5 h-5 mr-2" />
                 {language === "ko" ? "새로 시작하기" : "Start Over"}
               </Button>
-            ) : (
-              <Button
-                onClick={handleGenerate}
-                disabled={loading}
-                className="w-full h-12 text-base group"
-              >
-                {loading ? (
-                  <>{t("generating")}</>
-                ) : (
-                  <>
-                    <Video className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                    {t("generateVideo")}
-                  </>
+            ) : contentType === "video" ? (
+              <div className="space-y-3">
+                {/* Step 1: Generate Image */}
+                <Button
+                  onClick={handleGenerateImage}
+                  disabled={generatingImage || !topic.trim() || !selectedBrandId}
+                  className="w-full h-12 text-base group bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
+                >
+                  {generatingImage ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      {language === "ko" ? "1단계: 이미지 생성" : "Step 1: Generate Image"}
+                    </>
+                  )}
+                </Button>
+
+                {/* Step 2: Convert to Video (only show after image is generated) */}
+                {generatedImageUrl && (
+                  <Button
+                    onClick={handleGenerateVideo}
+                    disabled={generatingVideo}
+                    className="w-full h-12 text-base group bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500"
+                  >
+                    {generatingVideo ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        {language === "ko" ? "비디오 변환 중... (1-3분)" : "Converting to video... (1-3 min)"}
+                      </>
+                    ) : (
+                      <>
+                        <Video className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                        {language === "ko" ? "2단계: 비디오로 변환" : "Step 2: Convert to Video"}
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
-            )}
+              </div>
+            ) : (contentType === "bundle" || contentType === "full") ? (
+              /* Bundle/Full Package Step-by-Step Generation Buttons */
+              <div className="space-y-3">
+                {/* Step 1: SEO Keywords Analysis Button (before text generation) */}
+                {!seoStep && !generatedContent && (
+                  <Button
+                    onClick={handleSeoSuggestion}
+                    disabled={loadingSeo || !topic.trim() || !selectedBrandId}
+                    className="w-full h-12 text-base group bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400"
+                  >
+                    {loadingSeo ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        {language === "ko" ? "SEO 키워드 분석 중..." : "Analyzing SEO keywords..."}
+                      </>
+                    ) : (
+                      <>
+                        <Tag className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                        {language === "ko" ? "1단계: SEO 키워드 분석" : "Step 1: SEO Keyword Analysis"}
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Step 2: Generate Text Button - moved to right panel (preview area) */}
+
+                {/* Step 3: Generate Image Button - moved to right panel (preview area) */}
+
+                {/* Step 4: Generate Video Button (only for full package, after image is generated) */}
+                {contentType === "full" && generatedImageUrl && !generatedVideoUrl && (
+                  <Button
+                    onClick={handleGenerateVideo}
+                    disabled={generatingVideo}
+                    className="w-full h-12 text-base group bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500"
+                  >
+                    {generatingVideo ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        {language === "ko" ? "비디오 생성 중... (1-3분)" : "Generating video... (1-3 min)"}
+                      </>
+                    ) : (
+                      <>
+                        <Video className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                        {language === "ko" ? "4단계: 비디오 생성" : "Step 4: Generate Video"}
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Start Over Button (show when any content is generated) */}
+                {generatedContent && (
+                  <Button
+                    onClick={() => {
+                      setGeneratedContent("")
+                      setGeneratedImageUrl("")
+                      setGeneratedVideoUrl("")
+                      setBundleStep("idle")
+                      setContentId(null)
+                      setSeoStep(false)
+                      setSeoSuggestions(null)
+                      setSelectedKeywords([])
+                    }}
+                    variant="outline"
+                    className="w-full h-12 text-base group border-zinc-600 hover:border-zinc-500"
+                  >
+                    <RefreshCw className="w-5 h-5 mr-2" />
+                    {language === "ko" ? "새로 시작하기" : "Start Over"}
+                  </Button>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {/* Right: Preview */}
@@ -1012,7 +1344,281 @@ export default function ContentCreatePage() {
             </div>
             <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mb-8"></div>
 
-            {contentType === "image" ? (
+            {(contentType === "bundle" || contentType === "full") && bundleStep !== "idle" && bundleStep !== "done" ? (
+              /* Bundle/Full Package Loading States */
+              <div className="space-y-6">
+                {/* Step 1: Text Generation */}
+                <div className={`p-4 rounded-lg border ${
+                  bundleStep === "text"
+                    ? "border-amber-500/50 bg-amber-500/10"
+                    : generatedContent
+                    ? "border-green-500/30 bg-green-500/5"
+                    : "border-zinc-700 bg-zinc-800/50"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    {bundleStep === "text" ? (
+                      <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                    ) : generatedContent ? (
+                      <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <span className="text-green-400 text-sm">✓</span>
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center">
+                        <span className="text-zinc-500 text-sm">2</span>
+                      </div>
+                    )}
+                    <div>
+                      <p className={`font-medium ${bundleStep === "text" ? "text-amber-400" : generatedContent ? "text-green-400" : "text-zinc-400"}`}>
+                        {language === "ko" ? "텍스트 생성 (2단계)" : "Text Generation (Step 2)"}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        {bundleStep === "text"
+                          ? (language === "ko" ? "생성 중..." : "Generating...")
+                          : generatedContent
+                          ? (language === "ko" ? "완료" : "Complete")
+                          : (language === "ko" ? "대기 중" : "Waiting")
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  {generatedContent && (
+                    <div className="mt-3 p-3 bg-zinc-900/50 rounded text-sm text-zinc-300 max-h-32 overflow-hidden">
+                      {generatedContent.slice(0, 200)}...
+                    </div>
+                  )}
+                </div>
+
+                {/* Step 2: Image Generation */}
+                <div className={`p-4 rounded-lg border ${
+                  bundleStep === "image"
+                    ? "border-blue-500/50 bg-blue-500/10"
+                    : generatedImageUrl
+                    ? "border-green-500/30 bg-green-500/5"
+                    : "border-zinc-700 bg-zinc-800/50"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    {bundleStep === "image" ? (
+                      <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                    ) : generatedImageUrl ? (
+                      <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <span className="text-green-400 text-sm">✓</span>
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center">
+                        <span className="text-zinc-500 text-sm">3</span>
+                      </div>
+                    )}
+                    <div>
+                      <p className={`font-medium ${bundleStep === "image" ? "text-blue-400" : generatedImageUrl ? "text-green-400" : "text-zinc-400"}`}>
+                        {language === "ko" ? "이미지 생성 (3단계)" : "Image Generation (Step 3)"}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        {bundleStep === "image"
+                          ? (language === "ko" ? "생성 중 (10-20초)..." : "Generating (10-20s)...")
+                          : generatedImageUrl
+                          ? (language === "ko" ? "완료" : "Complete")
+                          : (language === "ko" ? "대기 중" : "Waiting")
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  {generatedImageUrl && (
+                    <div className="mt-3">
+                      <img src={generatedImageUrl} alt="Generated" className="w-24 h-24 object-cover rounded" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Step 3: Video Generation (only for full package) */}
+                {contentType === "full" && (
+                  <div className={`p-4 rounded-lg border ${
+                    bundleStep === "video"
+                      ? "border-purple-500/50 bg-purple-500/10"
+                      : generatedVideoUrl
+                      ? "border-green-500/30 bg-green-500/5"
+                      : "border-zinc-700 bg-zinc-800/50"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {bundleStep === "video" ? (
+                        <div className="w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+                      ) : generatedVideoUrl ? (
+                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <span className="text-green-400 text-sm">✓</span>
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center">
+                          <span className="text-zinc-500 text-sm">4</span>
+                        </div>
+                      )}
+                      <div>
+                        <p className={`font-medium ${bundleStep === "video" ? "text-purple-400" : generatedVideoUrl ? "text-green-400" : "text-zinc-400"}`}>
+                          {language === "ko" ? "비디오 생성 (4단계)" : "Video Generation (Step 4)"}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {bundleStep === "video"
+                            ? (language === "ko" ? "생성 중 (1-3분)..." : "Generating (1-3 min)...")
+                            : generatedVideoUrl
+                            ? (language === "ko" ? "완료" : "Complete")
+                            : (language === "ko" ? "대기 중" : "Waiting")
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress Summary */}
+                <div className="p-4 bg-gradient-to-r from-amber-900/10 via-blue-900/10 to-purple-900/10 border border-zinc-700 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-zinc-400">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>
+                      {contentType === "full"
+                        ? (language === "ko" ? "풀 패키지 생성 중..." : "Generating full package...")
+                        : (language === "ko" ? "텍스트 + 이미지 생성 중..." : "Generating text + image...")
+                      }
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : contentType === "video" ? (
+              /* Video Preview Section */
+              generatedVideoUrl ? (
+                <div className="space-y-6">
+                  {/* Generated Video Display */}
+                  <div className="bg-zinc-800 border border-purple-500/30 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-purple-900/20">
+                      <span className="text-xs text-purple-300 flex items-center gap-2">
+                        <Video className="w-3 h-3" />
+                        {language === "ko" ? "생성된 AI 비디오" : "Generated AI Video"}
+                      </span>
+                      <span className="text-xs text-zinc-500">~2s</span>
+                    </div>
+                    <div className="p-4 flex items-center justify-center bg-zinc-900/30">
+                      <video
+                        src={generatedVideoUrl}
+                        controls
+                        autoPlay
+                        loop
+                        muted
+                        className="max-w-full max-h-[400px] rounded"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Video Actions */}
+                  <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-zinc-300">
+                      <Video className="w-4 h-4 text-purple-400" />
+                      <span>{topic.length > 50 ? topic.slice(0, 50) + "..." : topic}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <Button
+                        onClick={() => setShowVideoEditor(true)}
+                        className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black"
+                      >
+                        <Scissors className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "편집하기" : "Edit Video"}
+                      </Button>
+                      <Button
+                        onClick={handleDownloadVideo}
+                        className="w-full bg-purple-600 hover:bg-purple-500 text-white"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "다운로드" : "Download"}
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={() => {
+                          setGeneratedVideoUrl("")
+                          handleGenerateVideo()
+                        }}
+                        variant="outline"
+                        className="w-full border-purple-600 hover:border-purple-500 text-purple-400 hover:text-purple-300"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "다시 생성" : "Regenerate"}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setGeneratedImageUrl("")
+                          setGeneratedVideoUrl("")
+                          setImagePrompt("")
+                        }}
+                        variant="outline"
+                        className="w-full border-zinc-600 hover:border-zinc-500"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "초기화" : "Reset"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : generatedImageUrl ? (
+                <div className="space-y-6">
+                  {/* Generated Image for Video */}
+                  <div className="bg-zinc-800 border border-purple-500/30 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-purple-900/20">
+                      <span className="text-xs text-purple-300 flex items-center gap-2">
+                        <ImageIcon className="w-3 h-3" />
+                        {language === "ko" ? "소스 이미지 (1단계 완료)" : "Source Image (Step 1 Complete)"}
+                      </span>
+                      <span className="text-xs text-green-400">✓</span>
+                    </div>
+                    <div className="p-4 flex items-center justify-center bg-zinc-900/30">
+                      <img
+                        src={generatedImageUrl}
+                        alt="Source image for video"
+                        className="max-w-full max-h-[300px] object-contain rounded"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Prompt to generate video */}
+                  <div className="p-4 bg-gradient-to-br from-pink-900/20 to-purple-900/20 border border-purple-500/30 rounded text-center">
+                    <Video className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                    <p className="text-purple-300 font-medium mb-1">
+                      {language === "ko" ? "이미지가 준비되었습니다!" : "Image is ready!"}
+                    </p>
+                    <p className="text-zinc-500 text-sm">
+                      {language === "ko"
+                        ? "왼쪽의 '2단계: 비디오로 변환' 버튼을 클릭하세요"
+                        : "Click 'Step 2: Convert to Video' button on the left"
+                      }
+                    </p>
+                  </div>
+                </div>
+              ) : generatingImage ? (
+                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-purple-500/30 rounded-lg bg-purple-500/5">
+                  <div className="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-purple-400 font-medium">
+                    {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
+                  </p>
+                  <p className="text-zinc-500 text-sm mt-2">
+                    {language === "ko" ? "약 10-20초 정도 소요됩니다" : "This takes about 10-20 seconds"}
+                  </p>
+                </div>
+              ) : generatingVideo ? (
+                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-pink-500/30 rounded-lg bg-pink-500/5">
+                  <div className="w-16 h-16 border-4 border-pink-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-pink-400 font-medium">
+                    {language === "ko" ? "비디오 변환 중..." : "Converting to video..."}
+                  </p>
+                  <p className="text-zinc-500 text-sm mt-2">
+                    {language === "ko" ? "약 1-3분 정도 소요됩니다" : "This takes about 1-3 minutes"}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 border-2 border-dashed border-purple-700/50 rounded-lg">
+                  <div className="text-center">
+                    <Video className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                    <p className="text-zinc-400 font-normal whitespace-pre-line">
+                      {language === "ko" ? "이미지 설명을 입력하고\n1단계 버튼을 클릭하세요" : "Enter image description\nand click Step 1 button"}
+                    </p>
+                  </div>
+                </div>
+              )
+            ) : contentType === "image" ? (
               /* Image Preview Section */
               generatedImageUrl ? (
                 <div className="space-y-6">
@@ -1039,9 +1645,9 @@ export default function ContentCreatePage() {
                   <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
                     <div className="flex items-center gap-2 text-sm text-zinc-300">
                       <ImageIcon className="w-4 h-4 text-amber-400" />
-                      <span>{imagePrompt.length > 50 ? imagePrompt.slice(0, 50) + "..." : imagePrompt}</span>
+                      <span>{topic.length > 50 ? topic.slice(0, 50) + "..." : topic}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <Button
                         onClick={handleDownloadImage}
                         className="w-full bg-zinc-700 hover:bg-zinc-600 text-white"
@@ -1052,13 +1658,26 @@ export default function ContentCreatePage() {
                       <Button
                         onClick={() => {
                           setGeneratedImageUrl("")
+                          setGeneratedVideoUrl("")
+                          handleGenerateImage()
+                        }}
+                        variant="outline"
+                        className="w-full border-amber-600 hover:border-amber-500 text-amber-400 hover:text-amber-300"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "다시 생성" : "Regenerate"}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setGeneratedImageUrl("")
+                          setGeneratedVideoUrl("")
                           setImagePrompt("")
                         }}
                         variant="outline"
                         className="w-full border-zinc-600 hover:border-zinc-500"
                       >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        {language === "ko" ? "새로 생성" : "Generate New"}
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        {language === "ko" ? "초기화" : "Reset"}
                       </Button>
                     </div>
                   </div>
@@ -1255,16 +1874,22 @@ export default function ContentCreatePage() {
                       {language === "ko" ? "키워드를 선택하지 않고 진행하면 SEO 최적화 없이 콘텐츠가 생성됩니다." : "If you proceed without selecting keywords, content will be generated without SEO optimization."}
                     </p>
                     <Button
-                      onClick={handleGenerate}
+                      onClick={(contentType === "bundle" || contentType === "full") ? handleGenerateBundleText : handleGenerate}
                       disabled={loading}
                       className="w-full h-12 text-base group bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400"
                     >
                       {loading ? (
-                        <>{t("generating")}</>
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          {language === "ko" ? "텍스트 생성 중..." : "Generating text..."}
+                        </>
                       ) : (
                         <>
-                          <Sparkles className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                          {language === "ko" ? "2단계: 콘텐츠 생성" : "Step 2: Generate Content"}
+                          <FileText className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                          {(contentType === "bundle" || contentType === "full")
+                            ? (language === "ko" ? "2단계: 텍스트 생성" : "Step 2: Generate Text")
+                            : (language === "ko" ? "2단계: 콘텐츠 생성" : "Step 2: Generate Content")
+                          }
                         </>
                       )}
                     </Button>
@@ -1374,7 +1999,7 @@ export default function ContentCreatePage() {
                   )}
                 </div>
 
-                {/* 콘텐츠 개선하기 섹션 */}
+                {/* 콘텐츠 개선하기 섹션 - moved above image generation */}
                 {contentId && (
                   <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-4">
                     <div className="flex items-center justify-between">
@@ -1476,6 +2101,209 @@ export default function ContentCreatePage() {
                   </div>
                 )}
 
+                {/* Step-by-Step: Next Step Button in Preview Area */}
+                {(contentType === "bundle" || contentType === "full") && generatedContent && !generatedImageUrl && (
+                  <div className="p-4 bg-gradient-to-r from-amber-900/20 to-amber-800/20 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                        <span className="text-amber-400 font-medium">3</span>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-amber-300">
+                          {language === "ko" ? "다음 단계: 이미지 생성" : "Next Step: Generate Image"}
+                        </h4>
+                        <p className="text-xs text-zinc-400">
+                          {language === "ko" ? "텍스트 기반으로 AI 이미지를 생성합니다 (10-20초)" : "Generate AI image based on your text (10-20s)"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleGenerateBundleImage}
+                      disabled={generatingImage}
+                      className="w-full h-10 text-sm group bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400"
+                    >
+                      {generatingImage ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          {language === "ko" ? "이미지 생성 중..." : "Generating image..."}
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+                          {language === "ko" ? "3단계: 이미지 생성" : "Step 3: Generate Image"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Bundle: Generated Image Section */}
+                {(contentType === "bundle" || contentType === "full") && generatedImageUrl && (
+                  <div className="bg-zinc-800 border border-amber-500/30 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-amber-900/20">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm font-medium text-amber-300">
+                          {language === "ko" ? "생성된 이미지" : "Generated Image"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="relative aspect-square max-w-md mx-auto rounded-lg overflow-hidden bg-zinc-900">
+                        <img
+                          src={generatedImageUrl}
+                          alt="Generated"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="mt-4 flex justify-center gap-3">
+                        <Button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(generatedImageUrl)
+                              const blob = await response.blob()
+                              const url = window.URL.createObjectURL(blob)
+                              const link = document.createElement("a")
+                              link.href = url
+                              link.download = `${topic.replace(/\s+/g, "_")}_image.webp`
+                              document.body.appendChild(link)
+                              link.click()
+                              document.body.removeChild(link)
+                              window.URL.revokeObjectURL(url)
+                              toast.success(language === "ko" ? "이미지 다운로드 완료" : "Image downloaded")
+                            } catch (error) {
+                              console.error("Download error:", error)
+                              // Fallback: open in new tab
+                              window.open(generatedImageUrl, "_blank")
+                              toast.info(language === "ko" ? "새 탭에서 이미지를 열었습니다. 우클릭하여 저장하세요." : "Image opened in new tab. Right-click to save.")
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="border-amber-500/50 text-amber-300 hover:bg-amber-500/10"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {language === "ko" ? "이미지 다운로드" : "Download Image"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step-by-Step: Next Step Button for Video in Preview Area (only for full package) */}
+                {contentType === "full" && generatedImageUrl && !generatedVideoUrl && (
+                  <div className="p-4 bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-lg">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                        <span className="text-purple-400 font-medium">4</span>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-purple-300">
+                          {language === "ko" ? "다음 단계: 비디오 생성" : "Next Step: Generate Video"}
+                        </h4>
+                        <p className="text-xs text-zinc-400">
+                          {language === "ko" ? "이미지를 AI 비디오로 변환합니다 (1-3분)" : "Convert image to AI video (1-3 min)"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleGenerateVideo}
+                      disabled={generatingVideo}
+                      className="w-full h-10 text-sm group bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500"
+                    >
+                      {generatingVideo ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          {language === "ko" ? "비디오 생성 중..." : "Generating video..."}
+                        </>
+                      ) : (
+                        <>
+                          <Video className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+                          {language === "ko" ? "비디오 생성하기" : "Generate Video"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Bundle/Full: Generated Video Section */}
+                {(contentType === "bundle" || contentType === "full") && generatedVideoUrl && (
+                  <div className="bg-zinc-800 border border-purple-500/30 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-purple-900/20">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm font-medium text-purple-300">
+                          {language === "ko" ? "생성된 비디오" : "Generated Video"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="relative max-w-md mx-auto rounded-lg overflow-hidden bg-zinc-900">
+                        <video
+                          src={generatedVideoUrl}
+                          controls
+                          autoPlay
+                          loop
+                          muted
+                          className="w-full h-auto"
+                        />
+                      </div>
+                      <div className="mt-4 flex justify-center gap-3">
+                        <Button
+                          onClick={() => setShowVideoEditor(true)}
+                          size="sm"
+                          className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black"
+                        >
+                          <Scissors className="w-4 h-4 mr-2" />
+                          {language === "ko" ? "편집하기" : "Edit Video"}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            const link = document.createElement("a")
+                            link.href = generatedVideoUrl
+                            link.download = `${topic.replace(/\s+/g, "_")}_video.mp4`
+                            link.click()
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="border-purple-500/50 text-purple-300 hover:bg-purple-500/10"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {language === "ko" ? "비디오 다운로드" : "Download Video"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bundle Results Summary - only show when BOTH text AND image are generated */}
+                {(contentType === "bundle" || contentType === "full") && generatedContent && generatedImageUrl && (
+                  <div className="p-4 bg-gradient-to-r from-amber-900/20 via-amber-800/20 to-amber-900/20 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Sparkles className="w-5 h-5 text-amber-400" />
+                      <h4 className="text-sm font-medium text-amber-300">
+                        {contentType === "full" && generatedVideoUrl
+                          ? (language === "ko" ? "풀 패키지 생성 완료!" : "Full Package Complete!")
+                          : (language === "ko" ? "텍스트 + 이미지 생성 완료!" : "Text + Image Complete!")
+                        }
+                      </h4>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full flex items-center gap-1">
+                        <FileText className="w-3 h-3" /> {language === "ko" ? "텍스트" : "Text"} ✓
+                      </span>
+                      <span className="px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3" /> {language === "ko" ? "이미지" : "Image"} ✓
+                      </span>
+                      {contentType === "full" && generatedVideoUrl && (
+                        <span className="px-2.5 py-1 bg-purple-500/20 text-purple-300 rounded-full flex items-center gap-1">
+                          <Video className="w-3 h-3" /> {language === "ko" ? "비디오" : "Video"} ✓
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded space-y-3">
                   <p className="text-xs text-zinc-400 font-normal">
                     {t("markdownTip")}
@@ -1522,6 +2350,25 @@ export default function ContentCreatePage() {
           </div>
         </div>
       </div>
+
+      {/* AI Video Editor Modal */}
+      {showVideoEditor && generatedVideoUrl && (
+        <AIVideoEditor
+          videoUrl={generatedVideoUrl}
+          language={language}
+          onClose={() => setShowVideoEditor(false)}
+          onSave={(editedUrl) => {
+            setGeneratedVideoUrl(editedUrl)
+            setShowVideoEditor(false)
+            toast.success(language === "ko" ? "비디오 편집 완료!" : "Video editing complete!")
+          }}
+          onOpenAdvanced={() => {
+            setShowVideoEditor(false)
+            // Navigate to advanced editor page with video URL
+            router.push(`/video-editor?videoUrl=${encodeURIComponent(generatedVideoUrl)}`)
+          }}
+        />
+      )}
     </div>
   )
 }

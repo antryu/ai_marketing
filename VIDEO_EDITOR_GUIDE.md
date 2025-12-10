@@ -2,6 +2,11 @@
 
 마케팅 자동화 플랫폼에 통합된 AI 기반 비디오 편집기입니다.
 
+> **IMPORTANT: Language Rules**
+> - **NEVER use Chinese (Hanzi), Japanese (Kanji/Hiragana/Katakana), or any CJK characters**
+> - Allowed languages: **Korean (Hangul) and English ONLY**
+> - This rule applies to ALL files in the project
+
 ## ✨ 주요 기능
 
 ### 1. **AI 비디오 자동 생성**

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { FileText, Calendar, Eye, Trash2, Zap } from "lucide-react"
+import { FileText, Calendar, Eye, Trash2, Zap, Image as ImageIcon, Video, Package } from "lucide-react"
 import { toast } from "sonner"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { translations, TranslationKey } from "@/lib/translations"
@@ -99,6 +99,39 @@ export default function ContentPage() {
     )
   }
 
+  // 콘텐츠 타입에 따른 뱃지 표시
+  const getContentTypeBadge = (contentType: string) => {
+    const badges: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+      text: { icon: <FileText className="w-3 h-3" />, label: language === "ko" ? "텍스트" : "Text", color: "bg-zinc-700 text-zinc-300 border-zinc-600" },
+      image: { icon: <ImageIcon className="w-3 h-3" />, label: language === "ko" ? "이미지" : "Image", color: "bg-blue-900/30 text-blue-400 border-blue-700" },
+      video: { icon: <Video className="w-3 h-3" />, label: language === "ko" ? "비디오" : "Video", color: "bg-purple-900/30 text-purple-400 border-purple-700" },
+      bundle: { icon: <Package className="w-3 h-3" />, label: language === "ko" ? "번들" : "Bundle", color: "bg-amber-900/30 text-amber-400 border-amber-700" },
+      full_package: { icon: <Package className="w-3 h-3" />, label: language === "ko" ? "풀" : "Full", color: "bg-emerald-900/30 text-emerald-400 border-emerald-700" },
+    }
+
+    const badge = badges[contentType] || badges.text
+    return (
+      <span className={`flex items-center gap-1 px-2 py-1 text-xs font-medium tracking-wide border rounded ${badge.color}`}>
+        {badge.icon}
+        {badge.label}
+      </span>
+    )
+  }
+
+  // platform_variations에서 이미지/비디오 URL 추출
+  const getMediaFromVariations = (variations: Record<string, any> | null) => {
+    if (!variations) return { imageUrl: null, videoUrl: null }
+
+    const firstPlatform = Object.keys(variations)[0]
+    if (!firstPlatform) return { imageUrl: null, videoUrl: null }
+
+    const platformData = variations[firstPlatform]
+    return {
+      imageUrl: platformData?.imageUrl || null,
+      videoUrl: platformData?.videoUrl || null
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -128,81 +161,94 @@ export default function ContentPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {contents.map((content) => (
+            {contents.map((content) => {
+              const media = getMediaFromVariations(content.platform_variations)
+
+              return (
               <div
                 key={content.id}
                 className="group bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 p-6 hover:shadow-lg hover:shadow-amber-400/5"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-4 flex-1">
-                    {/* Platform Icon */}
-                    <div className="flex-shrink-0">
-                      {getPlatformIcon(content.platform_variations ? Object.keys(content.platform_variations)[0] : undefined)}
+                <div className="flex items-start gap-4">
+                  {/* 이미지 미리보기 (번들/풀패키지) 또는 Platform Icon */}
+                  <div className="flex-shrink-0">
+                    {media.imageUrl ? (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden border border-zinc-700">
+                        <img
+                          src={media.imageUrl}
+                          alt="Content preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      getPlatformIcon(content.platform_variations ? Object.keys(content.platform_variations)[0] : undefined)
+                    )}
+                  </div>
+
+                  {/* Content Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-lg font-normal text-white group-hover:text-amber-400 transition-colors duration-300">
+                        {content.topic || content.title}
+                      </h3>
+                      {/* 콘텐츠 타입 뱃지 */}
+                      {getContentTypeBadge(content.content_type || "text")}
                     </div>
 
-                    {/* Content Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-normal text-white group-hover:text-amber-400 transition-colors duration-300">
-                          {content.topic || content.title}
-                        </h3>
+                    <p className="text-zinc-400 text-sm font-normal mb-3 line-clamp-2">
+                      {content.body}
+                    </p>
+
+                    {/* SEO Keywords */}
+                    {content.seo_keywords && content.seo_keywords.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {content.seo_keywords.slice(0, 5).map((keyword: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="text-xs px-2 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
+                        {content.seo_keywords.length > 5 && (
+                          <span className="text-xs text-zinc-500">
+                            +{content.seo_keywords.length - 5}
+                          </span>
+                        )}
                       </div>
+                    )}
 
-                      <p className="text-zinc-400 text-sm font-normal mb-3 line-clamp-2">
-                        {content.body}
-                      </p>
-
-                      {/* SEO Keywords */}
-                      {content.seo_keywords && content.seo_keywords.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {content.seo_keywords.slice(0, 5).map((keyword: string, idx: number) => (
-                            <span
-                              key={idx}
-                              className="text-xs px-2 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded"
-                            >
-                              {keyword}
-                            </span>
-                          ))}
-                          {content.seo_keywords.length > 5 && (
-                            <span className="text-xs text-zinc-500">
-                              +{content.seo_keywords.length - 5}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-4 text-xs text-zinc-500 font-normal">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(content.created_at).toLocaleDateString("ko-KR")}
+                    <div className="flex items-center gap-4 text-xs text-zinc-500 font-normal">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(content.created_at).toLocaleDateString("ko-KR")}
+                      </span>
+                      {content.brand && (
+                        <span className="px-2 py-1 bg-zinc-800 border border-zinc-700 text-zinc-400">
+                          {content.brand.name}
                         </span>
-                        {content.brand && (
-                          <span className="px-2 py-1 bg-zinc-800 border border-zinc-700 text-zinc-400">
-                            {content.brand.name}
-                          </span>
-                        )}
-                        {content.published_posts && content.published_posts.length > 0 && (
-                          <span className="text-emerald-400">
-                            {content.published_posts.length}{t("platformsPublished")}
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      {content.published_posts && content.published_posts.length > 0 && (
+                        <span className="text-emerald-400">
+                          {content.published_posts.length}{t("platformsPublished")}
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="flex-shrink-0 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button
                       onClick={() => router.push(`/content/${content.id}`)}
                       className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-amber-400/50 transition-all duration-300 rounded"
                       title={t("viewDetails")}
                     >
-                      <Eye className="w-4 h-4 text-zinc-400 group-hover:text-amber-400" />
-                      <span className="text-sm font-medium text-zinc-400 group-hover:text-amber-400">{language === "ko" ? "미리보기" : "Preview"}</span>
+                      <Eye className="w-4 h-4 text-zinc-400" />
+                      <span className="text-sm font-medium text-zinc-400">{language === "ko" ? "미리보기" : "Preview"}</span>
                     </button>
                     <button
                       onClick={() => handleDelete(content.id)}
-                      className="w-9 h-9 bg-zinc-800 hover:bg-red-900/30 border border-zinc-700 hover:border-red-700 flex items-center justify-center transition-all duration-300"
+                      className="w-9 h-9 bg-zinc-800 hover:bg-red-900/30 border border-zinc-700 hover:border-red-700 flex items-center justify-center transition-all duration-300 rounded"
                       title={t("deleteContent")}
                     >
                       <Trash2 className="w-4 h-4 text-zinc-400 hover:text-red-400" />
@@ -210,7 +256,8 @@ export default function ContentPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

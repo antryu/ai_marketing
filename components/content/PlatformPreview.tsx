@@ -11,6 +11,8 @@ interface PlatformVariation {
   hashtags?: string[]
   tone?: string
   length?: string
+  imageUrl?: string
+  videoUrl?: string
 }
 
 interface PlatformPreviewProps {
@@ -98,8 +100,18 @@ export function PlatformPreview({ contentId, variations, language = "ko", seoKey
   const [loadingPlatforms, setLoadingPlatforms] = useState<Record<string, boolean>>({})
 
   // 디버깅: variations 데이터 확인
-  console.log("🔍 PlatformPreview variations:", processedVariations)
+  console.log("🔍 PlatformPreview raw variations:", variations)
+  console.log("🔍 PlatformPreview processed variations:", processedVariations)
   console.log("🔍 Variations keys:", Object.keys(processedVariations))
+
+  // 각 플랫폼별 텍스트 길이 확인
+  Object.keys(processedVariations).forEach(platform => {
+    const textLength = processedVariations[platform]?.text?.length || 0
+    console.log(`📝 ${platform}: text length = ${textLength}`)
+    if (textLength > 0) {
+      console.log(`   Preview: ${processedVariations[platform].text.substring(0, 50)}...`)
+    }
+  })
 
   // All available platforms
   const allPlatforms = ['thread', 'linkedin', 'twitter', 'instagram', 'naver', 'tistory']
@@ -149,8 +161,14 @@ export function PlatformPreview({ contentId, variations, language = "ko", seoKey
     }
   }
 
-  // 제일 긴 콘텐츠를 가진 플랫폼을 기본으로 선택 (네이버)
-  const defaultPlatform = 'naver'
+  // 실제 데이터가 있는 첫 번째 플랫폼을 기본값으로 선택
+  const availablePlatforms = Object.keys(processedVariations).filter(
+    p => processedVariations[p]?.text && processedVariations[p].text.length > 0
+  )
+  const defaultPlatform = availablePlatforms[0] || 'naver'
+
+  console.log("🎯 Default platform:", defaultPlatform)
+  console.log("🎯 Available platforms with text:", availablePlatforms)
 
   return (
     <Card className="bg-zinc-900 border-zinc-800">
@@ -216,6 +234,26 @@ export function PlatformPreview({ contentId, variations, language = "ko", seoKey
                               </div>
                             </div>
                           </div>
+                          {/* 이미지 표시 (블로그 스타일) */}
+                          {variation.imageUrl && (
+                            <div className="mb-6 rounded-lg overflow-hidden border border-gray-200">
+                              <img
+                                src={variation.imageUrl}
+                                alt="Generated content"
+                                className="w-full h-auto max-h-96 object-cover"
+                              />
+                            </div>
+                          )}
+                          {/* 비디오 표시 (블로그 스타일) */}
+                          {variation.videoUrl && (
+                            <div className="mb-6 rounded-lg overflow-hidden border border-gray-200">
+                              <video
+                                src={variation.videoUrl}
+                                controls
+                                className="w-full h-auto max-h-96"
+                              />
+                            </div>
+                          )}
                           <div className="prose prose-lg max-w-none">
                             <ReactMarkdown>{variation.text}</ReactMarkdown>
                           </div>
@@ -240,6 +278,26 @@ export function PlatformPreview({ contentId, variations, language = "ko", seoKey
                           <div className="text-white mb-4 prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
                             <ReactMarkdown>{variation.text}</ReactMarkdown>
                           </div>
+                          {/* 이미지 표시 */}
+                          {variation.imageUrl && (
+                            <div className="mb-4 rounded-lg overflow-hidden border border-zinc-700">
+                              <img
+                                src={variation.imageUrl}
+                                alt="Generated content"
+                                className="w-full h-auto max-h-80 object-cover"
+                              />
+                            </div>
+                          )}
+                          {/* 비디오 표시 */}
+                          {variation.videoUrl && (
+                            <div className="mb-4 rounded-lg overflow-hidden border border-zinc-700">
+                              <video
+                                src={variation.videoUrl}
+                                controls
+                                className="w-full h-auto max-h-80"
+                              />
+                            </div>
+                          )}
                         </>
                       )}
                       {variation.hashtags && variation.hashtags.length > 0 && (

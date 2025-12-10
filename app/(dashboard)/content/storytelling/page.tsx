@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { Sparkles, Tag, X } from "lucide-react"
 import { MirraStyleSelector } from "@/components/content/MirraStyleSelector"
 import { ContentPreviewCard } from "@/components/content/ContentPreviewCard"
+import { useBrand } from "@/contexts/BrandContext"
 import {
   StoryFrame,
   GenerationMode,
@@ -25,10 +26,8 @@ import {
 export default function CreateMirraPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [brands, setBrands] = useState<any[]>([])
-  const [selectedBrand, setSelectedBrand] = useState("")
+  const { selectedBrandId, brands, loading: loadingBrands } = useBrand()
   const [topic, setTopic] = useState("")
-  const [loadingBrands, setLoadingBrands] = useState(true)
 
   // Mirra 스타일 설정
   const [mirraConfig, setMirraConfig] = useState<{
@@ -58,31 +57,12 @@ export default function CreateMirraPage() {
   const [tone, setTone] = useState("friendly")
 
   useEffect(() => {
-    loadBrands()
-
     // Load topic from URL parameter
     const topicParam = searchParams.get('topic')
     if (topicParam) {
       setTopic(topicParam)
     }
   }, [])
-
-  const loadBrands = async () => {
-    const supabase = createClient()
-    const result = await (supabase as any)
-      .from("brands")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    const data = result.data as any[]
-    if (data) {
-      setBrands(data)
-      if (data.length > 0) {
-        setSelectedBrand(data[0].id)
-      }
-    }
-    setLoadingBrands(false)
-  }
 
   // SEO 키워드 제안 함수
   const handleSeoSuggestion = async () => {
@@ -91,7 +71,7 @@ export default function CreateMirraPage() {
       return
     }
 
-    if (!selectedBrand) {
+    if (!selectedBrandId) {
       toast.error("브랜드를 선택하세요")
       return
     }
@@ -151,7 +131,7 @@ export default function CreateMirraPage() {
       return
     }
 
-    if (!selectedBrand) {
+    if (!selectedBrandId) {
       toast.error("브랜드를 선택하세요")
       return
     }
@@ -168,7 +148,7 @@ export default function CreateMirraPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic,
-          brandId: selectedBrand,
+          brandId: selectedBrandId,
           platform,
           length,
           tone,
@@ -311,23 +291,6 @@ export default function CreateMirraPage() {
               <div>
                 <h2 className="text-xl font-light text-white tracking-wide">스토리텔링 생성</h2>
                 <div className="w-16 h-px bg-gradient-to-r from-amber-400 to-transparent mt-6"></div>
-              </div>
-
-              {/* 브랜드 선택 */}
-              <div className="space-y-2">
-                <Label htmlFor="brand-mirra">브랜드</Label>
-                <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                  <SelectTrigger id="brand-mirra">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* 토픽 입력 */}
@@ -611,8 +574,8 @@ export default function CreateMirraPage() {
             {generatedContent ? (
               <ContentPreviewCard
                 content={generatedContent}
-                brandName={brands.find(b => b.id === selectedBrand)?.name}
-                brandLogo={brands.find(b => b.id === selectedBrand)?.logo_url}
+                brandName={brands.find(b => b.id === selectedBrandId)?.name}
+                brandLogo={(brands.find(b => b.id === selectedBrandId) as any)?.logo_url}
                 status={contentStatus}
                 onRefine={handleRefine}
                 onSave={handleSaveAndGoToList}

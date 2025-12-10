@@ -2,6 +2,11 @@
 
 Thread(한국)/LinkedIn(미국) 중심의 AI 기반 마케팅 자동화 SaaS 플랫폼입니다.
 
+> **IMPORTANT: Language Rules**
+> - **NEVER use Chinese (Hanzi), Japanese (Kanji/Hiragana/Katakana), or any CJK characters**
+> - Allowed languages: **Korean (Hangul) and English ONLY**
+> - This rule applies to ALL files in the project
+
 ## 🎯 프로젝트 개요
 
 사용자가 제품 정보를 입력하면 AI가 자동으로:

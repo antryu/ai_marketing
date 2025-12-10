@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PlatformPreview } from "@/components/content/PlatformPreview"
-import { ArrowLeft, Edit, Trash2, Send, Calendar } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, Send, Calendar, Image as ImageIcon, Video, FileText, Package, Download } from "lucide-react"
 import { toast } from "sonner"
 import ReactMarkdown from "react-markdown"
 
@@ -162,20 +162,131 @@ export default function ContentDetailPage() {
           {/* 원본 콘텐츠 */}
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader>
-              <CardTitle>원본 콘텐츠</CardTitle>
-              <CardDescription>AI가 생성한 기본 콘텐츠</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>원본 콘텐츠</CardTitle>
+                  <CardDescription>AI가 생성한 기본 콘텐츠</CardDescription>
+                </div>
+                {/* 콘텐츠 타입 뱃지 */}
+                {content.content_type && (
+                  <span className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium border rounded ${
+                    content.content_type === "bundle" ? "bg-amber-900/30 text-amber-400 border-amber-700" :
+                    content.content_type === "full_package" ? "bg-emerald-900/30 text-emerald-400 border-emerald-700" :
+                    content.content_type === "image" ? "bg-blue-900/30 text-blue-400 border-blue-700" :
+                    content.content_type === "video" ? "bg-purple-900/30 text-purple-400 border-purple-700" :
+                    "bg-zinc-700 text-zinc-300 border-zinc-600"
+                  }`}>
+                    {content.content_type === "bundle" && <><Package className="w-3 h-3" /> 번들</>}
+                    {content.content_type === "full_package" && <><Package className="w-3 h-3" /> 풀</>}
+                    {content.content_type === "image" && <><ImageIcon className="w-3 h-3" /> 이미지</>}
+                    {content.content_type === "video" && <><Video className="w-3 h-3" /> 비디오</>}
+                    {content.content_type === "text" && <><FileText className="w-3 h-3" /> 텍스트</>}
+                    {!["bundle", "full_package", "image", "video", "text"].includes(content.content_type) && <><FileText className="w-3 h-3" /> 텍스트</>}
+                  </span>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 overflow-hidden">
-                <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
-                  <ReactMarkdown>{content.body}</ReactMarkdown>
-                </div>
-              </div>
+              {/* 이미지 표시 (번들/풀패키지) */}
+              {(() => {
+                const firstPlatform = content.platform_variations ? Object.keys(content.platform_variations)[0] : null
+                const imageUrl = firstPlatform ? content.platform_variations[firstPlatform]?.imageUrl : null
+                const videoUrl = firstPlatform ? content.platform_variations[firstPlatform]?.videoUrl : null
+                const textContent = firstPlatform ? content.platform_variations[firstPlatform]?.text : content.body
+
+                return (
+                  <>
+                    {imageUrl && (
+                      <div className="mb-4">
+                        <div className="rounded-lg overflow-hidden border border-zinc-700">
+                          <img
+                            src={imageUrl}
+                            alt="Generated content"
+                            className="w-full h-auto max-h-80 object-cover"
+                          />
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(imageUrl)
+                                const blob = await response.blob()
+                                const url = window.URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `content-image-${contentId}.png`
+                                document.body.appendChild(a)
+                                a.click()
+                                document.body.removeChild(a)
+                                window.URL.revokeObjectURL(url)
+                                toast.success("이미지 다운로드 완료")
+                              } catch {
+                                toast.error("이미지 다운로드 실패")
+                              }
+                            }}
+                            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            이미지 다운로드
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {videoUrl && (
+                      <div className="mb-4">
+                        <div className="rounded-lg overflow-hidden border border-zinc-700">
+                          <video
+                            src={videoUrl}
+                            controls
+                            className="w-full h-auto max-h-80"
+                          />
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(videoUrl)
+                                const blob = await response.blob()
+                                const url = window.URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `content-video-${contentId}.mp4`
+                                document.body.appendChild(a)
+                                a.click()
+                                document.body.removeChild(a)
+                                window.URL.revokeObjectURL(url)
+                                toast.success("비디오 다운로드 완료")
+                              } catch {
+                                toast.error("비디오 다운로드 실패")
+                              }
+                            }}
+                            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            비디오 다운로드
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 overflow-hidden">
+                      <div className="text-white prose prose-invert prose-sm max-w-none break-words overflow-wrap-anywhere">
+                        <ReactMarkdown>{textContent || content.body}</ReactMarkdown>
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
 
               {/* SEO Keywords */}
               {content.seo_keywords && content.seo_keywords.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-zinc-700">
-                  <h4 className="text-sm font-medium text-zinc-300 mb-2">🏷️ SEO 키워드</h4>
+                  <h4 className="text-sm font-medium text-zinc-300 mb-2">SEO 키워드</h4>
                   <div className="flex flex-wrap gap-2">
                     {content.seo_keywords.map((keyword: string, idx: number) => (
                       <span

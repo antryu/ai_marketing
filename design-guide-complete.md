@@ -1,7 +1,12 @@
 # 웹앱 디자인 시스템 가이드
 
-> **버전**: 1.0.0  
-> **최종 업데이트**: 2025-11-03  
+> **IMPORTANT: Language Rules**
+> - **NEVER use Chinese (Hanzi), Japanese (Kanji/Hiragana/Katakana), or any CJK characters**
+> - Allowed languages: **Korean (Hangul) and English ONLY**
+> - This rule applies to ALL files in the project
+
+> **버전**: 1.0.0
+> **최종 업데이트**: 2025-11-03
 > **목적**: 일관된 사용자 경험과 효율적인 개발을 위한 통합 디자인 시스템
 
 ---

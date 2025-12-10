@@ -135,8 +135,34 @@ export function VideoCanvas({ scene, format, isPlaying, width, height }: VideoCa
           height: dimensions.height * scale
         }}
       >
+        {/* Background Video Layer */}
+        {scene.background.type === 'video' && typeof scene.background.value === 'string' && (
+          <div className="absolute inset-0 z-0">
+            <video
+              src={scene.background.value}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         {/* Background Image Layer */}
-        {backgroundMedia && (
+        {scene.background.type === 'image' && typeof scene.background.value === 'string' && (
+          <div className="absolute inset-0 z-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={scene.background.value}
+              alt="Scene background"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
+        {/* Fetched Background Media Layer (from Pexels) */}
+        {backgroundMedia && scene.background.type !== 'video' && scene.background.type !== 'image' && (
           <div className="absolute inset-0 z-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

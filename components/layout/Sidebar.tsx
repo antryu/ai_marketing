@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Users,
   Moon,
-  Sun,
 } from "lucide-react"
 import { useBrand } from "@/contexts/BrandContext"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -35,25 +34,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { language } = useLanguage()
   const { theme, toggleTheme } = useTheme()
   const t = (key: TranslationKey) => translations[key][language]
-  const [showTrendsNew, setShowTrendsNew] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [contentMenuOpen, setContentMenuOpen] = useState(true)
-
-  // Check if user has visited trends page
-  useEffect(() => {
-    const hasVisitedTrends = localStorage.getItem('hasVisitedTrends')
-    if (hasVisitedTrends === 'true') {
-      setShowTrendsNew(false)
-    }
-  }, [])
-
-  // Mark trends as visited when user navigates to trends page
-  useEffect(() => {
-    if (pathname === '/trends') {
-      localStorage.setItem('hasVisitedTrends', 'true')
-      setShowTrendsNew(false)
-    }
-  }, [pathname])
 
   // Get user email
   useEffect(() => {
@@ -69,7 +51,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const navigation = [
     { name: t("navDashboard"), href: "/dashboard", icon: LayoutDashboard, highlight: false },
     { name: t("navBrandSettings"), href: "/brand", icon: Building2, highlight: false },
-    { name: t("navTrends"), href: "/trends", icon: TrendingUp, highlight: showTrendsNew },
+    { name: t("navTrends"), href: "/trends", icon: TrendingUp, highlight: false },
     {
       name: t("navContentGeneration"),
       icon: Sparkles,
