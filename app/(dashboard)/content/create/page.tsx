@@ -471,7 +471,7 @@ export default function ContentCreatePage() {
     }
   }
 
-  // Step 2: Generate image from text
+  // Step 2: Generate image from text (with AI-optimized prompt)
   const handleGenerateBundleImage = async () => {
     if (!generatedContent) {
       toast.error(language === "ko" ? "먼저 텍스트를 생성해주세요" : "Please generate text first")
@@ -481,16 +481,39 @@ export default function ContentCreatePage() {
     setGeneratingImage(true)
 
     try {
+      toast.info(language === "ko" ? "AI가 최적의 이미지 프롬프트 생성 중..." : "AI creating optimal image prompt...")
+
+      // Step 1: Use AI to generate optimal image prompt from content
+      const summarizeResponse = await fetch("/api/image/summarize-for-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          content: generatedContent,
+          style: imageStyle,
+          language,
+        })
+      })
+
+      const summarizeData = await summarizeResponse.json()
+      if (!summarizeResponse.ok) {
+        console.warn("AI summarization failed, falling back to topic-based prompt")
+      }
+
+      // Use AI-generated prompt or fallback to topic
+      const imagePrompt = summarizeData.success
+        ? summarizeData.imagePrompt
+        : topic
+
+      console.log("Using image prompt:", imagePrompt)
       toast.info(language === "ko" ? "이미지 생성 중... (10-20초)" : "Generating image... (10-20s)")
 
-      const contentSummary = generatedContent.slice(0, 500).replace(/[#*_\n]/g, ' ').trim()
-      const imagePromptFromContent = `${topic}: ${contentSummary}`
-
+      // Step 2: Generate image with optimized prompt
       const imageResponse = await fetch("/api/image/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: imagePromptFromContent,
+          prompt: imagePrompt,
           brandId: selectedBrandId,
           style: imageStyle,
           aspectRatio: imageAspectRatio,
