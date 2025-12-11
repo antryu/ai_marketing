@@ -442,7 +442,7 @@ export function AdvancedVideoEditor({
     : null
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 text-white">
+    <div className="fixed inset-0 z-50 flex flex-col bg-zinc-950 text-white">
       {/* Header - 통합 툴바 */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900">
         {/* 왼쪽: 뒤로가기 */}

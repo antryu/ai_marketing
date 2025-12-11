@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { Sparkles, Zap, Video, FileText, Tag, X, Image as ImageIcon, Download, Wand2, Maximize2, Minimize2, MessageSquare, RefreshCw, RotateCcw, Lightbulb, ChevronDown, ChevronUp, Copy, Check, Edit3, Scissors } from "lucide-react"
 import { VideoEditor } from "@/components/video/VideoEditor"
 import { AIVideoEditor } from "@/components/video/AIVideoEditor"
+import { AdvancedVideoEditor } from "@/components/video/AdvancedVideoEditor"
 import ReactMarkdown from "react-markdown"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { useBrand } from "@/contexts/BrandContext"
@@ -59,6 +60,7 @@ export default function ContentCreatePage() {
   const [generatingVideo, setGeneratingVideo] = useState(false)
   const [videoMotion, setVideoMotion] = useState<"low" | "medium" | "high">("medium")
   const [showVideoEditor, setShowVideoEditor] = useState(false)
+  const [showAdvancedEditor, setShowAdvancedEditor] = useState(false)
 
   // Suggestions from trends page
   const [suggestedHooks, setSuggestedHooks] = useState<string[]>([])
@@ -2553,17 +2555,19 @@ export default function ContentCreatePage() {
             setShowVideoEditor(false)
             toast.success(language === "ko" ? "비디오 편집 완료!" : "Video editing complete!")
           }}
-          onOpenAdvanced={async () => {
+          onOpenAdvanced={() => {
             setShowVideoEditor(false)
-            // Save current state before navigating
-            const savedContentId = await autoSaveContent({ videoUrl: generatedVideoUrl })
-            // Navigate to advanced editor page with video URL and contentId for restoration
-            const params = new URLSearchParams({
-              videoUrl: generatedVideoUrl,
-              ...(savedContentId && { contentId: savedContentId })
-            })
-            router.push(`/video-editor?${params.toString()}`)
+            setShowAdvancedEditor(true)
           }}
+        />
+      )}
+
+      {/* Advanced Video Editor Modal */}
+      {showAdvancedEditor && generatedVideoUrl && (
+        <AdvancedVideoEditor
+          videoUrl={generatedVideoUrl}
+          language={language}
+          onBack={() => setShowAdvancedEditor(false)}
         />
       )}
     </div>
