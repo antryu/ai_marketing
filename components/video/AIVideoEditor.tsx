@@ -7,21 +7,11 @@ import {
   Pause,
   RotateCcw,
   Download,
-  Scissors,
   Type,
-  Sparkles,
   Volume2,
   VolumeX,
-  Settings2,
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
   X,
-  Check,
   Loader2,
-  Sliders,
   Palette,
   LayoutGrid
 } from 'lucide-react'
@@ -112,7 +102,7 @@ export function AIVideoEditor({
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([])
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
   const [filter, setFilter] = useState<VideoFilter>(DEFAULT_FILTER)
-  const [activeTab, setActiveTab] = useState<'trim' | 'text' | 'filter'>('trim')
+  const [activeTab, setActiveTab] = useState<'text' | 'filter'>('text')
 
   // Export state
   const [isExporting, setIsExporting] = useState(false)
@@ -394,21 +384,12 @@ export function AIVideoEditor({
           <div className="px-6 py-4 bg-zinc-900 border-t border-zinc-800">
             {/* Progress Bar */}
             <div className="relative mb-4">
-              {/* Trim markers */}
-              <div
-                className="absolute top-0 bottom-0 bg-amber-500/20 rounded"
-                style={{
-                  left: `${(trimStart / duration) * 100}%`,
-                  width: `${((trimEnd - trimStart) / duration) * 100}%`,
-                }}
-              />
               <Slider
                 value={[currentTime]}
                 min={0}
                 max={duration || 1}
                 step={0.1}
                 onValueChange={handleSeek}
-                className="relative z-10"
               />
             </div>
 
@@ -453,11 +434,7 @@ export function AIVideoEditor({
         {/* Right Panel - Edit Tools */}
         <div className="w-80 border-l border-zinc-800 bg-zinc-900 flex flex-col">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-            <TabsList className="w-full grid grid-cols-3 p-1 m-2">
-              <TabsTrigger value="trim" className="text-xs">
-                <Scissors className="w-3 h-3 mr-1" />
-                {language === 'ko' ? '트림' : 'Trim'}
-              </TabsTrigger>
+            <TabsList className="w-full grid grid-cols-2 p-1 m-2">
               <TabsTrigger value="text" className="text-xs">
                 <Type className="w-3 h-3 mr-1" />
                 {language === 'ko' ? '텍스트' : 'Text'}
@@ -467,73 +444,6 @@ export function AIVideoEditor({
                 {language === 'ko' ? '필터' : 'Filter'}
               </TabsTrigger>
             </TabsList>
-
-            {/* Trim Tab */}
-            <TabsContent value="trim" className="flex-1 p-4 space-y-4 overflow-y-auto">
-              <div className="space-y-3">
-                <Label className="text-zinc-400">
-                  {language === 'ko' ? '시작 지점' : 'Start Point'}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[trimStart]}
-                    min={0}
-                    max={duration}
-                    step={0.1}
-                    onValueChange={(v) => setTrimStart(Math.min(v[0], trimEnd - 0.5))}
-                    className="flex-1"
-                  />
-                  <span className="text-xs text-zinc-500 font-mono w-16">
-                    {formatTime(trimStart)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-zinc-400">
-                  {language === 'ko' ? '종료 지점' : 'End Point'}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[trimEnd]}
-                    min={0}
-                    max={duration}
-                    step={0.1}
-                    onValueChange={(v) => setTrimEnd(Math.max(v[0], trimStart + 0.5))}
-                    className="flex-1"
-                  />
-                  <span className="text-xs text-zinc-500 font-mono w-16">
-                    {formatTime(trimEnd)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-zinc-800">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">
-                    {language === 'ko' ? '편집된 길이' : 'Edited Length'}
-                  </span>
-                  <span className="text-amber-400 font-mono">
-                    {formatTime(trimEnd - trimStart)}
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => {
-                  const video = videoRef.current
-                  if (video) {
-                    video.currentTime = trimStart
-                    setCurrentTime(trimStart)
-                  }
-                }}
-              >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                {language === 'ko' ? '시작점으로 이동' : 'Go to Start'}
-              </Button>
-            </TabsContent>
 
             {/* Text Tab */}
             <TabsContent value="text" className="flex-1 p-4 space-y-4 overflow-y-auto">
