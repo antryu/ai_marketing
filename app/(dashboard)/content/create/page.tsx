@@ -1511,10 +1511,18 @@ export default function ContentCreatePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-light text-white tracking-wide">
-                  {seoStep && !generatedContent ? (language === "ko" ? "콘텐츠 생성" : "Generate Content") : t("preview")}
+                  {(contentType === "bundle" || contentType === "full") && bundleStep !== "idle" && bundleStep !== "done"
+                    ? (language === "ko" ? "콘텐츠 생성 중" : "Generating Content")
+                    : seoStep && !generatedContent
+                    ? (language === "ko" ? "콘텐츠 생성" : "Generate Content")
+                    : t("preview")}
                 </h2>
                 <p className="text-zinc-400 text-xs font-normal tracking-wide mt-1">
-                  {seoStep && !generatedContent ? (language === "ko" ? "키워드 기반으로 텍스트, 이미지, 비디오를 생성합니다" : "Generate text, image, and video based on keywords") : t("generatedContentPreview")}
+                  {(contentType === "bundle" || contentType === "full") && bundleStep !== "idle" && bundleStep !== "done"
+                    ? (language === "ko" ? "텍스트, 이미지, 비디오를 순차적으로 생성합니다" : "Generating text, image, and video sequentially")
+                    : seoStep && !generatedContent
+                    ? (language === "ko" ? "키워드 기반으로 텍스트, 이미지, 비디오를 생성합니다" : "Generate text, image, and video based on keywords")
+                    : t("generatedContentPreview")}
                 </p>
               </div>
               <Sparkles className="w-5 h-5 text-amber-400" />
