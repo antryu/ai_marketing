@@ -306,9 +306,9 @@ export function AIVideoEditor({
   const selectedText = textOverlays.find(t => t.id === selectedTextId)
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />

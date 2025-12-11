@@ -41,6 +41,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { useVideoEditorStore, TimelineElement, TimelineTrack } from '@/store/video-editor-store'
 
@@ -572,70 +573,181 @@ export function AdvancedVideoEditor({
           </div>
         </div>
 
-        {/* Right Panel - 텍스트 편집 (선택시만 표시) */}
-        {selectedTextElement && selectedElementTrackId && (
-          <div className="w-56 border-l border-zinc-800 bg-zinc-900 p-4 overflow-y-auto">
-            <h3 className="text-sm font-medium text-zinc-300 mb-4">
-              {language === 'ko' ? '텍스트 편집' : 'Edit Text'}
-            </h3>
+        {/* Right Panel - 항상 표시 */}
+        <div className="w-72 border-l border-zinc-800 bg-zinc-900 flex flex-col">
+          <Tabs defaultValue="text" className="flex-1 flex flex-col">
+            <TabsList className="w-full grid grid-cols-2 p-1 m-2">
+              <TabsTrigger value="text" className="text-xs">
+                <Type className="w-3 h-3 mr-1" />
+                {language === 'ko' ? '텍스트' : 'Text'}
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs">
+                <Settings className="w-3 h-3 mr-1" />
+                {language === 'ko' ? '설정' : 'Settings'}
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-4">
-              {/* Text Content */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-zinc-400">{language === 'ko' ? '내용' : 'Content'}</label>
-                <textarea
-                  value={selectedTextElement.content || ''}
-                  onChange={(e) => updateElement(selectedElementTrackId, selectedTextElement.id, { content: e.target.value })}
-                  className="w-full h-16 px-2 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-white resize-none focus:outline-none focus:border-amber-500"
-                  placeholder={language === 'ko' ? '텍스트 입력...' : 'Enter text...'}
-                />
-              </div>
+            {/* Text Tab */}
+            <TabsContent value="text" className="flex-1 p-4 space-y-4 overflow-y-auto">
+              <Button onClick={handleAddText} className="w-full bg-amber-500 hover:bg-amber-400 text-black">
+                <Type className="w-4 h-4 mr-2" />
+                {language === 'ko' ? '텍스트 추가' : 'Add Text'}
+              </Button>
 
-              {/* Font Size */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-zinc-400">
-                  {language === 'ko' ? '크기' : 'Size'}: {selectedTextElement.fontSize || 48}px
-                </label>
-                <Slider
-                  value={[selectedTextElement.fontSize || 48]}
-                  onValueChange={(v) => updateElement(selectedElementTrackId, selectedTextElement.id, { fontSize: v[0] })}
-                  min={12}
-                  max={120}
-                  step={1}
-                />
-              </div>
-
-              {/* Text Color */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-zinc-400">{language === 'ko' ? '색상' : 'Color'}</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {['#ffffff', '#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00'].map(color => (
-                    <button
-                      key={color}
-                      onClick={() => updateElement(selectedElementTrackId, selectedTextElement.id, { color })}
-                      className={`w-5 h-5 rounded ${selectedTextElement.color === color ? 'ring-2 ring-amber-500' : 'ring-1 ring-zinc-600'}`}
-                      style={{ backgroundColor: color }}
-                    />
+              {/* Text Elements List */}
+              {tracks.filter(t => t.type === 'text').flatMap(t => t.elements).length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs text-zinc-400">
+                    {language === 'ko' ? '텍스트 목록' : 'Text List'}
+                  </label>
+                  {tracks.filter(t => t.type === 'text').flatMap(t =>
+                    t.elements.map(el => ({ ...el, trackId: t.id }))
+                  ).map(element => (
+                    <div
+                      key={element.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedElementIds.includes(element.id)
+                          ? 'border-amber-500 bg-amber-500/10'
+                          : 'border-zinc-700 hover:border-zinc-600'
+                      }`}
+                      onClick={() => selectElement(element.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm truncate flex-1">{element.content || element.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-6 h-6 text-zinc-500 hover:text-red-400"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeElement(element.trackId, element.id)
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
+              )}
 
-              {/* Duration */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-zinc-400">
-                  {language === 'ko' ? '시간' : 'Duration'}: {selectedTextElement.duration?.toFixed(1) || 3}s
-                </label>
-                <Slider
-                  value={[selectedTextElement.duration || 3]}
-                  onValueChange={(v) => updateElement(selectedElementTrackId, selectedTextElement.id, { duration: v[0] })}
-                  min={0.5}
-                  max={30}
-                  step={0.5}
-                />
+              {/* Selected Text Editor */}
+              {selectedTextElement && selectedElementTrackId && (
+                <div className="space-y-4 pt-4 border-t border-zinc-800">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-400">{language === 'ko' ? '내용' : 'Content'}</label>
+                    <textarea
+                      value={selectedTextElement.content || ''}
+                      onChange={(e) => updateElement(selectedElementTrackId, selectedTextElement.id, { content: e.target.value })}
+                      className="w-full h-16 px-2 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-white resize-none focus:outline-none focus:border-amber-500"
+                      placeholder={language === 'ko' ? '텍스트 입력...' : 'Enter text...'}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-400">
+                      {language === 'ko' ? '크기' : 'Size'}: {selectedTextElement.fontSize || 48}px
+                    </label>
+                    <Slider
+                      value={[selectedTextElement.fontSize || 48]}
+                      onValueChange={(v) => updateElement(selectedElementTrackId, selectedTextElement.id, { fontSize: v[0] })}
+                      min={12}
+                      max={120}
+                      step={1}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-400">{language === 'ko' ? '색상' : 'Color'}</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['#ffffff', '#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00'].map(color => (
+                        <button
+                          key={color}
+                          onClick={() => updateElement(selectedElementTrackId, selectedTextElement.id, { color })}
+                          className={`w-5 h-5 rounded ${selectedTextElement.color === color ? 'ring-2 ring-amber-500' : 'ring-1 ring-zinc-600'}`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-400">
+                      {language === 'ko' ? '시간' : 'Duration'}: {selectedTextElement.duration?.toFixed(1) || 3}s
+                    </label>
+                    <Slider
+                      value={[selectedTextElement.duration || 3]}
+                      onValueChange={(v) => updateElement(selectedElementTrackId, selectedTextElement.id, { duration: v[0] })}
+                      min={0.5}
+                      max={30}
+                      step={0.5}
+                    />
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="flex-1 p-4 space-y-4 overflow-y-auto">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-zinc-400">{language === 'ko' ? '재생 속도' : 'Playback Speed'}</label>
+                  <Select value={speed.toString()} onValueChange={(v) => setSpeed(parseFloat(v))}>
+                    <SelectTrigger className="w-full bg-zinc-800 border-zinc-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0.5">0.5x</SelectItem>
+                      <SelectItem value="0.75">0.75x</SelectItem>
+                      <SelectItem value="1">1x</SelectItem>
+                      <SelectItem value="1.25">1.25x</SelectItem>
+                      <SelectItem value="1.5">1.5x</SelectItem>
+                      <SelectItem value="2">2x</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs text-zinc-400">{language === 'ko' ? '볼륨' : 'Volume'}</label>
+                  <Slider
+                    value={[muted ? 0 : volume * 100]}
+                    min={0}
+                    max={100}
+                    onValueChange={([v]) => setVolume(v / 100)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-zinc-400">{language === 'ko' ? '스냅' : 'Snapping'}</label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleSnapping}
+                    className={snappingEnabled ? 'text-amber-400' : 'text-zinc-500'}
+                  >
+                    <Magnet className="w-4 h-4 mr-1" />
+                    {snappingEnabled ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs text-zinc-400">{language === 'ko' ? '타임라인 줌' : 'Timeline Zoom'}</label>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={zoomOut}>
+                      <ZoomOut className="w-4 h-4" />
+                    </Button>
+                    <span className="text-xs text-zinc-400 flex-1 text-center">
+                      {Math.round(zoomLevel * 100)}%
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={zoomIn}>
+                      <ZoomIn className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
       {/* Timeline Panel */}
