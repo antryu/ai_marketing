@@ -507,12 +507,12 @@ export function AdvancedVideoEditor({
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Video Preview - 전체 너비 사용 */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Video */}
-          <div className="flex-1 flex items-center justify-center bg-black">
-            <div className="relative w-full h-full max-w-4xl max-h-[60vh] m-4">
+          <div className="flex-1 flex items-center justify-center bg-black min-h-0">
+            <div className="relative w-full h-full max-w-3xl p-2">
               <video
                 ref={videoRef}
                 src={videoUrl}
@@ -520,14 +520,14 @@ export function AdvancedVideoEditor({
                 playsInline
               />
               {/* Time overlay */}
-              <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/70 rounded text-xs font-mono">
+              <div className="absolute bottom-4 left-4 px-2 py-1 bg-black/70 rounded text-xs font-mono">
                 {formatTime(currentTime)} / {formatTime(totalDuration)}
               </div>
             </div>
           </div>
 
           {/* Playback Controls - 간결하게 */}
-          <div className="py-3 px-4 border-t border-zinc-800 bg-zinc-900/80">
+          <div className="py-2 px-4 border-t border-zinc-800 bg-zinc-900/80 shrink-0">
             <div className="flex items-center justify-center gap-3">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => seek(0)}>
                 <SkipBack className="w-4 h-4" />
@@ -751,7 +751,7 @@ export function AdvancedVideoEditor({
       </div>
 
       {/* Timeline Panel */}
-      <div className="h-64 border-t border-zinc-800 bg-zinc-900 flex flex-col">
+      <div className="h-48 border-t border-zinc-800 bg-zinc-900 flex flex-col shrink-0">
         {/* Timeline Toolbar */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
           <div className="flex items-center gap-2">
