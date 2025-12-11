@@ -18,7 +18,7 @@ import {
   Type,
   Music,
   Video,
-  ArrowLeft,
+  X,
   Download,
   Undo,
   Redo,
@@ -445,9 +445,9 @@ export function AdvancedVideoEditor({
     <div className="fixed inset-0 z-50 flex flex-col bg-zinc-950 text-white">
       {/* Header - 통합 툴바 */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900">
-        {/* 왼쪽: 뒤로가기 */}
+        {/* 왼쪽: 닫기 */}
         <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="w-5 h-5" />
+          <X className="w-5 h-5" />
         </Button>
 
         {/* 중앙: 도구 버튼들 */}
