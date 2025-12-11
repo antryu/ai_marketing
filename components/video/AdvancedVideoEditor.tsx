@@ -519,6 +519,31 @@ export function AdvancedVideoEditor({
                 className="w-full h-full object-contain rounded-lg"
                 playsInline
               />
+              {/* Text overlays on video */}
+              {tracks.filter(t => t.type === 'text').flatMap(t => t.elements).map(element => {
+                const isVisible = currentTime >= element.startTime &&
+                  currentTime <= (element.startTime + element.duration - element.trimStart - element.trimEnd)
+                if (!isVisible) return null
+                return (
+                  <div
+                    key={element.id}
+                    className={`absolute pointer-events-none ${
+                      selectedElementIds.includes(element.id) ? 'ring-2 ring-amber-500' : ''
+                    }`}
+                    style={{
+                      left: `${element.x || 50}%`,
+                      top: `${element.y || 50}%`,
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: `${element.fontSize || 48}px`,
+                      color: element.color || '#ffffff',
+                      textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {element.content || ''}
+                  </div>
+                )
+              })}
               {/* Time overlay */}
               <div className="absolute bottom-4 left-4 px-2 py-1 bg-black/70 rounded text-xs font-mono">
                 {formatTime(currentTime)} / {formatTime(totalDuration)}
