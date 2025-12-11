@@ -248,39 +248,54 @@ export function AIVideoEditor({
     return `${mins}:${secs.toString().padStart(2, '0')}.${ms}`
   }
 
-  // Export video (simplified - actual FFmpeg processing would be needed)
+  // Export video via proxy API to avoid CORS
   const handleExport = async () => {
     setIsExporting(true)
     setExportProgress(0)
 
     try {
-      // Simulate export progress
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200))
+      // Show progress while downloading
+      for (let i = 0; i <= 50; i += 10) {
+        await new Promise(resolve => setTimeout(resolve, 100))
         setExportProgress(i)
       }
 
+      // Use proxy API to download video (avoids CORS issues)
+      const proxyUrl = `/api/video/download?url=${encodeURIComponent(videoUrl)}`
+      const response = await fetch(proxyUrl)
+
+      if (!response.ok) {
+        throw new Error('Download failed')
+      }
+
+      setExportProgress(80)
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `edited_video_${Date.now()}.mp4`
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      setExportProgress(100)
+
       toast.success(
         language === 'ko'
-          ? '비디오 편집 완료! 다운로드가 시작됩니다.'
-          : 'Video editing complete! Download starting.'
+          ? '비디오 다운로드 완료!'
+          : 'Video downloaded!'
       )
-
-      // For now, just download the original
-      // In production, FFmpeg.wasm would process the video
-      const link = document.createElement('a')
-      link.href = videoUrl
-      link.download = `edited_video_${Date.now()}.mp4`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
 
       onSave?.(videoUrl)
     } catch (error) {
+      console.error('Download error:', error)
       toast.error(
         language === 'ko'
-          ? '내보내기 실패. 다시 시도해주세요.'
-          : 'Export failed. Please try again.'
+          ? '다운로드 실패. 다시 시도해주세요.'
+          : 'Download failed. Please try again.'
       )
     } finally {
       setIsExporting(false)
@@ -328,7 +343,7 @@ export function AIVideoEditor({
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                {language === 'ko' ? '내보내기' : 'Export'}
+                {language === 'ko' ? '다운로드' : 'Download'}
               </>
             )}
           </Button>

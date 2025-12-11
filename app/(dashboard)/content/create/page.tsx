@@ -2454,12 +2454,7 @@ export default function ContentCreatePage() {
                           {language === "ko" ? "편집하기" : "Edit Video"}
                         </Button>
                         <Button
-                          onClick={() => {
-                            const link = document.createElement("a")
-                            link.href = generatedVideoUrl
-                            link.download = `${topic.replace(/\s+/g, "_")}_video.mp4`
-                            link.click()
-                          }}
+                          onClick={handleDownloadVideo}
                           variant="outline"
                           size="sm"
                           className="border-purple-500/50 text-purple-300 hover:bg-purple-500/10"

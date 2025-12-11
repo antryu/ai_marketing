@@ -129,7 +129,7 @@ export function VideoEditor({ project: initialProject, onSave, onExport, onBack 
           </Button>
           <Button size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
-            내보내기
+            다운로드
           </Button>
         </div>
       </div>

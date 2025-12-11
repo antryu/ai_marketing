@@ -2,13 +2,12 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, Suspense } from "react"
+import { Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { AdvancedVideoEditor } from "@/components/video/AdvancedVideoEditor"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { toast } from "sonner"
 
 function VideoEditorContent() {
   const router = useRouter()
@@ -17,10 +16,8 @@ function VideoEditorContent() {
 
   const videoUrl = searchParams.get('videoUrl')
   const videoDuration = parseFloat(searchParams.get('duration') || '3')
-  const contentId = searchParams.get('contentId') // For returning to content creation
-  const [isLoading, setIsLoading] = useState(true)
+  const contentId = searchParams.get('contentId')
 
-  // Navigate back to content creation with contentId for state restoration
   const handleBack = () => {
     if (contentId) {
       router.push(`/content/create?contentId=${contentId}`)
@@ -28,12 +25,6 @@ function VideoEditorContent() {
       router.back()
     }
   }
-
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 500)
-    return () => clearTimeout(timer)
-  }, [])
 
   if (!videoUrl) {
     return (
@@ -56,31 +47,11 @@ function VideoEditorContent() {
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
-          <p className="text-zinc-400">
-            {language === "ko" ? "편집기 로딩 중..." : "Loading editor..."}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <AdvancedVideoEditor
       videoUrl={videoUrl}
       videoDuration={videoDuration}
       onBack={handleBack}
-      onSave={(projectData) => {
-        toast.success(language === "ko" ? "프로젝트 저장됨" : "Project saved")
-        console.log('Saved project:', projectData)
-      }}
-      onExport={() => {
-        toast.success(language === "ko" ? "비디오 내보내기 시작..." : "Starting video export...")
-      }}
       language={language}
     />
   )

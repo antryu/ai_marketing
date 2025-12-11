@@ -20,7 +20,6 @@ import {
   Video,
   ArrowLeft,
   Download,
-  Save,
   Undo,
   Redo,
   Copy,
@@ -282,6 +281,40 @@ export function AdvancedVideoEditor({
     selectElement(elementId, e.shiftKey || e.metaKey)
   }, [selectElement])
 
+  // Handle video export/download via proxy API
+  const handleExportVideo = useCallback(async () => {
+    if (!videoUrl) return
+
+    try {
+      toast.info(language === 'ko' ? '다운로드 준비 중...' : 'Preparing download...')
+
+      // Use proxy API to download video (avoids CORS issues)
+      const proxyUrl = `/api/video/download?url=${encodeURIComponent(videoUrl)}`
+      const response = await fetch(proxyUrl)
+
+      if (!response.ok) {
+        throw new Error('Download failed')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `edited-video-${Date.now()}.mp4`
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast.success(language === 'ko' ? '비디오 다운로드 완료' : 'Video downloaded')
+      onExport?.()
+    } catch (error) {
+      console.error('Export error:', error)
+      toast.error(language === 'ko' ? '다운로드 실패' : 'Download failed')
+    }
+  }, [videoUrl, language, onExport])
+
   // Handle element double click (for editing)
   const handleElementDoubleClick = useCallback((element: TimelineElement) => {
     toast.info(
@@ -329,26 +362,32 @@ export function AdvancedVideoEditor({
   // Add text track
   const handleAddText = useCallback(() => {
     let textTrack = tracks.find(t => t.type === 'text')
+    let trackId: string
+
     if (!textTrack) {
-      const trackId = addTrack('text')
-      textTrack = { id: trackId, name: 'Text Track', type: 'text', elements: [], muted: false }
+      // Create new text track and get its ID
+      trackId = addTrack('text')
+    } else {
+      trackId = textTrack.id
     }
 
-    addElement(textTrack.id, {
-      name: language === 'ko' ? '텍스트' : 'Text',
-      type: 'text',
-      startTime: currentTime,
-      duration: 3,
-      trimStart: 0,
-      trimEnd: 0,
-      content: language === 'ko' ? '텍스트를 입력하세요' : 'Enter text',
-      fontSize: 48,
-      color: '#ffffff',
-      x: 50,
-      y: 50
-    })
-
-    toast.success(language === 'ko' ? '텍스트 추가됨' : 'Text added')
+    // Add element to the track (use trackId directly)
+    setTimeout(() => {
+      addElement(trackId, {
+        name: language === 'ko' ? '텍스트' : 'Text',
+        type: 'text',
+        startTime: currentTime,
+        duration: 3,
+        trimStart: 0,
+        trimEnd: 0,
+        content: language === 'ko' ? '텍스트를 입력하세요' : 'Enter text',
+        fontSize: 48,
+        color: '#ffffff',
+        x: 50,
+        y: 50
+      })
+      toast.success(language === 'ko' ? '텍스트 추가됨' : 'Text added')
+    }, 0)
   }, [tracks, addTrack, addElement, currentTime, language])
 
   // Keyboard shortcuts
@@ -391,91 +430,135 @@ export function AdvancedVideoEditor({
 
   const totalDuration = getTotalDuration()
 
+  // Get selected text element for editing
+  const selectedTextElement = selectedElementIds.length === 1
+    ? tracks.flatMap(t => t.elements).find(e => e.id === selectedElementIds[0] && e.type === 'text')
+    : null
+
+  // Find track ID for selected element
+  const selectedElementTrackId = selectedTextElement
+    ? tracks.find(t => t.elements.some(e => e.id === selectedTextElement.id))?.id
+    : null
+
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-white">
-      {/* Header */}
+      {/* Header - 통합 툴바 */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-semibold">
-            {language === 'ko' ? '고급 비디오 편집기' : 'Advanced Video Editor'}
-          </h1>
+        {/* 왼쪽: 뒤로가기 */}
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+
+        {/* 중앙: 도구 버튼들 */}
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={handleAddText} className="gap-2">
+                  <Type className="w-4 h-4" />
+                  <span className="text-xs">{language === 'ko' ? '텍스트' : 'Text'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{language === 'ko' ? '텍스트 추가' : 'Add Text'}</TooltipContent>
+            </Tooltip>
+
+            <div className="w-px h-6 bg-zinc-700 mx-2" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={handleSplit}>
+                  <Scissors className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{language === 'ko' ? '분할' : 'Split'}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={handleDelete}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{language === 'ko' ? '삭제' : 'Delete'}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSnapping}
+                  className={snappingEnabled ? 'text-amber-400' : ''}
+                >
+                  <Magnet className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{language === 'ko' ? '스냅' : 'Snap'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => onSave?.({ tracks, duration })}>
-            <Save className="w-4 h-4 mr-2" />
-            {language === 'ko' ? '저장' : 'Save'}
-          </Button>
-          <Button size="sm" className="bg-amber-500 hover:bg-amber-400 text-black" onClick={onExport}>
-            <Download className="w-4 h-4 mr-2" />
-            {language === 'ko' ? '내보내기' : 'Export'}
-          </Button>
-        </div>
+        {/* 오른쪽: 다운로드 */}
+        <Button size="sm" className="bg-amber-500 hover:bg-amber-400 text-black" onClick={handleExportVideo}>
+          <Download className="w-4 h-4 mr-2" />
+          {language === 'ko' ? '다운로드' : 'Download'}
+        </Button>
       </div>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Preview Panel */}
+        {/* Video Preview - 전체 너비 사용 */}
         <div className="flex-1 flex flex-col">
-          {/* Video Preview */}
-          <div className="flex-1 flex items-center justify-center bg-black p-4">
-            <div className="relative max-w-full max-h-full aspect-video bg-zinc-900 rounded-lg overflow-hidden shadow-2xl">
+          {/* Video */}
+          <div className="flex-1 flex items-center justify-center bg-black">
+            <div className="relative w-full h-full max-w-4xl max-h-[60vh] m-4">
               <video
                 ref={videoRef}
                 src={videoUrl}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain rounded-lg"
                 playsInline
               />
-
               {/* Time overlay */}
-              <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/70 rounded-lg text-sm font-mono">
+              <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/70 rounded text-xs font-mono">
                 {formatTime(currentTime)} / {formatTime(totalDuration)}
               </div>
             </div>
           </div>
 
-          {/* Playback Controls */}
-          <div className="p-4 border-t border-zinc-800 bg-zinc-900">
-            <div className="flex items-center justify-center gap-4">
-              {/* Skip Back */}
-              <Button variant="ghost" size="icon" onClick={() => seek(0)}>
-                <SkipBack className="w-5 h-5" />
+          {/* Playback Controls - 간결하게 */}
+          <div className="py-3 px-4 border-t border-zinc-800 bg-zinc-900/80">
+            <div className="flex items-center justify-center gap-3">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => seek(0)}>
+                <SkipBack className="w-4 h-4" />
               </Button>
 
-              {/* Play/Pause */}
               <Button
                 size="icon"
-                className="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-400 text-black"
+                className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-black"
                 onClick={toggle}
               >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
               </Button>
 
-              {/* Skip Forward */}
-              <Button variant="ghost" size="icon" onClick={() => seek(totalDuration)}>
-                <SkipForward className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => seek(totalDuration)}>
+                <SkipForward className="w-4 h-4" />
               </Button>
 
-              {/* Volume */}
-              <div className="flex items-center gap-2 ml-4">
-                <Button variant="ghost" size="icon" onClick={toggleMute}>
-                  {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </Button>
-                <Slider
-                  value={[muted ? 0 : volume * 100]}
-                  min={0}
-                  max={100}
-                  onValueChange={([v]) => setVolume(v / 100)}
-                  className="w-20"
-                />
-              </div>
+              <div className="w-px h-6 bg-zinc-700 mx-2" />
 
-              {/* Speed */}
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleMute}>
+                {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+              <Slider
+                value={[muted ? 0 : volume * 100]}
+                min={0}
+                max={100}
+                onValueChange={([v]) => setVolume(v / 100)}
+                className="w-16"
+              />
+
               <Select value={speed.toString()} onValueChange={(v) => setSpeed(parseFloat(v))}>
-                <SelectTrigger className="w-20 h-8">
+                <SelectTrigger className="w-16 h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -489,61 +572,70 @@ export function AdvancedVideoEditor({
           </div>
         </div>
 
-        {/* Right Sidebar - Tools */}
-        <div className="w-14 border-l border-zinc-800 bg-zinc-900 flex flex-col items-center py-4 gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={handleAddText}>
-                  <Type className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                {language === 'ko' ? '텍스트 추가' : 'Add Text'}
-              </TooltipContent>
-            </Tooltip>
+        {/* Right Panel - 텍스트 편집 (선택시만 표시) */}
+        {selectedTextElement && selectedElementTrackId && (
+          <div className="w-56 border-l border-zinc-800 bg-zinc-900 p-4 overflow-y-auto">
+            <h3 className="text-sm font-medium text-zinc-300 mb-4">
+              {language === 'ko' ? '텍스트 편집' : 'Edit Text'}
+            </h3>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={handleSplit}>
-                  <Scissors className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                {language === 'ko' ? '분할 (Cmd+S)' : 'Split (Cmd+S)'}
-              </TooltipContent>
-            </Tooltip>
+            <div className="space-y-4">
+              {/* Text Content */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400">{language === 'ko' ? '내용' : 'Content'}</label>
+                <textarea
+                  value={selectedTextElement.content || ''}
+                  onChange={(e) => updateElement(selectedElementTrackId, selectedTextElement.id, { content: e.target.value })}
+                  className="w-full h-16 px-2 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-white resize-none focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'ko' ? '텍스트 입력...' : 'Enter text...'}
+                />
+              </div>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={handleDelete}>
-                  <Trash2 className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                {language === 'ko' ? '삭제' : 'Delete'}
-              </TooltipContent>
-            </Tooltip>
+              {/* Font Size */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400">
+                  {language === 'ko' ? '크기' : 'Size'}: {selectedTextElement.fontSize || 48}px
+                </label>
+                <Slider
+                  value={[selectedTextElement.fontSize || 48]}
+                  onValueChange={(v) => updateElement(selectedElementTrackId, selectedTextElement.id, { fontSize: v[0] })}
+                  min={12}
+                  max={120}
+                  step={1}
+                />
+              </div>
 
-            <div className="flex-1" />
+              {/* Text Color */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400">{language === 'ko' ? '색상' : 'Color'}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['#ffffff', '#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00'].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => updateElement(selectedElementTrackId, selectedTextElement.id, { color })}
+                      className={`w-5 h-5 rounded ${selectedTextElement.color === color ? 'ring-2 ring-amber-500' : 'ring-1 ring-zinc-600'}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleSnapping}
-                  className={snappingEnabled ? 'text-amber-400' : ''}
-                >
-                  <Magnet className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                {language === 'ko' ? '스냅 토글' : 'Toggle Snap'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+              {/* Duration */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-zinc-400">
+                  {language === 'ko' ? '시간' : 'Duration'}: {selectedTextElement.duration?.toFixed(1) || 3}s
+                </label>
+                <Slider
+                  value={[selectedTextElement.duration || 3]}
+                  onValueChange={(v) => updateElement(selectedElementTrackId, selectedTextElement.id, { duration: v[0] })}
+                  min={0.5}
+                  max={30}
+                  step={0.5}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Timeline Panel */}
