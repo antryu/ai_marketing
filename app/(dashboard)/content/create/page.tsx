@@ -541,19 +541,38 @@ export default function ContentCreatePage() {
     if (!generatedVideoUrl) return
 
     try {
-      const response = await fetch(generatedVideoUrl)
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `ai-video-${Date.now()}.mp4`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      toast.success(language === "ko" ? "비디오 다운로드 완료" : "Video downloaded")
+      // Try fetch first (works if CORS allows)
+      const response = await fetch(generatedVideoUrl, { mode: 'cors' })
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `ai-video-${Date.now()}.mp4`
+        a.style.display = 'none'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        toast.success(language === "ko" ? "비디오 다운로드 완료" : "Video downloaded")
+      } else {
+        throw new Error('Fetch failed')
+      }
     } catch (error) {
-      toast.error(language === "ko" ? "다운로드 실패" : "Download failed")
+      // Fallback: open in new tab for manual download
+      // Use window.open with specific features to avoid navigation
+      const newWindow = window.open(generatedVideoUrl, '_blank', 'noopener,noreferrer')
+      if (newWindow) {
+        toast.info(language === "ko" ? "새 탭에서 비디오를 저장하세요 (우클릭 → 다른 이름으로 저장)" : "Save video from new tab (right-click → Save as)")
+      } else {
+        // If popup blocked, create download link
+        const a = document.createElement('a')
+        a.href = generatedVideoUrl
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        a.click()
+        toast.info(language === "ko" ? "새 탭에서 비디오를 저장하세요" : "Save video from new tab")
+      }
     }
   }
 
